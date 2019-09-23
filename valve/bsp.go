@@ -27,7 +27,6 @@ type bspstructs struct {
 	texInfos  []texinfo.TexInfo
 	dispInfos []dispinfo.DispInfo
 	dispVerts []dispvert.DispVert
-	game      *lumps.Game
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -36,11 +35,7 @@ type bspstructs struct {
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBspMap(filename string) (*Bsp, error) {
-	file, err := bsp.ReadFromFile(filename)
-	if err != nil {
-		return nil, err
-	}
+func LoadBSPWorld(file *bsp.Bsp) (*Bsp, error) {
 	//ResourceManager := resource.Manager()
 	bspStructure := bspstructs{
 		faces:     file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
@@ -51,7 +46,6 @@ func LoadBspMap(filename string) (*Bsp, error) {
 		texInfos:  file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
 		dispInfos: file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
 		dispVerts: file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
-		game:      file.Lump(bsp.LumpGame).(*lumps.Game),
 	}
 
 	//MATERIALS

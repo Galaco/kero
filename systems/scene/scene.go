@@ -4,10 +4,10 @@ import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/event/message"
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
 	loader "github.com/galaco/kero/systems/scene/loaders"
+	"github.com/galaco/kero/valve"
 )
 
 type Scene struct {

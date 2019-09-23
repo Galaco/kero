@@ -1,23 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/lib/gameinfo"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/internal/config"
-	"github.com/galaco/kero/systems/console"
-	"github.com/galaco/kero/systems/gui"
-	input2 "github.com/galaco/kero/systems/input"
-	"github.com/galaco/kero/systems/renderer"
-	"github.com/galaco/kero/systems/scene"
+	filesystemLib "github.com/golang-source-engine/filesystem"
+	"log"
 	"runtime"
+	"strings"
 )
 
 func main() {
 	runtime.LockOSThread()
 
+	initialiseFramework()
+	engine := NewKero()
+	engine.Start()
+}
+
+func initialiseFramework() {
 	cfg, err := config.Load("./config.json")
 	if err != nil {
 		panic(err)
@@ -28,9 +33,6 @@ func main() {
 	if err = initializeFramework(); err != nil {
 		panic(err)
 	}
-
-	engine := NewEngine(console.NewConsole(), input2.NewInput(), scene.NewScene(), renderer.NewRenderer(), gui.NewGui())
-	engine.RunGameLoop()
 }
 
 func initializeSourceEngine(gameDir string) error {
@@ -38,7 +40,14 @@ func initializeSourceEngine(gameDir string) error {
 	if err != nil {
 		return err
 	}
-	filesystem.InitializeFromGameInfoDefinitions(gameDir, gameInfo)
+	_, err = filesystem.InitializeFromGameInfoDefinitions(gameDir, gameInfo)
+	if err != nil {
+		if fsErr, ok := err.(*filesystemLib.InvalidResourcePathCollectionError); ok {
+			for _, s := range strings.Split(fsErr.Error(), "|") {
+				log.Println(fmt.Sprintf("Invalid resource path: %s", s))
+			}
+		}
+	}
 
 	return nil
 }
