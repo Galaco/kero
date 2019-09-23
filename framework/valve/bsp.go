@@ -11,11 +11,11 @@ import (
 	"github.com/galaco/bsp/primitives/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
-	bsp2 "github.com/galaco/kero/framework/lib/bsp"
 	"github.com/galaco/kero/framework/lib/stringtable"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 	"strings"
+	"sync"
 )
 
 type bspstructs struct {
@@ -37,7 +37,7 @@ type bspstructs struct {
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBspMap(filename string) (*Bsp, error) {
-	file, err := bsp2.LoadBSP(filename)
+	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
 		return nil,err
 	}
@@ -60,15 +60,7 @@ func LoadBspMap(filename string) (*Bsp, error) {
 		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable))
 	materials := stringtable.SortUnique(stringTable, &bspStructure.texInfos)
 
-	materialDictionary := map[string]*graphics.Material{}
-	for _,filePath := range materials {
-		mat,err := graphics.LoadMaterial(filePath)
-		if err != nil {
-			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
-			continue
-		}
-		materialDictionary[strings.ToLower(filePath)] = mat
-	}
+	materialDictionary := buildMaterialDictionary(materials)
 
 	// BSP FACES
 	bspMesh := graphics.NewMesh()
@@ -89,7 +81,7 @@ func LoadBspMap(filename string) (*Bsp, error) {
 
 	// Add MATERIALS TO FACES
 	for idx := range bspFaces {
-		faceVmt, err := stringTable.GetString(int(bspStructure.texInfos[bspStructure.faces[idx].TexInfo].TexData))
+		faceVmt, err := stringTable.FindString(int(bspStructure.texInfos[bspStructure.faces[idx].TexInfo].TexData))
 		if err != nil {
 			console.PrintInterface(console.LevelError, err)
 		} else {
@@ -114,6 +106,33 @@ func LoadBspMap(filename string) (*Bsp, error) {
 	//return scene.NewScene(*bspObject, staticProps)
 
 	return NewBsp(bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
+}
+
+func buildMaterialDictionary(materials []string) (dictionary map[string]*graphics.Material) {
+	dictionary = map[string]*graphics.Material{}
+	waitGroup := sync.WaitGroup{}
+	dictMutex := sync.Mutex{}
+
+	asyncLoadMaterial := func(filePath string) {
+		waitGroup.Add(1)
+		mat,err := graphics.LoadMaterial(filePath)
+		if err != nil {
+			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
+			waitGroup.Done()
+			return
+		}
+		dictMutex.Lock()
+		dictionary[strings.ToLower(filePath)] = mat
+		dictMutex.Unlock()
+		waitGroup.Done()
+	}
+
+	for _,filePath := range materials {
+		go asyncLoadMaterial(filePath)
+	}
+	waitGroup.Wait()
+
+	return dictionary
 }
 
 // generateBspFace Create primitives from face data in the bsp
