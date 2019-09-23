@@ -1,0 +1,22 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: galaco/go-gtk-ci:1.13b1
+    steps:
+      - checkout
+      - run:
+          name: Install Go Dependencies
+          command: |
+            go get -u
+      - run:
+          name: Lint
+          command: golangci-lint run --deadline=2m
+      - run:
+          name: Test
+          command: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - run:
+          name: Upload Codecov Results
+          command: bash <(curl -s https://codecov.io/bash)
+          when: on_success
+

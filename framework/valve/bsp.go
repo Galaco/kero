@@ -11,8 +11,8 @@ import (
 	"github.com/galaco/bsp/primitives/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/framework/lib/stringtable"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/golang-source-engine/stringtable"
 	"math"
 	"strings"
 	"sync"
@@ -55,10 +55,10 @@ func LoadBspMap(filename string) (*Bsp, error) {
 	}
 
 	//MATERIALS
-	stringTable := stringtable.NewTable(
-		file.Lump(bsp.LumpTexDataStringData).(*lumps.TexDataStringData),
-		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable))
-	materials := stringtable.SortUnique(stringTable, &bspStructure.texInfos)
+	stringTable := stringtable.NewFromExistingStringTableData(
+		file.Lump(bsp.LumpTexDataStringData).(*lumps.TexDataStringData).GetData(),
+		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable).GetData())
+	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos)
 
 	materialDictionary := buildMaterialDictionary(materials)
 
@@ -106,6 +106,27 @@ func LoadBspMap(filename string) (*Bsp, error) {
 	//return scene.NewScene(*bspObject, staticProps)
 
 	return NewBsp(bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
+}
+
+// SortUnique builds a unique list of materials in a StringTable
+// referenced by BSP TexInfo lump data.
+func buildUniqueMaterialList(stringTable *stringtable.StringTable, texInfos *[]texinfo.TexInfo) []string {
+	materialList := make([]string, 0)
+	for _, ti := range *texInfos {
+		target, _ := stringTable.FindString(int(ti.TexData))
+		found := false
+		for _, cur := range materialList {
+			if cur == target {
+				found = true
+				break
+			}
+		}
+		if !found {
+			materialList = append(materialList, target)
+		}
+	}
+
+	return materialList
 }
 
 func buildMaterialDictionary(materials []string) (dictionary map[string]*graphics.Material) {

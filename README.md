@@ -14,3 +14,7 @@ To build the project, all you need to do is run:
 
 To run it, copy `config.example.json` to `config.json`, then change the `gameDirectory` value to a Source Engine game installation
 on your machine. After that, just run the binary you compiled.
+
+**This is based on another project of mine: [https://github.com/galaco/lambda-client](https://github.com/galaco/lambda-client)
+This is meant to be an attempt to create a somewhat more modular and reusable and high-quality codebase. Lambda-Client could
+be considered more of an experimentation ground for feature implementations.**
