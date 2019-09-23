@@ -24,8 +24,13 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 	}
 }
 
+func (s *Input) frameworkMousePositionCallback(x, y float64) {
+	event.Singleton().Dispatch(messages.NewMouseMove(x, y))
+}
+
 func NewInput() *Input {
 	i := &Input{}
 	input.Keyboard().RegisterExternalKeyCallback(i.frameworkKeyCallback)
+	input.Mouse().RegisterExternalMousePositionCallback(i.frameworkMousePositionCallback)
 	return i
 }

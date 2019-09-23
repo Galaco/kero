@@ -8,6 +8,7 @@ import (
 const (
 	TypeKeyPress   = message.Type("KeyPress")
 	TypeKeyRelease = message.Type("KeyRelease")
+	TypeMouseMove   = message.Type("MouseMove")
 )
 
 type KeyPress struct {
@@ -43,5 +44,20 @@ func (msg *KeyRelease) Key() input.Key {
 func NewKeyRelease(key input.Key) *KeyRelease {
 	return &KeyRelease{
 		key: key,
+	}
+}
+
+type MouseMove struct {
+	X, Y float64
+}
+
+func (msg *MouseMove) Type() message.Type {
+	return TypeMouseMove
+}
+
+func NewMouseMove(x, y float64) *MouseMove {
+	return &MouseMove{
+		X: x,
+		Y: y,
 	}
 }
