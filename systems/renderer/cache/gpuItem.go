@@ -1,6 +1,5 @@
 package cache
 
-
 type GpuItem struct {
 	items map[string]uint32
 }
@@ -11,7 +10,7 @@ func (cache *GpuItem) Add(name string, item uint32) {
 }
 
 // Find
-func (cache *GpuItem) Find(name string) uint32{
+func (cache *GpuItem) Find(name string) uint32 {
 	return cache.items[name]
 }
 

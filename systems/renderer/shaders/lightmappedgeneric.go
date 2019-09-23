@@ -23,7 +23,6 @@ var LightMappedGenericFragment = `
     }
 ` + "\x00"
 
-
 // language=glsl
 var LightMappedGenericVertex = `
     #version 410

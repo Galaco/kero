@@ -30,9 +30,9 @@ type bspstructs struct {
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBspMap(filename string) (*valve.Bsp, error) {
-	level,err := valve.LoadBspMap(filename)
+	level, err := valve.LoadBspMap(filename)
 
-	return level,err
+	return level, err
 
 	// Generate Texture list from materials
 

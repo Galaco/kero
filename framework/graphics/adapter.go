@@ -64,11 +64,10 @@ func textureFormatFromVtfFormat(vtfFormat uint32) uint32 {
 	}
 }
 
-
 type GpuMesh *gosigl.VertexObject
 
 func UploadMesh(mesh *Mesh) GpuMesh {
-	gpuResource  := gosigl.NewMesh(mesh.Vertices())
+	gpuResource := gosigl.NewMesh(mesh.Vertices())
 	gosigl.CreateVertexAttribute(gpuResource, mesh.UVs(), 2)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Normals(), 3)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Tangents(), 4)

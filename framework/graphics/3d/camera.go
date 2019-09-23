@@ -30,9 +30,9 @@ func (camera *Camera) Transform() *Transform {
 
 // Rotate
 func (camera *Camera) Rotate(x, y, z float32) {
-	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + float32(x * sensitivity)
-	camera.Transform().Rotation[1] = camera.Transform().Rotation[1] + float32(y * sensitivity)
-	camera.Transform().Rotation[2] = camera.Transform().Rotation[2] + float32(z * sensitivity)
+	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + float32(x*sensitivity)
+	camera.Transform().Rotation[1] = camera.Transform().Rotation[1] + float32(y*sensitivity)
+	camera.Transform().Rotation[2] = camera.Transform().Rotation[2] + float32(z*sensitivity)
 
 	// Lock vertical rotation
 	if camera.Transform().Rotation[2] > maxVerticalRotation {

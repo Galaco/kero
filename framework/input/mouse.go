@@ -6,7 +6,7 @@ import (
 )
 
 type mouse struct {
-	mouse *tinygametools.Mouse
+	mouse      *tinygametools.Mouse
 	xOld, yOld float64
 }
 
@@ -19,8 +19,7 @@ func (m *mouse) RegisterExternalMousePositionCallback(callback func(x, y float64
 			m.yOld = ypos
 		}
 
-
-		callback(xpos - m.xOld, ypos - m.yOld)
+		callback(xpos-m.xOld, ypos-m.yOld)
 		m.xOld = xpos
 		m.yOld = ypos
 	})

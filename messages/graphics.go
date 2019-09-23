@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TypeTextureLoaded = message.Type("TextureLoaded")
+	TypeTextureLoaded  = message.Type("TextureLoaded")
 	TypeMaterialLoaded = message.Type("MaterialLoaded")
 )
 
@@ -28,7 +28,6 @@ func NewTextureLoaded(texture *graphics.Texture) *TextureLoaded {
 	}
 }
 
-
 type MaterialLoaded struct {
 	material *graphics.Material
 }
@@ -46,4 +45,3 @@ func NewMaterialLoaded(material *graphics.Material) *MaterialLoaded {
 		material: material,
 	}
 }
-

@@ -24,7 +24,7 @@ func (s *Scene) ProcessMessage(message message.Dispatchable) {
 	switch message.Type() {
 	case messages.TypeChangeLevel:
 		// LoadLevel
-		level,err := loader.LoadBspMap(message.(*messages.ChangeLevel).LevelName())
+		level, err := loader.LoadBspMap(message.(*messages.ChangeLevel).LevelName())
 		if err != nil {
 			event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 			return

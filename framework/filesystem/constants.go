@@ -1,7 +1,7 @@
 package filesystem
 
 const (
-	ExtensionVmt = ".vmt"
-	ExtensionVtf = ".vtf"
+	ExtensionVmt     = ".vmt"
+	ExtensionVtf     = ".vtf"
 	BasePathMaterial = "materials/"
 )

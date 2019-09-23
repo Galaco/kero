@@ -5,10 +5,10 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	c := Get()
+	c := Singleton()
 
 	if c == nil {
-		t.Error("exepcted Config, but got nil")
+		t.Error("expected Config, but got nil")
 	}
 }
 

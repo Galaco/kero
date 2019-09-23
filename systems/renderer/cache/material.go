@@ -9,7 +9,7 @@ type GpuMaterial struct {
 }
 
 func NewGpuMaterial(diffuse uint32) *GpuMaterial {
-	return&GpuMaterial{
+	return &GpuMaterial{
 		Diffuse: diffuse,
 	}
 }
@@ -24,7 +24,7 @@ func (cache *Material) Add(name string, item *GpuMaterial) {
 }
 
 // Find
-func (cache *Material) Find(name string) *GpuMaterial{
+func (cache *Material) Find(name string) *GpuMaterial {
 	return cache.items[name]
 }
 

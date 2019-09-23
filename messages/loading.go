@@ -17,7 +17,7 @@ func (msg *LoadingLevelParsed) Type() message.Type {
 	return TypeLoadingLevelParsed
 }
 
-func (msg *LoadingLevelParsed) Level()*valve.Bsp {
+func (msg *LoadingLevelParsed) Level() *valve.Bsp {
 	return msg.level
 }
 

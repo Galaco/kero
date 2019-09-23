@@ -8,7 +8,7 @@ import (
 const (
 	TypeKeyPress   = message.Type("KeyPress")
 	TypeKeyRelease = message.Type("KeyRelease")
-	TypeMouseMove   = message.Type("MouseMove")
+	TypeMouseMove  = message.Type("MouseMove")
 )
 
 type KeyPress struct {

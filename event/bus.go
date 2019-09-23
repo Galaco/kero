@@ -13,9 +13,9 @@ func Singleton() *bus {
 }
 
 type bus struct {
-	messages []message.Dispatchable
+	messages    []message.Dispatchable
 	newMessages []message.Dispatchable
-	systems  []systems.ISystem
+	systems     []systems.ISystem
 }
 
 // ProcessMessages

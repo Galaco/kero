@@ -10,7 +10,7 @@ const (
 )
 
 type ConsoleMessage struct {
-	level console.LogLevel
+	level   console.LogLevel
 	message string
 }
 
@@ -28,7 +28,7 @@ func (msg *ConsoleMessage) Message() string {
 
 func NewConsoleMessage(level console.LogLevel, message string) *ConsoleMessage {
 	return &ConsoleMessage{
-		level: level,
+		level:   level,
 		message: message,
 	}
 }

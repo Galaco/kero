@@ -16,7 +16,7 @@ func (cache *Texture) Add(name string, item *graphics.Texture) {
 }
 
 // Find
-func (cache *Texture) Find(name string) *graphics.Texture{
+func (cache *Texture) Find(name string) *graphics.Texture {
 	return cache.items[name]
 }
 

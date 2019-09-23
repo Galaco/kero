@@ -31,7 +31,7 @@ func NewMaterial(filePath string) *Material {
 func LoadMaterial(filePath string) (*Material, error) {
 	props, err := material.LoadVmtFromFilesystem(filesystem.Singleton(), filePath)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	mat := NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture

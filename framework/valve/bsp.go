@@ -39,7 +39,7 @@ type bspstructs struct {
 func LoadBspMap(filename string) (*Bsp, error) {
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	//ResourceManager := resource.Manager()
 	bspStructure := bspstructs{
@@ -136,7 +136,7 @@ func buildMaterialDictionary(materials []string) (dictionary map[string]*graphic
 
 	asyncLoadMaterial := func(filePath string) {
 		waitGroup.Add(1)
-		mat,err := graphics.LoadMaterial(filePath)
+		mat, err := graphics.LoadMaterial(filePath)
 		if err != nil {
 			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
 			waitGroup.Done()
@@ -148,7 +148,7 @@ func buildMaterialDictionary(materials []string) (dictionary map[string]*graphic
 		waitGroup.Done()
 	}
 
-	for _,filePath := range materials {
+	for _, filePath := range materials {
 		go asyncLoadMaterial(filePath)
 	}
 	waitGroup.Wait()
@@ -290,11 +290,11 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 
 // Bsp
 type Bsp struct {
-	mesh *graphics.Mesh
-	faces []BspFace
-	dispFaces []int
+	mesh               *graphics.Mesh
+	faces              []BspFace
+	dispFaces          []int
 	materialDictionary map[string]*graphics.Material
-	textureInfos []texinfo.TexInfo
+	textureInfos       []texinfo.TexInfo
 }
 
 // Mesh
@@ -328,22 +328,21 @@ func NewBsp(
 	dispFaces []int,
 	materialDictionary map[string]*graphics.Material,
 	textureInfos []texinfo.TexInfo) *Bsp {
-	return &Bsp {
-		mesh: mesh,
-		faces: faces,
-		dispFaces: dispFaces,
+	return &Bsp{
+		mesh:               mesh,
+		faces:              faces,
+		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
-		textureInfos: textureInfos,
+		textureInfos:       textureInfos,
 	}
 }
 
-
 // BspFace
 type BspFace struct {
-	offset int
-	length int
+	offset   int
+	length   int
 	material string
-	texInfo *texinfo.TexInfo
+	texInfo  *texinfo.TexInfo
 }
 
 // Offset
@@ -371,8 +370,8 @@ func (face *BspFace) TexInfo() *texinfo.TexInfo {
 // NewFace
 func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo) BspFace {
 	return BspFace{
-		offset: int(offset),
-		length: int(length),
+		offset:  int(offset),
+		length:  int(length),
 		texInfo: texInfo,
 	}
 }

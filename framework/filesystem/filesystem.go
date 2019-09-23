@@ -16,7 +16,7 @@ func Singleton() *filesystemLib.FileSystem {
 // from gameinfo.txt
 // All games should ship with a gameinfo.txt, but it isn't actually mandatory.
 func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyValue) (*filesystemLib.FileSystem, error) {
-	lfs,err := filesystemLib.CreateFilesystemFromGameInfoDefinitions(basePath, gameInfo, true)
+	lfs, err := filesystemLib.CreateFilesystemFromGameInfoDefinitions(basePath, gameInfo, true)
 	fs = lfs
 	return fs, err
 }

@@ -4,16 +4,19 @@ import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
+	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
 )
 
 type SceneGraph struct {
-	bspMesh *graphics.Mesh
+	bspMesh  *graphics.Mesh
 	bspFaces []valve.BspFace
 
 	gpuMesh graphics.GpuMesh
+
+	camera *graphics3d.Camera
 }
 
 func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
@@ -21,9 +24,9 @@ func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCa
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
-	for _,mat := range level.MaterialDictionary() {
+	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex,err := graphics.LoadTexture(mat.BaseTextureName)
+			tex, err := graphics.LoadTexture(mat.BaseTextureName)
 			if err != nil {
 				event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
@@ -60,8 +63,9 @@ func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCa
 	level.Mesh().GenerateTangents()
 
 	return &SceneGraph{
-		bspMesh: level.Mesh(),
-		gpuMesh: graphics.UploadMesh(level.Mesh()),
+		bspMesh:  level.Mesh(),
+		gpuMesh:  graphics.UploadMesh(level.Mesh()),
 		bspFaces: level.Faces(),
+		camera:   graphics3d.NewCamera(90, 16/9),
 	}
 }
