@@ -40,6 +40,10 @@ func (b *bus) Dispatch(message message.Dispatchable) {
 	b.newMessages = append(b.newMessages, message)
 }
 
+func (b *bus) ClearQueue() {
+	b.newMessages = make([]message.Dispatchable, 0)
+}
+
 // RegisterSystem
 func (b *bus) RegisterSystem(s systems.ISystem) {
 	b.systems = append(b.systems, s)

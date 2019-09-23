@@ -289,6 +289,7 @@ type Bsp struct {
 	dispFaces          []int
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
+	visibilityData     *Vis
 }
 
 // Mesh
@@ -313,6 +314,14 @@ func (bsp *Bsp) MaterialDictionary() map[string]*graphics.Material {
 
 func (bsp *Bsp) TexInfos() []texinfo.TexInfo {
 	return bsp.textureInfos
+}
+
+func (bsp *Bsp) Visibility() *Vis {
+	return bsp.visibilityData
+}
+
+func (bsp *Bsp) AddVisibility(visData *Vis) {
+	bsp.visibilityData = visData
 }
 
 // NewBsp

@@ -29,6 +29,8 @@ func (s *Scene) ProcessMessage(message message.Dispatchable) {
 			event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 			return
 		}
+		// Change level: we must clear the current event queue
+		event.Singleton().ClearQueue()
 		s.currentLevel = level
 		event.Singleton().Dispatch(messages.NewLoadingLevelParsed(level))
 	}

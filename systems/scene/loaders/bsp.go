@@ -18,6 +18,9 @@ func LoadBspMap(filename string) (*valve.Bsp, error) {
 	}
 	// Load the static bsp world
 	level, err := valve.LoadBSPWorld(file)
+	if err != nil {
+		return nil,err
+	}
 
 	// Load staticprops
 	valve.LoadStaticProps(file)
@@ -25,6 +28,7 @@ func LoadBspMap(filename string) (*valve.Bsp, error) {
 	// Load entities
 
 	// Load visibility optimisations
+	level.AddVisibility(valve.LoadVisData(file))
 
 	return level, err
 }
