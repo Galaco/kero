@@ -1,6 +1,8 @@
 package graphics
 
 import (
+	"errors"
+	"fmt"
 	"github.com/galaco/gosigl"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
@@ -90,4 +92,15 @@ func BindMesh(mesh *GpuMesh) {
 
 func PushMat4(uniform int32, count int, transpose bool, mat mgl32.Mat4) {
 	gl.UniformMatrix4fv(uniform, int32(count), transpose, &mat[0])
+}
+
+func PushInt32(uniform int32, value int32) {
+	gl.Uniform1i(uniform, value)
+}
+
+func GpuError() error {
+	if glError := gl.GetError(); glError != gl.NO_ERROR {
+		return errors.New(fmt.Sprintf("gl error. Code: %d", glError))
+	}
+	return nil
 }

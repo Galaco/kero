@@ -49,7 +49,7 @@ func NewTexture(filePath string, width, height int, format uint32, colour []uint
 		filePath: filePath,
 		width:    width,
 		height:   height,
-		format:   format,
+		format:   textureFormatFromVtfFormat(format),
 		colour:   colour,
 	}
 }
@@ -60,7 +60,7 @@ func NewErrorTexture(name string) *Texture {
 		name,
 		8,
 		8,
-		textureFormatFromVtfFormat(uint32(format.RGB888)),
+		uint32(format.RGB888),
 		[]uint8{
 			255, 0, 255,
 			255, 0, 255,

@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	engine := NewEngine(console.NewConsole(), input2.NewInput(), gui.NewGui(), scene.NewScene(), renderer.NewRenderer())
+	engine := NewEngine(console.NewConsole(), input2.NewInput(), scene.NewScene(), renderer.NewRenderer(), gui.NewGui())
 	engine.RunGameLoop()
 }
 
