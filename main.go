@@ -7,6 +7,7 @@ import (
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/lib/gameinfo"
 	"github.com/galaco/kero/framework/window"
+	"github.com/galaco/kero/game/cstrike"
 	"github.com/galaco/kero/internal/config"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"log"
@@ -18,8 +19,9 @@ func main() {
 	runtime.LockOSThread()
 
 	initialiseFramework()
-	engine := NewKero()
-	engine.Start()
+	kero := NewKero()
+	kero.RegisterGameDefinitions(&cstrike.CounterstrikeSource{})
+	kero.Start()
 }
 
 func initialiseFramework() {

@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
+	"github.com/galaco/kero/game"
 	"github.com/galaco/kero/systems"
 	"github.com/galaco/kero/systems/console"
 	"github.com/galaco/kero/systems/gui"
@@ -18,6 +19,10 @@ type Kero struct {
 	isRunning bool
 
 	systems []systems.ISystem
+}
+
+func (kero *Kero) RegisterGameDefinitions(def game.GameDefinition) {
+	def.RegisterEntityClasses()
 }
 
 // RunGameLoop

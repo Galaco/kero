@@ -5,9 +5,9 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
-	"github.com/galaco/kero/valve"
 )
 
 type SceneGraph struct {
@@ -66,6 +66,6 @@ func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCa
 		bspMesh:  level.Mesh(),
 		gpuMesh:  graphics.UploadMesh(level.Mesh()),
 		bspFaces: level.Faces(),
-		camera:   graphics3d.NewCamera(90, 16/9),
+		camera:   level.Camera(),
 	}
 }

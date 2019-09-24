@@ -2,7 +2,7 @@ package messages
 
 import (
 	"github.com/galaco/kero/event/message"
-	"github.com/galaco/kero/valve"
+	"github.com/galaco/kero/framework/valve"
 )
 
 const (

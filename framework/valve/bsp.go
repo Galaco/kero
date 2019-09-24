@@ -11,6 +11,7 @@ import (
 	"github.com/galaco/bsp/primitives/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
+	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/golang-source-engine/stringtable"
 	"math"
@@ -290,6 +291,7 @@ type Bsp struct {
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
 	visibilityData     *Vis
+	camera 			   *graphics3d.Camera
 }
 
 // Mesh
@@ -320,6 +322,10 @@ func (bsp *Bsp) Visibility() *Vis {
 	return bsp.visibilityData
 }
 
+func (bsp *Bsp) Camera() *graphics3d.Camera {
+	return bsp.camera
+}
+
 func (bsp *Bsp) AddVisibility(visData *Vis) {
 	bsp.visibilityData = visData
 }
@@ -337,6 +343,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
+		camera:   			graphics3d.NewCamera(90, 16/9),
 	}
 }
 

@@ -2,7 +2,7 @@ package loader
 
 import (
 	"github.com/galaco/bsp"
-	"github.com/galaco/kero/valve"
+	"github.com/galaco/kero/framework/valve"
 )
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -26,6 +26,7 @@ func LoadBspMap(filename string) (*valve.Bsp, error) {
 	valve.LoadStaticProps(file)
 
 	// Load entities
+
 
 	// Load visibility optimisations
 	level.AddVisibility(valve.LoadVisData(file))
