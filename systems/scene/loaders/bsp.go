@@ -2,6 +2,7 @@ package loader
 
 import (
 	"github.com/galaco/bsp"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/valve"
 )
 
@@ -19,14 +20,14 @@ func LoadBspMap(filename string) (*valve.Bsp, error) {
 	// Load the static bsp world
 	level, err := valve.LoadBSPWorld(file)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	// Load staticprops
-	valve.LoadStaticProps(file)
+	valve.LoadStaticProps(filesystem.Singleton(), file)
 
 	// Load entities
-
+	valve.LoadEntdata(filesystem.Singleton(), file)
 
 	// Load visibility optimisations
 	level.AddVisibility(valve.LoadVisData(file))

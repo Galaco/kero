@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/bsp/primitives/plane"
 	"github.com/galaco/bsp/primitives/texinfo"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/go-gl/mathgl/mgl32"
@@ -131,7 +132,7 @@ func buildMaterialDictionary(materials []string) (dictionary map[string]*graphic
 
 	asyncLoadMaterial := func(filePath string) {
 		waitGroup.Add(1)
-		mat, err := graphics.LoadMaterial(filePath)
+		mat, err := graphics.LoadMaterial(filesystem.Singleton(), filePath)
 		if err != nil {
 			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
 			waitGroup.Done()
@@ -291,7 +292,7 @@ type Bsp struct {
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
 	visibilityData     *Vis
-	camera 			   *graphics3d.Camera
+	camera             *graphics3d.Camera
 }
 
 // Mesh
@@ -343,7 +344,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
-		camera:   			graphics3d.NewCamera(90, 16/9),
+		camera:             graphics3d.NewCamera(90, 16/9),
 	}
 }
 

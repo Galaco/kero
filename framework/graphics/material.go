@@ -1,8 +1,7 @@
 package graphics
 
 import (
-	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/lambda-core/loader/material"
+	"github.com/golang-source-engine/vmt"
 )
 
 // Material
@@ -28,11 +27,12 @@ func NewMaterial(filePath string) *Material {
 	}
 }
 
-func LoadMaterial(filePath string) (*Material, error) {
-	props, err := material.LoadVmtFromFilesystem(filesystem.Singleton(), filePath)
+func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
+	rawProps, err := vmt.FromFilesystem(filePath, fs, vmt.NewProperties())
 	if err != nil {
 		return nil, err
 	}
+	props := rawProps.(*vmt.Properties)
 	mat := NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
 	mat.BumpMapName = props.Bumpmap

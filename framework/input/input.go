@@ -1,10 +1,13 @@
 package input
 
 import (
-	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/tinygametools"
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
+
+type ContextBindable interface {
+	Handle() *tinygametools.Window
+}
 
 var internalKeyboard *keyboard
 var internalMouse *mouse
@@ -21,7 +24,7 @@ func PollInput() {
 	glfw.PollEvents()
 }
 
-func SetBoundWindow(win *window.Window) {
+func SetBoundWindow(win ContextBindable) {
 	Keyboard().keyboard.AddKeyCallback(Keyboard().keyCallback)
 	Keyboard().keyboard.RegisterCallbacks(win.Handle())
 	Mouse().mouse.RegisterCallbacks(win.Handle())

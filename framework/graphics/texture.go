@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
 	"strings"
@@ -37,11 +36,11 @@ func (texture *Texture) Image() []uint8 {
 }
 
 // LoadTexture
-func LoadTexture(filePath string) (*Texture, error) {
-	if !strings.HasSuffix(filePath, filesystem.ExtensionVtf) {
-		filePath = filePath + filesystem.ExtensionVtf
+func LoadTexture(fs VirtualFileSystem, filePath string) (*Texture, error) {
+	if !strings.HasSuffix(filePath, ExtensionVtf) {
+		filePath = filePath + ExtensionVtf
 	}
-	return readVtf(filesystem.BasePathMaterial + filePath)
+	return readVtf(fs, BasePathMaterial+filePath)
 }
 
 func NewTexture(filePath string, width, height int, format uint32, colour []uint8) *Texture {
@@ -137,8 +136,8 @@ func NewErrorTexture(name string) *Texture {
 }
 
 // readVtf
-func readVtf(path string) (*Texture, error) {
-	stream, err := filesystem.Singleton().GetFile(path)
+func readVtf(fs VirtualFileSystem, path string) (*Texture, error) {
+	stream, err := fs.GetFile(path)
 	if err != nil {
 		return nil, err
 	}

@@ -1,9 +1,13 @@
 package context
 
 import (
-	"github.com/galaco/kero/framework/window"
+	"github.com/galaco/tinygametools"
 	"github.com/inkyblackness/imgui-go"
 )
+
+type ContextBindable interface {
+	Handle() *tinygametools.Window
+}
 
 type Context struct {
 	imguiContext *imgui.Context
@@ -19,7 +23,7 @@ func (ctx *Context) Close() {
 	defer ctx.imguiBind.Shutdown()
 }
 
-func NewContext(window *window.Window) *Context {
+func NewContext(window ContextBindable) *Context {
 	ctx := &Context{
 		imguiContext: imgui.CreateContext(nil),
 		imguiBind:    imguiGlfw3Init(window.Handle().Handle()),

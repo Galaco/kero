@@ -3,6 +3,7 @@ package renderer
 import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/framework/valve"
@@ -26,7 +27,7 @@ func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCa
 	// load materials
 	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err := graphics.LoadTexture(mat.BaseTextureName)
+			tex, err := graphics.LoadTexture(filesystem.Singleton(), mat.BaseTextureName)
 			if err != nil {
 				event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))

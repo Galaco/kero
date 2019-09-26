@@ -3,14 +3,13 @@ package valve
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/lambda-core/loader/prop"
 	"github.com/galaco/lambda-core/model"
-	filesystemLib "github.com/golang-source-engine/filesystem"
+	"github.com/golang-source-engine/filesystem"
 	"strings"
 )
 
-func LoadStaticProps(file *bsp.Bsp) []model.StaticProp {
+func LoadStaticProps(fs *filesystem.FileSystem, file *bsp.Bsp) []model.StaticProp {
 	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
 	propLump := gameLump.GetStaticPropLump()
 
@@ -22,7 +21,7 @@ func LoadStaticProps(file *bsp.Bsp) []model.StaticProp {
 	propPaths = generateUniquePropList(propPaths)
 
 	// Load Prop data
-	_ = loadPropsFromFilesystem(filesystem.Singleton(), propPaths)
+	_ = loadPropsFromFilesystem(fs, propPaths)
 
 	// Transform to props to
 	staticPropList := make([]model.StaticProp, 0)
@@ -54,7 +53,7 @@ func generateUniquePropList(propList []string) (uniqueList []string) {
 	return uniqueList
 }
 
-func loadPropsFromFilesystem(fs *filesystemLib.FileSystem, propPaths []string) map[string]bool {
+func loadPropsFromFilesystem(fs *filesystem.FileSystem, propPaths []string) map[string]bool {
 	propMap := map[string]bool{}
 	for _, path := range propPaths {
 		if !strings.HasSuffix(path, ".mdl") {

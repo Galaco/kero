@@ -13,7 +13,7 @@ func Get() *keyvalues.KeyValue {
 }
 
 // Load parses a gameinfo.txt stream to a KeyValues object
-func Load(stream io.Reader) (*keyvalues.KeyValue, error) {
+func loadKeyValues(stream io.Reader) (*keyvalues.KeyValue, error) {
 	kvReader := keyvalues.NewReader(stream)
 
 	kv, err := kvReader.Read()

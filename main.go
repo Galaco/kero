@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/framework/filesystem/gameinfo"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
-	"github.com/galaco/kero/framework/lib/gameinfo"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game/cstrike"
 	"github.com/galaco/kero/internal/config"

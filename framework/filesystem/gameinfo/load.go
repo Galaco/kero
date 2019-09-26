@@ -12,5 +12,5 @@ func LoadConfig(gameDirectory string) (*keyvalues.KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Load(gameInfoFile)
+	return loadKeyValues(gameInfoFile)
 }
