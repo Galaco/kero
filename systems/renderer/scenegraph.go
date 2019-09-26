@@ -6,7 +6,7 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/framework/valve"
+	"github.com/galaco/kero/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
 )

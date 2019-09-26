@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/galaco/kero/framework/valve/entity"
+	"github.com/galaco/kero/valve/entity"
 )
 
 // PropPhysicsMultiplayer
