@@ -1,4 +1,4 @@
-package message
+package event
 
 // Type represents the event name.
 // This could be derived via reflection, at a substantial
@@ -10,4 +10,8 @@ type Type string
 type Dispatchable interface {
 	// Type
 	Type() Type
+}
+
+type receiveable interface {
+	ProcessMessage(Dispatchable)
 }

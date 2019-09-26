@@ -1,12 +1,12 @@
 package messages
 
 import (
-	"github.com/galaco/kero/event/message"
+	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
 )
 
 const (
-	TypeConsoleMessage = message.Type("ConsoleMessage")
+	TypeConsoleMessage = event.Type("ConsoleMessage")
 )
 
 type ConsoleMessage struct {
@@ -14,7 +14,7 @@ type ConsoleMessage struct {
 	message string
 }
 
-func (msg *ConsoleMessage) Type() message.Type {
+func (msg *ConsoleMessage) Type() event.Type {
 	return TypeConsoleMessage
 }
 

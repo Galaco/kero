@@ -2,7 +2,7 @@ package renderer
 
 import (
 	"github.com/galaco/gosigl"
-	"github.com/galaco/kero/event/message"
+	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
@@ -44,7 +44,7 @@ func (s *Renderer) Update(dt float64) {
 	s.renderBsp()
 }
 
-func (s *Renderer) ProcessMessage(message message.Dispatchable) {
+func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 	switch message.Type() {
 	case messages.TypeLoadingLevelParsed:
 		s.scene = NewSceneGraphFromBsp(message.(*messages.LoadingLevelParsed).Level(), s.materialCache, s.textureCache, s.gpuItemCache)

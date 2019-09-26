@@ -2,7 +2,6 @@ package gui
 
 import (
 	"github.com/galaco/kero/event"
-	"github.com/galaco/kero/event/message"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/context"
 	"github.com/galaco/kero/framework/gui/dialogs"
@@ -20,7 +19,7 @@ func (s *Gui) Register() {
 	s.uiContext = context.NewContext(window.CurrentWindow())
 }
 
-func (s *Gui) ProcessMessage(message message.Dispatchable) {
+func (s *Gui) ProcessMessage(message event.Dispatchable) {
 
 }
 

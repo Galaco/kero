@@ -1,18 +1,18 @@
 package messages
 
 import (
-	"github.com/galaco/kero/event/message"
+	"github.com/galaco/kero/event"
 )
 
 const (
-	TypeChangeLevel = message.Type("ChangeLevel")
+	TypeChangeLevel = event.Type("ChangeLevel")
 )
 
 type ChangeLevel struct {
 	levelName string
 }
 
-func (msg *ChangeLevel) Type() message.Type {
+func (msg *ChangeLevel) Type() event.Type {
 	return TypeChangeLevel
 }
 

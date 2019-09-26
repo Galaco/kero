@@ -1,20 +1,20 @@
 package messages
 
 import (
-	"github.com/galaco/kero/event/message"
+	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/graphics"
 )
 
 const (
-	TypeTextureLoaded  = message.Type("TextureLoaded")
-	TypeMaterialLoaded = message.Type("MaterialLoaded")
+	TypeTextureLoaded  = event.Type("TextureLoaded")
+	TypeMaterialLoaded = event.Type("MaterialLoaded")
 )
 
 type TextureLoaded struct {
 	texture *graphics.Texture
 }
 
-func (msg *TextureLoaded) Type() message.Type {
+func (msg *TextureLoaded) Type() event.Type {
 	return TypeTextureLoaded
 }
 
@@ -32,7 +32,7 @@ type MaterialLoaded struct {
 	material *graphics.Material
 }
 
-func (msg *MaterialLoaded) Type() message.Type {
+func (msg *MaterialLoaded) Type() event.Type {
 	return TypeMaterialLoaded
 }
 

@@ -1,19 +1,19 @@
 package messages
 
 import (
-	"github.com/galaco/kero/event/message"
+	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/valve"
 )
 
 const (
-	TypeLoadingLevelParsed = message.Type("LoadingLevelParsed")
+	TypeLoadingLevelParsed = event.Type("LoadingLevelParsed")
 )
 
 type LoadingLevelParsed struct {
 	level *valve.Bsp
 }
 
-func (msg *LoadingLevelParsed) Type() message.Type {
+func (msg *LoadingLevelParsed) Type() event.Type {
 	return TypeLoadingLevelParsed
 }
 

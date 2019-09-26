@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	keyvalues "github.com/galaco/KeyValues"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/filesystem/gameinfo"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
@@ -11,6 +11,7 @@ import (
 	"github.com/galaco/kero/internal/config"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"log"
+	"os"
 	"runtime"
 	"strings"
 )
@@ -38,11 +39,17 @@ func initialiseFramework() {
 }
 
 func initializeSourceEngine(gameDir string) error {
-	gameInfo, err := gameinfo.LoadConfig(gameDir)
+	stream, err := os.Open(gameDir + "/gameinfo.txt")
 	if err != nil {
 		return err
 	}
-	_, err = filesystem.InitializeFromGameInfoDefinitions(gameDir, gameInfo)
+	kvReader := keyvalues.NewReader(stream)
+
+	gameInfo, err := kvReader.Read()
+	if err != nil {
+		return err
+	}
+	_, err = filesystem.InitializeFromGameInfoDefinitions(gameDir, &gameInfo)
 	if err != nil {
 		if fsErr, ok := err.(*filesystemLib.InvalidResourcePathCollectionError); ok {
 			for _, s := range strings.Split(fsErr.Error(), "|") {

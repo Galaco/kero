@@ -2,7 +2,6 @@ package scene
 
 import (
 	"github.com/galaco/kero/event"
-	"github.com/galaco/kero/event/message"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
@@ -20,7 +19,7 @@ func (s *Scene) Update(dt float64) {
 
 }
 
-func (s *Scene) ProcessMessage(message message.Dispatchable) {
+func (s *Scene) ProcessMessage(message event.Dispatchable) {
 	switch message.Type() {
 	case messages.TypeChangeLevel:
 		// LoadLevel
