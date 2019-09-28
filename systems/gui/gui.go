@@ -11,11 +11,10 @@ import (
 )
 
 type Gui struct {
-	systems.System
 	uiContext *context.Context
 }
 
-func (s *Gui) Register() {
+func (s *Gui) Register(ctx *systems.Context) {
 	s.uiContext = context.NewContext(window.CurrentWindow())
 }
 

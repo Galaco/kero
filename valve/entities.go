@@ -3,14 +3,14 @@ package valve
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
+	 "github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/valve/entity"
 	entityLib "github.com/galaco/source-tools-common/entity"
 	"github.com/galaco/vmf"
-	"github.com/golang-source-engine/filesystem"
 	"strings"
 )
 
-func LoadEntdata(fs *filesystem.FileSystem, file *bsp.Bsp) ([]entity.Entity, error) {
+func LoadEntdata(fs filesystem.FileSystem, file *bsp.Bsp) ([]entity.Entity, error) {
 	entdata := file.Lump(bsp.LumpEntities).(*lumps.EntData)
 	vmfEntityTree, err := parseEntdata(entdata.GetData())
 	if err != nil {

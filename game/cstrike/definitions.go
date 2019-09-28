@@ -1,8 +1,8 @@
 package cstrike
 
 import (
-	loader "github.com/galaco/kero/valve/entity"
 	"github.com/galaco/kero/game/common/entity"
+	loader "github.com/galaco/kero/valve/entity"
 )
 
 // CounterstrikeSource

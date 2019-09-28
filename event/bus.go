@@ -1,20 +1,20 @@
 package event
 
-var eventBus bus
+var eventBus Dispatcher
 
-// Singleton returns the global event bus.
-func Singleton() *bus {
+// Singleton returns the global event Dispatcher.
+func Singleton() *Dispatcher {
 	return &eventBus
 }
 
-type bus struct {
+type Dispatcher struct {
 	messages    []Dispatchable
 	newMessages []Dispatchable
 	systems     []receiveable
 }
 
 // ProcessMessages
-func (b *bus) ProcessMessages() {
+func (b *Dispatcher) ProcessMessages() {
 	for _, m := range b.messages {
 		for _, s := range b.systems {
 			s.ProcessMessage(m)
@@ -31,15 +31,15 @@ func (b *bus) ProcessMessages() {
 }
 
 // Dispatch
-func (b *bus) Dispatch(message Dispatchable) {
+func (b *Dispatcher) Dispatch(message Dispatchable) {
 	b.newMessages = append(b.newMessages, message)
 }
 
-func (b *bus) ClearQueue() {
+func (b *Dispatcher) ClearQueue() {
 	b.newMessages = make([]Dispatchable, 0)
 }
 
 // RegisterSystem
-func (b *bus) RegisterSystem(s receiveable) {
+func (b *Dispatcher) RegisterSystem(s receiveable) {
 	b.systems = append(b.systems, s)
 }

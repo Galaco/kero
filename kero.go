@@ -18,7 +18,8 @@ import (
 type Kero struct {
 	isRunning bool
 
-	systems []systems.ISystem
+	context systems.Context
+	systems []System
 }
 
 func (kero *Kero) RegisterGameDefinitions(def game.GameDefinition) {
@@ -27,7 +28,7 @@ func (kero *Kero) RegisterGameDefinitions(def game.GameDefinition) {
 
 // RunGameLoop
 func (kero *Kero) Start() {
-	kero.systems = []systems.ISystem{
+	kero.systems = []System{
 		console.NewConsole(),
 		input.NewInput(),
 		scene.NewScene(),
@@ -61,7 +62,7 @@ func (kero *Kero) Start() {
 
 func (kero *Kero) initialize() {
 	for i := range kero.systems {
-		kero.systems[i].Register()
+		kero.systems[i].Register(&kero.context)
 		event.Singleton().RegisterSystem(kero.systems[i])
 	}
 }
@@ -71,8 +72,15 @@ func (kero *Kero) exit() {
 }
 
 // NewKero
-func NewKero() *Kero {
+func NewKero(ctx systems.Context) *Kero {
 	return &Kero{
+		context:   ctx,
 		isRunning: false,
 	}
+}
+
+type System interface {
+	Register(ctx *systems.Context)
+	Update(dt float64)
+	ProcessMessage(message event.Dispatchable)
 }

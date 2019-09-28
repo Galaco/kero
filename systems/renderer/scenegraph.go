@@ -6,9 +6,9 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/valve"
 )
 
 type SceneGraph struct {
@@ -20,14 +20,14 @@ type SceneGraph struct {
 	camera *graphics3d.Camera
 }
 
-func NewSceneGraphFromBsp(level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
+func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
 	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err := graphics.LoadTexture(filesystem.Singleton(), mat.BaseTextureName)
+			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
 			if err != nil {
 				event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))

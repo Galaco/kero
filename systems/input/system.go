@@ -8,11 +8,18 @@ import (
 )
 
 type Input struct {
-	systems.System
+}
+
+func (s *Input) Register(ctx *systems.Context) {
+
 }
 
 func (s *Input) Update(dt float64) {
 	input.PollInput()
+}
+
+func (s *Input) ProcessMessage(message event.Dispatchable) {
+
 }
 
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {

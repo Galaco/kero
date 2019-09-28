@@ -12,22 +12,22 @@ import (
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBspMap(filename string) (*valve.Bsp, error) {
+func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, error) {
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	// Load the static bsp world
-	level, err := valve.LoadBSPWorld(file)
+	level, err := valve.LoadBSPWorld(fs, file)
 	if err != nil {
 		return nil, err
 	}
 
 	// Load staticprops
-	valve.LoadStaticProps(filesystem.Singleton(), file)
+	valve.LoadStaticProps(fs, file)
 
 	// Load entities
-	valve.LoadEntdata(filesystem.Singleton(), file)
+	valve.LoadEntdata(fs, file)
 
 	// Load visibility optimisations
 	level.AddVisibility(valve.LoadVisData(file))

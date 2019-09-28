@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	keyvalues "github.com/galaco/KeyValues"
+	"github.com/galaco/kero/config"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game/cstrike"
-	"github.com/galaco/kero/internal/config"
+	"github.com/galaco/kero/systems"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"log"
 	"os"
@@ -19,37 +20,43 @@ import (
 func main() {
 	runtime.LockOSThread()
 
-	initialiseFramework()
-	kero := NewKero()
+	cfg := loadConfig()
+	fs := initFilesystem(cfg.GameDirectory)
+	if err := initFramework(cfg); err != nil {
+		panic(err)
+	}
+	context := systems.Context{
+		Config:     cfg,
+		Filesystem: fs,
+	}
+
+	kero := NewKero(context)
 	kero.RegisterGameDefinitions(&cstrike.CounterstrikeSource{})
 	kero.Start()
 }
 
-func initialiseFramework() {
+func loadConfig() *config.Config {
 	cfg, err := config.Load("./config.json")
 	if err != nil {
 		panic(err)
 	}
-	if err = initializeSourceEngine(cfg.GameDirectory); err != nil {
-		panic(err)
-	}
-	if err = initializeFramework(); err != nil {
-		panic(err)
-	}
+
+	return cfg
 }
 
-func initializeSourceEngine(gameDir string) error {
+func initFilesystem(gameDir string) filesystem.FileSystem {
 	stream, err := os.Open(gameDir + "/gameinfo.txt")
 	if err != nil {
-		return err
+		panic(err)
 	}
+	defer stream.Close()
 	kvReader := keyvalues.NewReader(stream)
 
 	gameInfo, err := kvReader.Read()
 	if err != nil {
-		return err
+		panic(err)
 	}
-	_, err = filesystem.InitializeFromGameInfoDefinitions(gameDir, &gameInfo)
+	fs, err := filesystem.InitializeFromGameInfoDefinitions(gameDir, &gameInfo)
 	if err != nil {
 		if fsErr, ok := err.(*filesystemLib.InvalidResourcePathCollectionError); ok {
 			for _, s := range strings.Split(fsErr.Error(), "|") {
@@ -58,11 +65,11 @@ func initializeSourceEngine(gameDir string) error {
 		}
 	}
 
-	return nil
+	return fs
 }
 
-func initializeFramework() error {
-	win, err := window.CreateWindow(config.Singleton().Video.Width, config.Singleton().Video.Height, "Lambda2")
+func initFramework(cfg *config.Config) error {
+	win, err := window.CreateWindow(cfg.Video.Width, cfg.Video.Height, "Kero")
 	if err != nil {
 		return err
 	}

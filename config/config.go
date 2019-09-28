@@ -18,34 +18,28 @@ type Config struct {
 	}
 }
 
-var config Config
-
-// Singleton returns the global config object.
-func Singleton() *Config {
-	return &config
-}
-
 // Load attempts to open and unmarshall
 // json configuration
 func Load(path string) (*Config, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return &config, err
+		return nil, err
 	}
 
+	var config Config
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return &config, err
 	}
 
-	validate()
+	config.validate()
 
 	return &config, nil
 }
 
 // validate that expected parameters with known
 // boundaries or limitation fall within expectations.
-func validate() {
+func (config *Config) validate() {
 	if config.Video.Width < minWidth {
 		config.Video.Width = minWidth
 	}

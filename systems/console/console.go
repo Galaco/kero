@@ -9,7 +9,14 @@ import (
 )
 
 type Console struct {
-	systems.System
+}
+
+func (c *Console) Register(ctx *systems.Context) {
+
+}
+
+func (c *Console) Update(dt float64) {
+
 }
 
 func (c *Console) ProcessMessage(message event.Dispatchable) {

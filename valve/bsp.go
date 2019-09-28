@@ -37,7 +37,7 @@ type bspstructs struct {
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBSPWorld(file *bsp.Bsp) (*Bsp, error) {
+func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 	//ResourceManager := resource.Manager()
 	bspStructure := bspstructs{
 		faces:     file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
@@ -56,7 +56,7 @@ func LoadBSPWorld(file *bsp.Bsp) (*Bsp, error) {
 		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable).GetData())
 	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos)
 
-	materialDictionary := buildMaterialDictionary(materials)
+	materialDictionary := buildMaterialDictionary(fs, materials)
 
 	// BSP FACES
 	bspMesh := graphics.NewMesh()
@@ -125,14 +125,14 @@ func buildUniqueMaterialList(stringTable *stringtable.StringTable, texInfos *[]t
 	return materialList
 }
 
-func buildMaterialDictionary(materials []string) (dictionary map[string]*graphics.Material) {
+func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dictionary map[string]*graphics.Material) {
 	dictionary = map[string]*graphics.Material{}
 	waitGroup := sync.WaitGroup{}
 	dictMutex := sync.Mutex{}
 
 	asyncLoadMaterial := func(filePath string) {
 		waitGroup.Add(1)
-		mat, err := graphics.LoadMaterial(filesystem.Singleton(), filePath)
+		mat, err := graphics.LoadMaterial(fs, filePath)
 		if err != nil {
 			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
 			waitGroup.Done()

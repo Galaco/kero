@@ -12,8 +12,7 @@ import (
 )
 
 type Renderer struct {
-	systems.System
-
+	context *systems.Context
 	materialCache *cache.Material
 	textureCache  *cache.Texture
 	shaderCache   *cache.Shader
@@ -24,7 +23,8 @@ type Renderer struct {
 	scene *SceneGraph
 }
 
-func (s *Renderer) Register() {
+func (s *Renderer) Register(ctx *systems.Context) {
+	s.context = ctx
 	var err error
 	s.shaderCache, err = shaders.LoadShaders()
 	if err != nil {
@@ -47,7 +47,12 @@ func (s *Renderer) Update(dt float64) {
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 	switch message.Type() {
 	case messages.TypeLoadingLevelParsed:
-		s.scene = NewSceneGraphFromBsp(message.(*messages.LoadingLevelParsed).Level(), s.materialCache, s.textureCache, s.gpuItemCache)
+		s.scene = NewSceneGraphFromBsp(
+			s.context.Filesystem,
+			message.(*messages.LoadingLevelParsed).Level(),
+			s.materialCache,
+			s.textureCache,
+			s.gpuItemCache)
 	case messages.TypeMouseMove:
 		if s.scene == nil || s.scene.camera == nil {
 			return
