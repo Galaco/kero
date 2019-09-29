@@ -2,11 +2,6 @@ package event
 
 var eventBus Dispatcher
 
-// Singleton returns the global event Dispatcher.
-func Singleton() *Dispatcher {
-	return &eventBus
-}
-
 type Dispatcher struct {
 	messages    []Dispatchable
 	newMessages []Dispatchable
@@ -14,32 +9,32 @@ type Dispatcher struct {
 }
 
 // ProcessMessages
-func (b *Dispatcher) ProcessMessages() {
-	for _, m := range b.messages {
-		for _, s := range b.systems {
+func ProcessMessages() {
+	for _, m := range eventBus.messages {
+		for _, s := range eventBus.systems {
 			s.ProcessMessage(m)
-			if len(b.messages) < 2 {
-				b.messages = make([]Dispatchable, 0)
+			if len(eventBus.messages) < 2 {
+				eventBus.messages = make([]Dispatchable, 0)
 			} else {
-				b.messages = b.messages[1:]
+				eventBus.messages = eventBus.messages[1:]
 			}
 		}
 	}
 
-	b.messages = b.newMessages
-	b.newMessages = make([]Dispatchable, 0)
+	eventBus.messages = eventBus.newMessages
+	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
 // Dispatch
-func (b *Dispatcher) Dispatch(message Dispatchable) {
-	b.newMessages = append(b.newMessages, message)
+func Dispatch(message Dispatchable) {
+	eventBus.newMessages = append(eventBus.newMessages, message)
 }
 
-func (b *Dispatcher) ClearQueue() {
-	b.newMessages = make([]Dispatchable, 0)
+func ClearQueue() {
+	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
 // RegisterSystem
-func (b *Dispatcher) RegisterSystem(s receiveable) {
-	b.systems = append(b.systems, s)
+func RegisterSystem(s receiveable) {
+	eventBus.systems = append(eventBus.systems, s)
 }

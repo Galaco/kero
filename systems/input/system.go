@@ -25,14 +25,14 @@ func (s *Input) ProcessMessage(message event.Dispatchable) {
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {
 	switch action {
 	case input.KeyPress:
-		event.Singleton().Dispatch(messages.NewKeyPress(key))
+		event.Dispatch(messages.NewKeyPress(key))
 	case input.KeyRelease:
-		event.Singleton().Dispatch(messages.NewKeyRelease(key))
+		event.Dispatch(messages.NewKeyRelease(key))
 	}
 }
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
-	event.Singleton().Dispatch(messages.NewMouseMove(x, y))
+	event.Dispatch(messages.NewMouseMove(x, y))
 }
 
 func NewInput() *Input {

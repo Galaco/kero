@@ -22,7 +22,7 @@ type Kero struct {
 	systems []System
 }
 
-func (kero *Kero) RegisterGameDefinitions(def game.GameDefinition) {
+func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 	def.RegisterEntityClasses()
 }
 
@@ -43,7 +43,9 @@ func (kero *Kero) Start() {
 	dt := 0.0
 	startingTime := time.Now().UTC()
 	for kero.isRunning {
-		event.Singleton().ProcessMessages()
+		event.ProcessMessages()
+
+		kero.context.Client.Update(dt)
 
 		for _, s := range kero.systems {
 			s.Update(dt)
@@ -63,7 +65,7 @@ func (kero *Kero) Start() {
 func (kero *Kero) initialize() {
 	for i := range kero.systems {
 		kero.systems[i].Register(&kero.context)
-		event.Singleton().RegisterSystem(kero.systems[i])
+		event.RegisterSystem(kero.systems[i])
 	}
 }
 

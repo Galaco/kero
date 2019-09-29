@@ -29,7 +29,7 @@ func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCa
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
 			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
 			if err != nil {
-				event.Singleton().Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 			} else {
 				texCache.Add(mat.BaseTextureName, tex)

@@ -2,8 +2,11 @@ package loader
 
 import (
 	"github.com/galaco/bsp"
+	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/valve"
+	"github.com/galaco/kero/valve/entity"
 )
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -12,25 +15,34 @@ import (
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, error) {
+func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity.Entity, error) {
+	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStarted))
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
-		return nil, err
+		event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
+		return nil, nil, err
 	}
+	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateBSPParsed))
 	// Load the static bsp world
 	level, err := valve.LoadBSPWorld(fs, file)
 	if err != nil {
-		return nil, err
+		event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
+		return nil, nil, err
 	}
+	// Load visibility optimisations
+	level.AddVisibility(valve.LoadVisData(file))
+	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateGeometryLoaded))
 
 	// Load staticprops
 	valve.LoadStaticProps(fs, file)
+	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStaticPropsLoaded))
 
 	// Load entities
-	valve.LoadEntdata(fs, file)
+	ents,err := valve.LoadEntdata(fs, file)
+	if err != nil {
+		return nil, nil, err
+	}
+	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateEntitiesLoaded))
 
-	// Load visibility optimisations
-	level.AddVisibility(valve.LoadVisData(file))
-
-	return level, err
+	return level, ents, err
 }
