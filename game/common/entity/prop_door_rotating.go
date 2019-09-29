@@ -7,7 +7,7 @@ import (
 // PropDoorRotating
 type PropDoorRotating struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname

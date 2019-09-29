@@ -7,7 +7,7 @@ import (
 // PropDynamicOverride
 type PropDynamicOverride struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname

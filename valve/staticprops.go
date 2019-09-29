@@ -4,13 +4,12 @@ import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/lambda-core/loader/prop"
-	"github.com/galaco/lambda-core/model"
+	"github.com/galaco/kero/valve/studiomodel"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"strings"
 )
 
-func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) []model.StaticProp {
+func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) {
 	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
 	propLump := gameLump.GetStaticPropLump()
 
@@ -25,7 +24,7 @@ func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) []model.StaticProp
 	_ = loadPropsFromFilesystem(fs, propPaths)
 
 	// Transform to props to
-	staticPropList := make([]model.StaticProp, 0)
+	//staticPropList := make([]model.StaticProp, 0)
 
 	//for _, propEntry := range propLump.PropLumps {
 	//	modelName := propLump.DictLump.Name[propEntry.GetPropType()]
@@ -39,7 +38,7 @@ func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) []model.StaticProp
 	//	staticPropList = append(staticPropList, *model.NewStaticProp(propEntry, &propLump.LeafLump, m))
 	//}
 
-	return staticPropList
+	//return staticPropList
 }
 
 func generateUniquePropList(propList []string) (uniqueList []string) {
@@ -60,7 +59,7 @@ func loadPropsFromFilesystem(fs filesystem.FileSystem, propPaths []string) map[s
 		if !strings.HasSuffix(path, ".mdl") {
 			path += ".mdl"
 		}
-		_, err := prop.LoadProp(path, fs.(*filesystemLib.FileSystem))
+		_, err := studiomodel.LoadProp(path, fs.(*filesystemLib.FileSystem))
 		if err != nil {
 			continue
 		}

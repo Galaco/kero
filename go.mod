@@ -7,7 +7,6 @@ require (
 	github.com/galaco/StudioModel v0.1.0
 	github.com/galaco/bsp v0.2.2
 	github.com/galaco/gosigl v0.1.1
-	github.com/galaco/lambda-core v1.1.2
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/tinygametools v0.1.0
 	github.com/galaco/vmf v1.0.0

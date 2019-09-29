@@ -7,7 +7,7 @@ import (
 // PropDynamic
 type PropDynamic struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname

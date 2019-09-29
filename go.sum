@@ -19,10 +19,6 @@ github.com/galaco/gosigl v0.0.0-20190218084636-7d72bfe172dc h1:6y3ZV0veYvTrE6xIx
 github.com/galaco/gosigl v0.0.0-20190218084636-7d72bfe172dc/go.mod h1:bo6fzFnd9DxiwROJFDQ19WrqtSbzRJbJcOTv6lO7lAk=
 github.com/galaco/gosigl v0.1.1 h1:xos94HHctaP4Asc1quOS2KvOOhdqyj8AoxNrtM8MICk=
 github.com/galaco/gosigl v0.1.1/go.mod h1:A4DaiRUW0zzrKYUk94+Ks2aXCGcgISHYM7gO1dtzPr0=
-github.com/galaco/lambda-core v1.1.1 h1:0qjoRnp0c5jKqCN6A0fTYo6U5AVPOZOq1o2/ZkGtl6M=
-github.com/galaco/lambda-core v1.1.1/go.mod h1:nPBP4Nq7zr31+RKn12p19V+C/In0v3fS8zlNQ1Nvn3s=
-github.com/galaco/lambda-core v1.1.2 h1:t3TTv5Dhu4iRl37S1rhbVNm4SDqKUJ5k4jI5OADcjcU=
-github.com/galaco/lambda-core v1.1.2/go.mod h1:RqGTdbQe5p/fNY/B2gDIBpe+iq9DjIIHNM6aMjNcjvA=
 github.com/galaco/loggy v0.0.0-20190629005848-af043014a903/go.mod h1:MCpME2n8JUMLql/kF69GPXQKkJciiNTBI/otWCkTjw8=
 github.com/galaco/packrect v0.0.0-20190221101750-d10c60f871c0 h1:SVIvhbyFy8TyeYKhGOcC84nWozD1CBn+trzO0MSQzRE=
 github.com/galaco/packrect v0.0.0-20190221101750-d10c60f871c0/go.mod h1:1QOQWDBGRc6sT0tglK344YodNuAGsj6WPqZXzzpv6f4=

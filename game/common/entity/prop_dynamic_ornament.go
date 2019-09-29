@@ -7,7 +7,7 @@ import (
 // PropDynamicOrnament
 type PropDynamicOrnament struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname

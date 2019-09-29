@@ -7,7 +7,7 @@ import (
 // PropRagdoll
 type PropRagdoll struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname

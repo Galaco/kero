@@ -7,7 +7,7 @@ import (
 // PropPhysicsMultiplayer
 type PropPhysicsMultiplayer struct {
 	entity.EntityBase
-	PropBase
+	PropRenderableBase
 }
 
 // Classname
