@@ -53,18 +53,10 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 			s.materialCache,
 			s.textureCache,
 			s.gpuItemCache)
-	case messages.TypeMouseMove:
-		if s.scene == nil || s.scene.camera == nil {
-			return
-		}
-		msg := message.(*messages.MouseMove)
-		s.scene.camera.Rotate(float32(msg.X), 0, float32(msg.Y))
 	}
 }
 
 func (s *Renderer) startFrame() {
-
-	s.scene.camera.Update(1000 / 60)
 	projection := s.scene.camera.ProjectionMatrix()
 	view := s.scene.camera.ViewMatrix()
 

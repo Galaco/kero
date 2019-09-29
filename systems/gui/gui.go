@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/context"
+	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
@@ -16,6 +17,7 @@ type Gui struct {
 	loadingView views.Loading
 	menuView views.Menu
 
+	shouldDisplayMenu bool
 	shouldDisplayLoadingScreen bool
 }
 
@@ -25,6 +27,11 @@ func (s *Gui) Register(ctx *systems.Context) {
 
 func (s *Gui) ProcessMessage(message event.Dispatchable) {
 	switch message.Type() {
+	case messages.TypeKeyRelease:
+		key := message.(*messages.KeyRelease).Key()
+		if key == input.KeyEscape {
+			s.shouldDisplayMenu = !s.shouldDisplayMenu
+		}
 	case messages.TypeLoadingLevelProgress:
 		msg := message.(*messages.LoadingLevelProgress)
 		s.loadingView.UpdateProgress(msg.State())
@@ -44,7 +51,9 @@ func (s *Gui) Update(dt float64) {
 	if s.shouldDisplayLoadingScreen {
 		s.loadingView.Render()
 	} else {
-		s.menuView.Render()
+		if s.shouldDisplayMenu {
+			s.menuView.Render()
+		}
 	}
 
 
@@ -52,5 +61,7 @@ func (s *Gui) Update(dt float64) {
 }
 
 func NewGui() *Gui {
-	return &Gui{}
+	return &Gui{
+		shouldDisplayMenu: true,
+	}
 }

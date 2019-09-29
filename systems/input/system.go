@@ -8,6 +8,7 @@ import (
 )
 
 type Input struct {
+	shouldLockMouse bool
 }
 
 func (s *Input) Register(ctx *systems.Context) {
@@ -26,6 +27,14 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 	switch action {
 	case input.KeyPress:
 		event.Dispatch(messages.NewKeyPress(key))
+		if key == input.KeyEscape {
+			s.shouldLockMouse = !s.shouldLockMouse
+			if s.shouldLockMouse {
+				input.Mouse().LockMousePosition()
+			} else {
+				input.Mouse().UnlockMousePosition()
+			}
+		}
 	case input.KeyRelease:
 		event.Dispatch(messages.NewKeyRelease(key))
 	}

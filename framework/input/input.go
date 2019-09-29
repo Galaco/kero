@@ -28,6 +28,7 @@ func SetBoundWindow(win ContextBindable) {
 	Keyboard().keyboard.AddKeyCallback(Keyboard().keyCallback)
 	Keyboard().keyboard.RegisterCallbacks(win.Handle())
 	Mouse().mouse.RegisterCallbacks(win.Handle())
+	Mouse().SetBoundWindow(win.Handle())
 }
 
 func init() {

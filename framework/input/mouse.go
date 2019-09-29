@@ -6,8 +6,21 @@ import (
 )
 
 type mouse struct {
+	window 	   *tinygametools.Window
 	mouse      *tinygametools.Mouse
 	xOld, yOld float64
+}
+
+func (m *mouse) LockMousePosition() {
+	m.window.Handle().SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
+}
+
+func (m *mouse) UnlockMousePosition() {
+	m.window.Handle().SetInputMode(glfw.CursorMode, glfw.CursorNormal)
+}
+
+func (m *mouse) SetBoundWindow(win *tinygametools.Window) {
+	m.window = win
 }
 
 func (m *mouse) RegisterExternalMousePositionCallback(callback func(x, y float64)) {
