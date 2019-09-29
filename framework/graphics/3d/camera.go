@@ -28,6 +28,28 @@ func (camera *Camera) Transform() *Transform {
 	return &camera.transform
 }
 
+
+
+// Forwards
+func (camera *Camera) Forwards(dt float64) {
+	camera.Transform().Position = camera.Transform().Position.Add(camera.direction.Mul(float32(cameraSpeed * dt)))
+}
+
+// Backwards
+func (camera *Camera) Backwards(dt float64) {
+	camera.Transform().Position = camera.Transform().Position.Sub(camera.direction.Mul(float32(cameraSpeed * dt)))
+}
+
+// Left
+func (camera *Camera) Left(dt float64) {
+	camera.Transform().Position = camera.Transform().Position.Sub(camera.right.Mul(float32(cameraSpeed * dt)))
+}
+
+// Right
+func (camera *Camera) Right(dt float64) {
+	camera.Transform().Position = camera.Transform().Position.Add(camera.right.Mul(float32(cameraSpeed * dt)))
+}
+
 // Rotate
 func (camera *Camera) Rotate(x, y, z float32) {
 	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + float32(x*sensitivity)

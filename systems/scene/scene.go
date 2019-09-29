@@ -28,6 +28,19 @@ func (s *Scene) Update(dt float64) {
 		return
 	}
 	if s.listenToInput {
+		if input.Keyboard().IsKeyPressed(input.KeyW) {
+			s.currentLevel.Camera().Forwards(dt)
+		}
+		if input.Keyboard().IsKeyPressed(input.KeyA) {
+			s.currentLevel.Camera().Left(dt)
+		}
+		if input.Keyboard().IsKeyPressed(input.KeyS) {
+			s.currentLevel.Camera().Backwards(dt)
+		}
+		if input.Keyboard().IsKeyPressed(input.KeyD) {
+			s.currentLevel.Camera().Right(dt)
+		}
+
 		s.currentLevel.Camera().Update(dt)
 	}
 	for _,e := range s.entities {
