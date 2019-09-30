@@ -12,7 +12,7 @@ import (
 )
 
 type Renderer struct {
-	context *systems.Context
+	context       *systems.Context
 	materialCache *cache.Material
 	textureCache  *cache.Texture
 	shaderCache   *cache.Shader
@@ -71,8 +71,13 @@ func (s *Renderer) renderBsp() {
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	var mat *cache.GpuMaterial
 	for _, f := range s.scene.bspFaces {
-		graphics.DrawFace(f.Offset(), f.Length(), s.gpuItemCache.Find(f.Material()))
+		mat = s.materialCache.Find(f.Material())
+		if mat == nil {
+			continue
+		}
+		graphics.DrawFace(f.Offset(), f.Length(), mat.Diffuse)
 		if err := graphics.GpuError(); err != nil {
 			log.Println(err)
 		}

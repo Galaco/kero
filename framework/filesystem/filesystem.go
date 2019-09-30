@@ -2,12 +2,14 @@ package filesystem
 
 import (
 	"github.com/galaco/KeyValues"
+	"github.com/galaco/bsp/lumps"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"io"
 )
 
 type FileSystem interface {
 	GetFile(string) (io.Reader, error)
+	RegisterPakFile(pakFile *lumps.Pakfile)
 }
 
 // InitializeFromGameInfoDefinitions Reads game resource data paths
@@ -18,5 +20,5 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 	if lfs != nil {
 		return lfs, err
 	}
-	return nil,err
+	return nil, err
 }

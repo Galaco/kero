@@ -38,7 +38,6 @@ type bspstructs struct {
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
-	//ResourceManager := resource.Manager()
 	bspStructure := bspstructs{
 		faces:     file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
 		planes:    file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
@@ -73,10 +72,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 		} else {
 			bspFaces[idx] = generateBspFace(&f, &bspStructure, bspMesh)
 		}
-	}
 
-	// Add MATERIALS TO FACES
-	for idx := range bspFaces {
 		faceVmt, err := stringTable.FindString(int(bspStructure.texInfos[bspStructure.faces[idx].TexInfo].TexData))
 		if err != nil {
 			console.PrintInterface(console.LevelError, err)
@@ -84,22 +80,6 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 			bspFaces[idx].SetMaterial(strings.ToLower(faceVmt))
 		}
 	}
-
-	// Finish the bsp object.
-	//event.Manager().Dispatch(message.LoadedMap(bspObject))
-	////bspMesh.Finish()
-	//
-	//cl := model.ClusterLeaf{
-	//	Id:        0,
-	//	Faces:     bspFaces,
-	//	DispFaces: dispFaces,
-	//}
-	//bspObject.SetClusterLeafs([]model.ClusterLeaf{cl})
-
-	// Get static props
-	//staticProps := LoadStaticProps(bspStructure.game.GetStaticPropLump(), fs)
-
-	//return scene.NewScene(*bspObject, staticProps)
 
 	return NewBsp(bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
 }

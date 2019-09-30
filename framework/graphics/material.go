@@ -11,8 +11,6 @@ type Material struct {
 	ShaderName string
 	// BaseTextureName
 	BaseTextureName string
-	// BumpMapName
-	BumpMapName string
 }
 
 // FilePath returns this materials location in whatever
@@ -35,7 +33,5 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
 	props := rawProps.(*vmt.Properties)
 	mat := NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
-	mat.BumpMapName = props.Bumpmap
-
 	return mat, nil
 }

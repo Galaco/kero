@@ -6,7 +6,7 @@ import (
 )
 
 type mouse struct {
-	window 	   *tinygametools.Window
+	window     *tinygametools.Window
 	mouse      *tinygametools.Mouse
 	xOld, yOld float64
 }

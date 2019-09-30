@@ -15,9 +15,9 @@ type Gui struct {
 	uiContext *context.Context
 
 	loadingView views.Loading
-	menuView views.Menu
+	menuView    views.Menu
 
-	shouldDisplayMenu bool
+	shouldDisplayMenu          bool
 	shouldDisplayLoadingScreen bool
 }
 
@@ -41,6 +41,8 @@ func (s *Gui) ProcessMessage(message event.Dispatchable) {
 		} else {
 			s.shouldDisplayLoadingScreen = true
 		}
+	case messages.TypeConsoleMessage:
+		s.menuView.Console.AddMessage(message.(*messages.ConsoleMessage).Level(), message.(*messages.ConsoleMessage).Message())
 	}
 }
 
@@ -55,7 +57,6 @@ func (s *Gui) Update(dt float64) {
 			s.menuView.Render()
 		}
 	}
-
 
 	gui.EndFrame(s.uiContext)
 }

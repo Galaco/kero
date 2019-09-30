@@ -15,5 +15,5 @@ func (text *Text) SetText(value string) {
 }
 
 func NewText(value string) *Text {
-	return &Text{value:value}
+	return &Text{value: value}
 }

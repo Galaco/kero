@@ -2,6 +2,7 @@ package loader
 
 import (
 	"github.com/galaco/bsp"
+	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/messages"
@@ -23,6 +24,7 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 		return nil, nil, err
 	}
 	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateBSPParsed))
+	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
 	// Load the static bsp world
 	level, err := valve.LoadBSPWorld(fs, file)
 	if err != nil {
@@ -38,7 +40,7 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStaticPropsLoaded))
 
 	// Load entities
-	ents,err := valve.LoadEntdata(fs, file)
+	ents, err := valve.LoadEntdata(fs, file)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -7,7 +7,7 @@ import (
 )
 
 type Context struct {
-	Client 	   game.Client
+	Client     game.Client
 	Config     *config.Config
 	Filesystem filesystem.FileSystem
 }

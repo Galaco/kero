@@ -7,7 +7,7 @@ import (
 )
 
 // CounterstrikeSource
-type CounterstrikeSource struct{
+type CounterstrikeSource struct {
 	client Client
 }
 

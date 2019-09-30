@@ -28,8 +28,6 @@ func (camera *Camera) Transform() *Transform {
 	return &camera.transform
 }
 
-
-
 // Forwards
 func (camera *Camera) Forwards(dt float64) {
 	camera.Transform().Position = camera.Transform().Position.Add(camera.direction.Mul(float32(cameraSpeed * dt)))

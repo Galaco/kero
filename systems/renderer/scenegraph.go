@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"fmt"
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/filesystem"
@@ -9,6 +10,7 @@ import (
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
 	"github.com/galaco/kero/valve"
+	"strings"
 )
 
 type SceneGraph struct {
@@ -31,12 +33,13 @@ func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCa
 			if err != nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
+				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
 				texCache.Add(mat.BaseTextureName, tex)
 				gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
 			}
 		}
-		materialCache.Add(mat.BaseTextureName, cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName)))
+		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName)))
 	}
 
 	// finish bsp mesh
@@ -45,6 +48,7 @@ func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCa
 		// Generate texture coordinates
 		var tex *graphics.Texture
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
+			event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material())))
 			tex = texCache.Find(cache.ErrorTexturePath)
 		} else {
 			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
@@ -63,10 +67,19 @@ func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCa
 
 	level.Mesh().GenerateTangents()
 
+	remappedFaces := make([]valve.BspFace, 0, 1024)
+	// Kero isnt interested in tools faces (for now)
+	for idx, bspFace := range level.Faces() {
+		if strings.HasPrefix(strings.ToLower(bspFace.Material()), "tools") {
+			continue
+		}
+		remappedFaces = append(remappedFaces, level.Faces()[idx])
+	}
+
 	return &SceneGraph{
 		bspMesh:  level.Mesh(),
 		gpuMesh:  graphics.UploadMesh(level.Mesh()),
-		bspFaces: level.Faces(),
+		bspFaces: remappedFaces,
 		camera:   level.Camera(),
 	}
 }

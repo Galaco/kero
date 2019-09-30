@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/valve/studiomodel"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"strings"
@@ -53,17 +54,17 @@ func generateUniquePropList(propList []string) (uniqueList []string) {
 	return uniqueList
 }
 
-func loadPropsFromFilesystem(fs filesystem.FileSystem, propPaths []string) map[string]bool {
-	propMap := map[string]bool{}
+func loadPropsFromFilesystem(fs filesystem.FileSystem, propPaths []string) map[string]*graphics.Model {
+	propMap := map[string]*graphics.Model{}
 	for _, path := range propPaths {
 		if !strings.HasSuffix(path, ".mdl") {
 			path += ".mdl"
 		}
-		_, err := studiomodel.LoadProp(path, fs.(*filesystemLib.FileSystem))
+		prop, err := studiomodel.LoadProp(path, fs.(*filesystemLib.FileSystem))
 		if err != nil {
 			continue
 		}
-		//propMap[path] = prop
+		propMap[path] = prop
 	}
 
 	return propMap

@@ -6,18 +6,17 @@ import (
 )
 
 const (
-	TypeLoadingLevelParsed = event.Type("LoadingLevelParsed")
+	TypeLoadingLevelParsed   = event.Type("LoadingLevelParsed")
 	TypeLoadingLevelProgress = event.Type("LoadingLevelProgress")
 
-
-	LoadingProgressStateError = -1
-	LoadingProgressStateStarted = 0
-	LoadingProgressStateBSPParsed = 1
-	LoadingProgressStateGeometryLoaded = 2
-	LoadingProgressStateStaticPropsLoaded = 3
-	LoadingProgressStateEntitiesLoaded = 4
+	LoadingProgressStateError              = -1
+	LoadingProgressStateStarted            = 0
+	LoadingProgressStateBSPParsed          = 1
+	LoadingProgressStateGeometryLoaded     = 2
+	LoadingProgressStateStaticPropsLoaded  = 3
+	LoadingProgressStateEntitiesLoaded     = 4
 	LoadingProgressStateDynamicPropsLoaded = 5
-	LoadingProgressStateFinished = 6
+	LoadingProgressStateFinished           = 6
 )
 
 type LoadingLevelParsed struct {
@@ -55,4 +54,3 @@ func NewLoadingLevelProgress(state int) *LoadingLevelProgress {
 		state: state,
 	}
 }
-

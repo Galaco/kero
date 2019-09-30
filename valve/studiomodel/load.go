@@ -19,7 +19,7 @@ import (
 func LoadProp(path string, fs filesystem.FileSystem) (*graphics.Model, error) {
 	prop, err := loadProp(strings.Split(path, ".mdl")[0], fs)
 	if prop != nil {
-		_,err := modelFromStudioModel(path, prop, fs)
+		_, err := modelFromStudioModel(path, prop, fs)
 		if err != nil {
 			return nil, err
 		}
@@ -27,7 +27,7 @@ func LoadProp(path string, fs filesystem.FileSystem) (*graphics.Model, error) {
 		return nil, err
 	}
 
-	return nil,err
+	return nil, err
 }
 
 func loadProp(filePath string, fs filesystem.FileSystem) (*studiomodel.StudioModel, error) {
@@ -108,9 +108,8 @@ func materialsForStudioModel(mdlData *mdl.Mdl, fs filesystem.FileSystem) []strin
 	materials := make([]string, 0)
 	for _, dir := range mdlData.TextureDirs {
 		for _, name := range mdlData.TextureNames {
-			materials = append(materials, strings.Replace(dir, "\\", "/", -1) + name)
+			materials = append(materials, strings.Replace(dir, "\\", "/", -1)+name)
 		}
 	}
 	return materials
 }
-

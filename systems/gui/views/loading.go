@@ -7,7 +7,7 @@ import (
 
 type Loading struct {
 	state int
-	text gui.Text
+	text  gui.Text
 }
 
 func (view *Loading) UpdateProgress(state int) {

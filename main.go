@@ -22,14 +22,13 @@ func main() {
 
 	game := cstrike.NewGameDefinition()
 
-
 	cfg := loadConfig()
 	fs := initFilesystem(cfg.GameDirectory + "/" + game.ContentDirectory())
 	if err := initFramework(cfg); err != nil {
 		panic(err)
 	}
 	context := systems.Context{
-		Client: game.Client(),
+		Client:     game.Client(),
 		Config:     cfg,
 		Filesystem: fs,
 	}

@@ -12,9 +12,9 @@ import (
 )
 
 type Scene struct {
-	context *systems.Context
+	context      *systems.Context
 	currentLevel *valve.Bsp
-	entities []entity.Entity
+	entities     []entity.Entity
 
 	listenToInput bool
 }
@@ -43,7 +43,7 @@ func (s *Scene) Update(dt float64) {
 
 		s.currentLevel.Camera().Update(dt)
 	}
-	for _,e := range s.entities {
+	for _, e := range s.entities {
 		e.Think(dt)
 	}
 }
