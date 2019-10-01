@@ -1,33 +1,23 @@
 package menu
 
 import (
-	"github.com/galaco/kero/framework/console"
-	"github.com/inkyblackness/imgui-go"
+	"github.com/galaco/kero/framework/gui"
 )
 
 type Console struct {
-	messages []string
+	messages []*gui.Text
 }
 
 func (view *Console) Render() {
-	if imgui.BeginV("Console", nil, imgui.WindowFlagsNoResize|
-		imgui.WindowFlagsNoMove|
-		imgui.WindowFlagsNoBringToFrontOnFocus|
-		imgui.WindowFlagsNoScrollbar|
-		imgui.WindowFlagsNoScrollWithMouse|
-		imgui.WindowFlagsNoNav|
-		imgui.WindowFlagsNoInputs) {
-
+	if gui.StartPanel("Console"){
 		for _, s := range view.messages {
-			imgui.BeginChild("ConsoleScrolling")
-			imgui.Text(s)
-			imgui.EndChild()
+			s.Render()
 		}
 
-		imgui.End()
+		gui.EndPanel()
 	}
 }
 
-func (view *Console) AddMessage(level console.LogLevel, message string) {
-	view.messages = append(view.messages, message)
+func (view *Console) AddMessage(message string) {
+	view.messages = append(view.messages, gui.NewText(message))
 }

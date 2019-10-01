@@ -42,7 +42,7 @@ func (s *Gui) ProcessMessage(message event.Dispatchable) {
 			s.shouldDisplayLoadingScreen = true
 		}
 	case messages.TypeConsoleMessage:
-		s.menuView.Console.AddMessage(message.(*messages.ConsoleMessage).Level(), message.(*messages.ConsoleMessage).Message())
+		s.menuView.Console.AddMessage(message.(*messages.ConsoleMessage).Message())
 	}
 }
 
