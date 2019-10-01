@@ -13,15 +13,17 @@ type Menu struct {
 }
 
 func (view *Menu) Render() {
-
-	gui.NewButton("1", "Open map", func() {
-		name, err := dialogs.OpenFile("Valve .bsp files", "bsp")
-		if err != nil {
-			dialogs.ErrorMessage(err)
-			return
-		}
-		event.Dispatch(messages.NewChangeLevel(name))
-	}).Draw()
+	if gui.StartPanel("Menu") {
+		gui.NewButton("menu_open_map", "Open map", func() {
+			name, err := dialogs.OpenFile("Valve .bsp files", "bsp")
+			if err != nil {
+				dialogs.ErrorMessage(err)
+				return
+			}
+			event.Dispatch(messages.NewChangeLevel(name))
+		}).Draw()
+		gui.EndPanel()
+	}
 
 	view.Console.Render()
 }
