@@ -16,5 +16,8 @@ func (view *Loading) UpdateProgress(state int) {
 }
 
 func (view *Loading) Render() {
-	view.text.Render()
+	if gui.StartPanel("loading_map") {
+		view.text.Render()
+		gui.EndPanel()
+	}
 }
