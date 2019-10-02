@@ -1,4 +1,4 @@
-package valve
+package vis
 
 import (
 	"github.com/galaco/bsp"
@@ -37,7 +37,7 @@ func (vis *Vis) PVSForCluster(clusterId int16) []int16 {
 	return vis.VisibilityLump.GetVisibleClusters(clusterId)
 }
 
-func (vis *Vis) GetPVSClusterForCluster(clusterId int16) *Cluster {
+func (vis *Vis) GetPVSCacheForCluster(clusterId int16) *Cluster {
 	if clusterId == -1 {
 		clusterId = int16(vis.findCurrentLeafIndex(vis.viewPosition))
 	}

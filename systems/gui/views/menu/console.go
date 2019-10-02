@@ -9,7 +9,7 @@ type Console struct {
 }
 
 func (view *Console) Render() {
-	if gui.StartPanel("Console"){
+	if gui.StartPanel("Console") {
 		for _, s := range view.messages {
 			s.Render()
 		}

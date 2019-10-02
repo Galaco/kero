@@ -94,26 +94,3 @@ func TestMesh_Vertices(t *testing.T) {
 		}
 	}
 }
-
-func TestMeshFace_Length(t *testing.T) {
-	sut := NewMeshFace(32, 64)
-
-	if sut.Length() != 64 {
-		t.Error("unexpected length for face")
-	}
-}
-
-func TestMeshFace_Offset(t *testing.T) {
-	sut := NewMeshFace(32, 64)
-
-	if sut.Offset() != 32 {
-		t.Error("unexpected offset for face")
-	}
-}
-
-func TestNewMeshFace(t *testing.T) {
-	sut := NewMeshFace(32, 64)
-	if reflect.TypeOf(sut) != reflect.TypeOf(MeshFace{}) {
-		t.Errorf("unexpceted type returned. Expected %s, but received: %s", reflect.TypeOf(MeshFace{}), reflect.TypeOf(sut))
-	}
-}

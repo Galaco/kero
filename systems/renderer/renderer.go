@@ -3,12 +3,13 @@ package renderer
 import (
 	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
 	"github.com/galaco/kero/systems/renderer/cache"
 	"github.com/galaco/kero/systems/renderer/shaders"
-	"log"
+	"github.com/galaco/kero/systems/renderer/vis"
 )
 
 type Renderer struct {
@@ -40,8 +41,11 @@ func (s *Renderer) Update(dt float64) {
 	if s.scene == nil {
 		return
 	}
+	s.scene.RecomputeVisibleClusters()
+	viewFrustum := vis.FrustumFromCamera(s.scene.camera)
+
 	s.startFrame()
-	s.renderBsp()
+	s.renderBsp(viewFrustum)
 }
 
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
@@ -66,20 +70,27 @@ func (s *Renderer) startFrame() {
 	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
 }
 
-func (s *Renderer) renderBsp() {
+func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
 	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
 	var mat *cache.GpuMaterial
-	for _, f := range s.scene.bspFaces {
-		mat = s.materialCache.Find(f.Material())
-		if mat == nil {
+
+	for _, cluster := range s.scene.visibleClusterLeafs {
+		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
-		graphics.DrawFace(f.Offset(), f.Length(), mat.Diffuse)
-		if err := graphics.GpuError(); err != nil {
-			log.Println(err)
+
+		for _, f := range cluster.Faces {
+			mat = s.materialCache.Find(f.Material())
+			if mat == nil {
+				continue
+			}
+			graphics.DrawFace(f.Offset(), f.Length(), mat.Diffuse)
+			if err := graphics.GpuError(); err != nil {
+				event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
+			}
 		}
 	}
 }

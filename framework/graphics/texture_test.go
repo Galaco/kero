@@ -1,7 +1,7 @@
 package graphics
 
 import (
-	"github.com/galaco/vtf/format"
+	"github.com/go-gl/gl/v4.1-core/gl"
 	"testing"
 )
 
@@ -90,7 +90,7 @@ func TestNewError(t *testing.T) {
 	}
 
 	for idx, v := range expectedColourData {
-		if tex.PixelDataForFrame(0)[idx] != v {
+		if tex.Image()[idx] != v {
 			t.Error("unexpected colour data for error texture")
 		}
 	}
@@ -98,7 +98,7 @@ func TestNewError(t *testing.T) {
 
 func TestColour2D_Format(t *testing.T) {
 	tex := NewErrorTexture("error.vtf")
-	if tex.Format() != uint32(format.RGB888) {
+	if tex.Format() != gl.RGB {
 		t.Error("unexpected error colour data format")
 	}
 }

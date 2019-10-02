@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"errors"
 	"fmt"
 	"github.com/galaco/gosigl"
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -99,7 +98,7 @@ func PushInt32(uniform int32, value int32) {
 
 func GpuError() error {
 	if glError := gl.GetError(); glError != gl.NO_ERROR {
-		return errors.New(fmt.Sprintf("gl error. Code: %d", glError))
+		return fmt.Errorf("gl error. Code: %d", glError)
 	}
 	return nil
 }

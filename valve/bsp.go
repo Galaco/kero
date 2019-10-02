@@ -81,7 +81,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 		}
 	}
 
-	return NewBsp(bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
+	return NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
 }
 
 // SortUnique builds a unique list of materials in a StringTable
@@ -266,12 +266,12 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 
 // Bsp
 type Bsp struct {
+	file               *bsp.Bsp
 	mesh               *graphics.Mesh
 	faces              []BspFace
 	dispFaces          []int
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
-	visibilityData     *Vis
 	camera             *graphics3d.Camera
 }
 
@@ -299,26 +299,24 @@ func (bsp *Bsp) TexInfos() []texinfo.TexInfo {
 	return bsp.textureInfos
 }
 
-func (bsp *Bsp) Visibility() *Vis {
-	return bsp.visibilityData
-}
-
 func (bsp *Bsp) Camera() *graphics3d.Camera {
 	return bsp.camera
 }
 
-func (bsp *Bsp) AddVisibility(visData *Vis) {
-	bsp.visibilityData = visData
+func (bsp *Bsp) File() *bsp.Bsp {
+	return bsp.file
 }
 
 // NewBsp
 func NewBsp(
+	file *bsp.Bsp,
 	mesh *graphics.Mesh,
 	faces []BspFace,
 	dispFaces []int,
 	materialDictionary map[string]*graphics.Material,
 	textureInfos []texinfo.TexInfo) *Bsp {
 	return &Bsp{
+		file:               file,
 		mesh:               mesh,
 		faces:              faces,
 		dispFaces:          dispFaces,

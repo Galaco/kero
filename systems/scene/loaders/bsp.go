@@ -31,8 +31,6 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 		event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
 		return nil, nil, err
 	}
-	// Load visibility optimisations
-	level.AddVisibility(valve.LoadVisData(file))
 	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateGeometryLoaded))
 
 	// Load staticprops
