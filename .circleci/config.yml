@@ -5,12 +5,22 @@ jobs:
       - image: galaco/go-gtk-ci:1.13b1
     steps:
       - checkout
+      - restore_cache: # restores saved cache if no changes are detected since last run
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Fetch Dependencies
+          command: go mod download
       - run:
           name: Lint
           command: golangci-lint run --deadline=2m
       - run:
           name: Test
           command: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - run:
           name: Upload Codecov Results
           command: bash <(curl -s https://codecov.io/bash)
