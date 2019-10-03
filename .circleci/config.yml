@@ -6,12 +6,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Go Dependencies
-          command: |
-            go mod download
-      - run:
           name: Lint
-          command: GO111MODULE=on golangci-lint run --deadline=2m
+          command: golangci-lint run --deadline=2m
       - run:
           name: Test
           command: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
