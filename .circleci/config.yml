@@ -5,17 +5,10 @@ jobs:
       - image: galaco/go-gtk-ci:1.13b1
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-pkg-cache
       - run:
           name: Install Go Dependencies
           command: |
             go mod download
-      - save_cache:
-          key: v1-pkg-cache
-          paths:
-            - "/go/pkg"
       - run:
           name: Lint
           command: golangci-lint run --deadline=2m
