@@ -11,7 +11,7 @@ jobs:
       - run:
           name: Install Go Dependencies
           command: |
-            go get
+            go mod download
       - save_cache:
           key: v1-pkg-cache
           paths:
