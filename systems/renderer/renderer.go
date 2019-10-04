@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/kero/systems/renderer/cache"
 	"github.com/galaco/kero/systems/renderer/shaders"
 	"github.com/galaco/kero/systems/renderer/vis"
+	"github.com/galaco/kero/valve"
 )
 
 type Renderer struct {
@@ -77,22 +78,44 @@ func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
 	var mat *cache.GpuMaterial
 
-	for _, cluster := range s.scene.visibleClusterLeafs {
+	renderClusters := make([]*vis.ClusterLeaf, 0)
+	for idx, cluster := range s.scene.visibleClusterLeafs {
 		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
 
-		for _, f := range cluster.Faces {
-			mat = s.materialCache.Find(f.Material())
-			if mat == nil {
-				continue
-			}
-			graphics.DrawFace(f.Offset(), f.Length(), mat.Diffuse)
+		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])
+	}
+
+	materialMappedClusterFaces := s.groupClusterFacesByMaterial(renderClusters)
+	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
+		mat = s.materialCache.Find(clusterFaceMaterial)
+
+		for _, face := range faces {
+			graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
 			if err := graphics.GpuError(); err != nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 			}
 		}
 	}
+}
+
+// groupClusterFacesByMaterial groups all faces in a collections of
+// clusters by material
+func (s *Renderer) groupClusterFacesByMaterial(clusters []*vis.ClusterLeaf) map[string][]*valve.BspFace {
+	clusterFaceMap := map[string][]*valve.BspFace{}
+
+	for _, cluster := range clusters {
+		for idx, face := range cluster.Faces {
+			if _, ok := clusterFaceMap[face.Material()]; !ok {
+				clusterFaceMap[face.Material()] = []*valve.BspFace{&cluster.Faces[idx]}
+			} else {
+				clusterFaceMap[face.Material()] = append(clusterFaceMap[face.Material()], &cluster.Faces[idx])
+			}
+		}
+	}
+
+	return clusterFaceMap
 }
 
 func NewRenderer() *Renderer {
