@@ -141,6 +141,11 @@ func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCa
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
 
+	// Finish staticprops
+	//for idx, prop := range level.StaticProps() {
+	//	graphics.UploadMesh(level.Mesh())
+	//}
+
 	// Generate visibility tree
 	visibility := vis.LoadVisData(level.File())
 	clusterLeafs := generateClusterLeafs(level, visibility)
@@ -182,19 +187,19 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 		}
 	}
 
-	//// Assign staticprops to clusters
-	//for idx, prop := range baseWorld.StaticProps() {
-	//	for _, leafId := range prop.LeafList() {
-	//		clusterId := visData.Leafs[leafId].Cluster
-	//		if clusterId == -1 {
-	//			defaultCluster.StaticProps = append(defaultCluster.StaticProps, &baseWorldStaticProps[idx])
-	//			continue
-	//		}
-	//		bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &baseWorldStaticProps[idx])
-	//	}
-	//}
-	//
-	//for _, idx := range baseWorldBsp.ClusterLeafs()[0].DispFaces {
+	// Assign staticprops to clusters
+	for idx, prop := range level.StaticProps() {
+		for _, leafId := range prop.LeafList() {
+			clusterId := visData.Leafs[leafId].Cluster
+			if clusterId == -1 {
+				//defaultCluster.StaticProps = append(defaultCluster.StaticProps, &baseWorldStaticProps[idx])
+				continue
+			}
+			bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &level.StaticProps()[idx])
+		}
+	}
+
+	//for _, idx := range bspClusters[0].DispFaces {
 	//	defaultCluster.Faces = append(defaultCluster.Faces, baseWorldBspFaces[idx])
 	//}
 

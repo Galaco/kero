@@ -1,16 +1,19 @@
 package valve
 
 import (
+	"fmt"
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/valve/studiomodel"
-	filesystemLib "github.com/golang-source-engine/filesystem"
 	"strings"
+	"sync"
 )
 
-func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) {
+func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) []graphics.StaticProp {
 	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
 	propLump := gameLump.GetStaticPropLump()
 
@@ -20,26 +23,26 @@ func LoadStaticProps(fs filesystem.FileSystem, file *bsp.Bsp) {
 		propPaths = append(propPaths, propLump.DictLump.Name[propEntry.GetPropType()])
 	}
 	propPaths = generateUniquePropList(propPaths)
+	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops referenced", len(propPaths))))
 
 	// Load Prop data
-	_ = loadPropsFromFilesystem(fs, propPaths)
+	propList := asyncLoadProps(fs, propPaths)
+	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propList))))
 
-	// Transform to props to
-	//staticPropList := make([]model.StaticProp, 0)
+	//Transform to props to
+	staticPropList := make([]graphics.StaticProp, 0)
 
-	//for _, propEntry := range propLump.PropLumps {
-	//	modelName := propLump.DictLump.Name[propEntry.GetPropType()]
-	//	m := ResourceManager.Model(modelName)
-	//	if m != nil {
-	//		staticPropList = append(staticPropList, *model.NewStaticProp(propEntry, &propLump.LeafLump, m))
-	//		continue
-	//	}
-	//	// Model missing, use error model
-	//	m = ResourceManager.Model(ResourceManager.ErrorModelName())
-	//	staticPropList = append(staticPropList, *model.NewStaticProp(propEntry, &propLump.LeafLump, m))
-	//}
+	for _, propEntry := range propLump.PropLumps {
+		modelName := propLump.DictLump.Name[propEntry.GetPropType()]
+		if m, ok := propList[modelName]; ok {
+			staticPropList = append(staticPropList, *graphics.NewStaticProp(propEntry, &propLump.LeafLump, m))
+			continue
+		} else {
+			// error Prop
+		}
+	}
 
-	//return staticPropList
+	return staticPropList
 }
 
 func generateUniquePropList(propList []string) (uniqueList []string) {
@@ -54,18 +57,31 @@ func generateUniquePropList(propList []string) (uniqueList []string) {
 	return uniqueList
 }
 
-func loadPropsFromFilesystem(fs filesystem.FileSystem, propPaths []string) map[string]*graphics.Model {
+func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[string]*graphics.Model {
 	propMap := map[string]*graphics.Model{}
-	for _, path := range propPaths {
+	var propMapMutex sync.Mutex
+	waitGroup := sync.WaitGroup{}
+
+	asyncLoadProps := func(path string) {
 		if !strings.HasSuffix(path, ".mdl") {
 			path += ".mdl"
 		}
-		prop, err := studiomodel.LoadProp(path, fs.(*filesystemLib.FileSystem))
+		prop, err := studiomodel.LoadProp(path, fs)
 		if err != nil {
-			continue
+			waitGroup.Done()
+			return
 		}
+		propMapMutex.Lock()
 		propMap[path] = prop
+		propMapMutex.Unlock()
+		waitGroup.Done()
 	}
+
+	for _, path := range propPaths {
+		waitGroup.Add(1)
+		go asyncLoadProps(path)
+	}
+	waitGroup.Wait()
 
 	return propMap
 }

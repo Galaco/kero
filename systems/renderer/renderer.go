@@ -54,7 +54,7 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 	case messages.TypeLoadingLevelParsed:
 		s.scene = NewSceneGraphFromBsp(
 			s.context.Filesystem,
-			message.(*messages.LoadingLevelParsed).Level(),
+			message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
 			s.materialCache,
 			s.textureCache,
 			s.gpuItemCache)
@@ -83,11 +83,10 @@ func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
 		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
-
 		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])
 	}
 
-	materialMappedClusterFaces := s.groupClusterFacesByMaterial(renderClusters)
+	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(renderClusters)
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.materialCache.Find(clusterFaceMaterial)
 
@@ -98,24 +97,6 @@ func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
 			}
 		}
 	}
-}
-
-// groupClusterFacesByMaterial groups all faces in a collections of
-// clusters by material
-func (s *Renderer) groupClusterFacesByMaterial(clusters []*vis.ClusterLeaf) map[string][]*valve.BspFace {
-	clusterFaceMap := map[string][]*valve.BspFace{}
-
-	for _, cluster := range clusters {
-		for idx, face := range cluster.Faces {
-			if _, ok := clusterFaceMap[face.Material()]; !ok {
-				clusterFaceMap[face.Material()] = []*valve.BspFace{&cluster.Faces[idx]}
-			} else {
-				clusterFaceMap[face.Material()] = append(clusterFaceMap[face.Material()], &cluster.Faces[idx])
-			}
-		}
-	}
-
-	return clusterFaceMap
 }
 
 func NewRenderer() *Renderer {

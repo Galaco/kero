@@ -6,17 +6,19 @@ import (
 	loader "github.com/galaco/kero/valve/entity"
 )
 
-// CounterstrikeSource
-type CounterstrikeSource struct {
+// Cstrike
+type Cstrike struct {
 	client Client
 }
 
-func (def *CounterstrikeSource) ContentDirectory() string {
+// ContentDirectory returns the game content directory relative to the game
+// root directory
+func (def *Cstrike) ContentDirectory() string {
 	return "cstrike"
 }
 
 // RegisterEntityClasses loads all Game entity classes into the engine.
-func (def *CounterstrikeSource) RegisterEntityClasses() {
+func (def *Cstrike) RegisterEntityClasses() {
 	loader.RegisterClass(&entity.InfoPlayerStart{})
 	loader.RegisterClass(&entity.PropDoorRotating{})
 	loader.RegisterClass(&entity.PropDynamic{})
@@ -28,12 +30,14 @@ func (def *CounterstrikeSource) RegisterEntityClasses() {
 	loader.RegisterClass(&entity.PropRagdoll{})
 }
 
-func (def *CounterstrikeSource) Client() game.Client {
+// Client returns the game client
+func (def *Cstrike) Client() game.Client {
 	return &def.client
 }
 
-func NewGameDefinition() *CounterstrikeSource {
-	return &CounterstrikeSource{
+// NewGameDefinition returns the game definition
+func NewGameDefinition() *Cstrike {
+	return &Cstrike{
 		client: NewClient(),
 	}
 }

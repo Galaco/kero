@@ -2,13 +2,15 @@ package event
 
 var eventBus Dispatcher
 
+// Dispatcher manages game events
 type Dispatcher struct {
 	messages    []Dispatchable
 	newMessages []Dispatchable
 	systems     []receiveable
 }
 
-// ProcessMessages
+// ProcessMessages loops through all stored messages and dispatches
+// them to listeners
 func ProcessMessages() {
 	for _, m := range eventBus.messages {
 		for _, s := range eventBus.systems {
@@ -25,16 +27,18 @@ func ProcessMessages() {
 	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
-// Dispatch
+// Dispatch queues a message to be sent to listeners
 func Dispatch(message Dispatchable) {
 	eventBus.newMessages = append(eventBus.newMessages, message)
 }
 
+// ClearQueue wipes the current queue.
+// This should be used with care.
 func ClearQueue() {
 	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
-// RegisterSystem
-func RegisterSystem(s receiveable) {
+// AddListener adds a listener for events.
+func AddListener(s receiveable) {
 	eventBus.systems = append(eventBus.systems, s)
 }

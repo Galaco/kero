@@ -6,17 +6,21 @@ import (
 	"github.com/galaco/StudioModel/phy"
 	"github.com/galaco/StudioModel/vtx"
 	"github.com/galaco/StudioModel/vvd"
-	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
+	"io"
 	"strings"
 )
+
+type virtualFileSystem interface {
+	GetFile(string) (io.Reader, error)
+}
 
 // @TODO This is SUPER incomplete
 // right now it does the bare minimum, and many models seem to have
 // some corruption.
 
 // LoadProp loads a single prop/model of known filepath
-func LoadProp(path string, fs filesystem.FileSystem) (*graphics.Model, error) {
+func LoadProp(path string, fs virtualFileSystem) (*graphics.Model, error) {
 	prop, err := loadProp(strings.Split(path, ".mdl")[0], fs)
 	if prop != nil {
 		_, err := modelFromStudioModel(path, prop, fs)
@@ -30,7 +34,7 @@ func LoadProp(path string, fs filesystem.FileSystem) (*graphics.Model, error) {
 	return nil, err
 }
 
-func loadProp(filePath string, fs filesystem.FileSystem) (*studiomodel.StudioModel, error) {
+func loadProp(filePath string, fs virtualFileSystem) (*studiomodel.StudioModel, error) {
 	prop := studiomodel.NewStudioModel(filePath)
 
 	// MDL
@@ -82,7 +86,7 @@ func loadProp(filePath string, fs filesystem.FileSystem) (*studiomodel.StudioMod
 	return prop, nil
 }
 
-func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel, fs filesystem.FileSystem) (*graphics.Model, error) {
+func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel, fs virtualFileSystem) (*graphics.Model, error) {
 	verts, normals, textureCoordinates, err := VertexDataForModel(studioModel, 0)
 	if err != nil {
 		return nil, err
@@ -104,7 +108,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel,
 	return outModel, nil
 }
 
-func materialsForStudioModel(mdlData *mdl.Mdl, fs filesystem.FileSystem) []string {
+func materialsForStudioModel(mdlData *mdl.Mdl, fs virtualFileSystem) []string {
 	materials := make([]string, 0)
 	for _, dir := range mdlData.TextureDirs {
 		for _, name := range mdlData.TextureNames {

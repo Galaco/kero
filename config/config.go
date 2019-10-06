@@ -8,7 +8,7 @@ import (
 const minWidth = 320
 const minHeight = 240
 
-// Project configuration properties
+// Config holds project configuration properties
 // Engine needs to know where to locate its game data
 type Config struct {
 	GameDirectory string

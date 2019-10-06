@@ -272,6 +272,7 @@ type Bsp struct {
 	dispFaces          []int
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
+	staticProps        []graphics.StaticProp
 	camera             *graphics3d.Camera
 }
 
@@ -305,6 +306,14 @@ func (bsp *Bsp) Camera() *graphics3d.Camera {
 
 func (bsp *Bsp) File() *bsp.Bsp {
 	return bsp.file
+}
+
+func (bsp *Bsp) StaticProps() []graphics.StaticProp {
+	return bsp.staticProps
+}
+
+func (bsp *Bsp) SetStaticProps(props []graphics.StaticProp) {
+	bsp.staticProps = props
 }
 
 // NewBsp

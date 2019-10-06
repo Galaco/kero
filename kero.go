@@ -65,7 +65,7 @@ func (kero *Kero) Start() {
 func (kero *Kero) initialize() {
 	for i := range kero.systems {
 		kero.systems[i].Register(&kero.context)
-		event.RegisterSystem(kero.systems[i])
+		event.AddListener(kero.systems[i])
 	}
 }
 
