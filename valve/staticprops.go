@@ -7,8 +7,8 @@ import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/studiomodel"
 	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/valve/studiomodel"
 	"strings"
 	"sync"
 )

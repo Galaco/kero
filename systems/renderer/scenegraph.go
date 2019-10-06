@@ -5,7 +5,6 @@ import (
 	"github.com/galaco/bsp/primitives/leaf"
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/messages"
@@ -13,8 +12,13 @@ import (
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
 	"github.com/go-gl/mathgl/mgl32"
+	"io"
 	"strings"
 )
+
+type fileSystem interface {
+	GetFile(string) (io.Reader, error)
+}
 
 type SceneGraph struct {
 	bspMesh  *graphics.Mesh
@@ -87,7 +91,7 @@ func (scene *SceneGraph) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 	scene.visibleClusterLeafs = visibleWorld
 }
 
-func NewSceneGraphFromBsp(fs filesystem.FileSystem, level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
+func NewSceneGraphFromBsp(fs fileSystem, level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 

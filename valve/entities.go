@@ -3,8 +3,8 @@ package valve
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/valve/entity"
 	entityLib "github.com/galaco/source-tools-common/entity"
 	"github.com/galaco/vmf"
 	"strings"

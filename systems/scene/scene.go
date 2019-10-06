@@ -3,12 +3,12 @@ package scene
 import (
 	"github.com/galaco/kero/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
 	loader "github.com/galaco/kero/systems/scene/loaders"
 	"github.com/galaco/kero/valve"
-	"github.com/galaco/kero/valve/entity"
 )
 
 type Scene struct {

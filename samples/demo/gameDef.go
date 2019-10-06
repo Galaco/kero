@@ -1,9 +1,9 @@
 package main
 
 import (
+	loader "github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/game"
 	"github.com/galaco/kero/game/common/entity"
-	loader "github.com/galaco/kero/valve/entity"
 )
 
 // Cstrike

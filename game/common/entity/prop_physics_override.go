@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/galaco/kero/valve/entity"
+	"github.com/galaco/kero/framework/entity"
 )
 
 // PropPhysicsOverride
