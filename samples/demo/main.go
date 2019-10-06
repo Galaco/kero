@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	keyvalues "github.com/galaco/KeyValues"
+	kero2 "github.com/galaco/kero"
 	"github.com/galaco/kero/config"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
-	"github.com/galaco/kero/game/cstrike"
 	"github.com/galaco/kero/systems"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"log"
@@ -20,7 +20,7 @@ import (
 func main() {
 	runtime.LockOSThread()
 
-	game := cstrike.NewGameDefinition()
+	game := NewGameDefinition()
 
 	cfg := loadConfig()
 	fs := initFilesystem(cfg.GameDirectory + "/" + game.ContentDirectory())
@@ -33,9 +33,9 @@ func main() {
 		Filesystem: fs,
 	}
 
-	kero := NewKero(context)
-	kero.RegisterGameDefinitions(game)
-	kero.Start()
+	keroImpl := kero2.NewKero(context)
+	keroImpl.RegisterGameDefinitions(game)
+	keroImpl.Start()
 }
 
 func loadConfig() *config.Config {

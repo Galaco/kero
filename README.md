@@ -11,8 +11,9 @@
 
 
 ## Installation
-To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later installed):
-`go build main.go`
+To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later installed)
+in the directory `samples/demo`:
+`go build .`
 
 To run it, copy `config.example.json` to `config.json`, then change the `gameDirectory` value to a Source Engine game installation
 on your machine. After that, just run the binary you compiled.

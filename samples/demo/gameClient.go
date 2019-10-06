@@ -1,4 +1,4 @@
-package cstrike
+package main
 
 import (
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"

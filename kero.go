@@ -1,4 +1,4 @@
-package main
+package kero
 
 import (
 	"github.com/galaco/kero/event"

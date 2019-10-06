@@ -1,4 +1,4 @@
-package cstrike
+package main
 
 import (
 	"github.com/galaco/kero/game"
