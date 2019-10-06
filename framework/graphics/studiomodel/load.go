@@ -23,14 +23,12 @@ type virtualFileSystem interface {
 func LoadProp(path string, fs virtualFileSystem) (*graphics.Model, error) {
 	prop, err := loadProp(strings.Split(path, ".mdl")[0], fs)
 	if prop != nil {
-		_, err := modelFromStudioModel(path, prop, fs)
+		model, err := modelFromStudioModel(path, prop, fs)
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		return nil, err
+		return model, nil
 	}
-
 	return nil, err
 }
 
@@ -102,6 +100,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel,
 		//@TODO Map ALL materials to mesh data
 		outModel.AddMaterial(mats[0])
 
+		smMesh.GenerateTangents()
 		outModel.AddMesh(smMesh)
 	}
 

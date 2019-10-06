@@ -266,14 +266,19 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 
 // Bsp
 type Bsp struct {
-	file               *bsp.Bsp
-	mesh               *graphics.Mesh
-	faces              []BspFace
-	dispFaces          []int
+	file *bsp.Bsp
+
+	mesh      *graphics.Mesh
+	faces     []BspFace
+	dispFaces []int
+
 	materialDictionary map[string]*graphics.Material
 	textureInfos       []texinfo.TexInfo
-	staticProps        []graphics.StaticProp
-	camera             *graphics3d.Camera
+
+	StaticPropDictionary map[string]*graphics.Model
+	StaticProps          []graphics.StaticProp
+
+	camera *graphics3d.Camera
 }
 
 // Mesh
@@ -306,14 +311,6 @@ func (bsp *Bsp) Camera() *graphics3d.Camera {
 
 func (bsp *Bsp) File() *bsp.Bsp {
 	return bsp.file
-}
-
-func (bsp *Bsp) StaticProps() []graphics.StaticProp {
-	return bsp.staticProps
-}
-
-func (bsp *Bsp) SetStaticProps(props []graphics.StaticProp) {
-	bsp.staticProps = props
 }
 
 // NewBsp

@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) []graphics.StaticProp {
+func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*graphics.Model, []graphics.StaticProp) {
 	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
 	propLump := gameLump.GetStaticPropLump()
 
@@ -26,15 +26,15 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) []graphics.St
 	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops referenced", len(propPaths))))
 
 	// Load Prop data
-	propList := asyncLoadProps(fs, propPaths)
-	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propList))))
+	propDictionary := asyncLoadProps(fs, propPaths)
+	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propDictionary))))
 
 	//Transform to props to
 	staticPropList := make([]graphics.StaticProp, 0)
 
 	for _, propEntry := range propLump.PropLumps {
 		modelName := propLump.DictLump.Name[propEntry.GetPropType()]
-		if m, ok := propList[modelName]; ok {
+		if m, ok := propDictionary[modelName]; ok {
 			staticPropList = append(staticPropList, *graphics.NewStaticProp(propEntry, &propLump.LeafLump, m))
 			continue
 		} else {
@@ -42,7 +42,7 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) []graphics.St
 		}
 	}
 
-	return staticPropList
+	return propDictionary, staticPropList
 }
 
 func generateUniquePropList(propList []string) (uniqueList []string) {
@@ -62,7 +62,7 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 	var propMapMutex sync.Mutex
 	waitGroup := sync.WaitGroup{}
 
-	asyncLoadProps := func(path string) {
+	asyncLoadProp := func(path string) {
 		if !strings.HasSuffix(path, ".mdl") {
 			path += ".mdl"
 		}
@@ -79,7 +79,7 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 
 	for _, path := range propPaths {
 		waitGroup.Add(1)
-		go asyncLoadProps(path)
+		go asyncLoadProp(path)
 	}
 	waitGroup.Wait()
 

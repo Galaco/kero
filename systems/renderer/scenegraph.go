@@ -24,7 +24,8 @@ type SceneGraph struct {
 	bspMesh  *graphics.Mesh
 	bspFaces []valve.BspFace
 
-	gpuMesh graphics.GpuMesh
+	gpuMesh     graphics.GpuMesh
+	staticProps []graphics.StaticProp
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -91,7 +92,12 @@ func (scene *SceneGraph) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 	scene.visibleClusterLeafs = visibleWorld
 }
 
-func NewSceneGraphFromBsp(fs fileSystem, level *valve.Bsp, materialCache *cache.Material, texCache *cache.Texture, gpuItemCache *cache.GpuItem) *SceneGraph {
+func NewSceneGraphFromBsp(fs fileSystem,
+	level *valve.Bsp,
+	materialCache *cache.Material,
+	texCache *cache.Texture,
+	gpuItemCache *cache.GpuItem,
+	gpuStaticProps map[string]*cache.GpuProp) *SceneGraph {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
@@ -138,17 +144,45 @@ func NewSceneGraphFromBsp(fs fileSystem, level *valve.Bsp, materialCache *cache.
 
 	remappedFaces := make([]valve.BspFace, 0, 1024)
 	// Kero isnt interested in tools faces (for now)
-	for idx, bspFace := range level.Faces() {
-		if strings.HasPrefix(strings.ToLower(bspFace.Material()), "tools") {
-			continue
-		}
+	for idx := range level.Faces() {
+		//if strings.HasPrefix(strings.ToLower(bspFace.Material()), "tools") {
+		//	continue
+		//}
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
 
 	// Finish staticprops
-	//for idx, prop := range level.StaticProps() {
-	//	graphics.UploadMesh(level.Mesh())
-	//}
+	for _, prop := range level.StaticPropDictionary {
+		gpuStaticProps[prop.Id] = cache.NewGpuProp()
+		for _, m := range prop.Meshes() {
+			gpuMesh := graphics.UploadMesh(m)
+			gpuStaticProps[prop.Id].AddMesh(&gpuMesh)
+		}
+		for _, materialPath := range prop.Materials() {
+			if _, ok := level.MaterialDictionary()[materialPath]; ok {
+				gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
+				continue
+			}
+			mat, err := graphics.LoadMaterial(fs, materialPath)
+			if err != nil {
+				mat = graphics.NewMaterial(materialPath)
+				mat.BaseTextureName = cache.ErrorTexturePath
+			}
+			if tex := texCache.Find(mat.BaseTextureName); tex == nil {
+				tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
+				if err != nil {
+					event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+					texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
+					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
+				} else {
+					texCache.Add(mat.BaseTextureName, tex)
+					gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+				}
+			}
+			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName)))
+			gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
+		}
+	}
 
 	// Generate visibility tree
 	visibility := vis.LoadVisData(level.File())
@@ -158,6 +192,7 @@ func NewSceneGraphFromBsp(fs fileSystem, level *valve.Bsp, materialCache *cache.
 		bspMesh:      level.Mesh(),
 		gpuMesh:      graphics.UploadMesh(level.Mesh()),
 		bspFaces:     remappedFaces,
+		staticProps:  level.StaticProps,
 		clusterLeafs: clusterLeafs,
 		visData:      visibility,
 		camera:       level.Camera(),
@@ -192,14 +227,14 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 	}
 
 	// Assign staticprops to clusters
-	for idx, prop := range level.StaticProps() {
+	for idx, prop := range level.StaticProps {
 		for _, leafId := range prop.LeafList() {
 			clusterId := visData.Leafs[leafId].Cluster
 			if clusterId == -1 {
 				//defaultCluster.StaticProps = append(defaultCluster.StaticProps, &baseWorldStaticProps[idx])
 				continue
 			}
-			bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &level.StaticProps()[idx])
+			bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &level.StaticProps[idx])
 		}
 	}
 

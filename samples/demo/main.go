@@ -19,6 +19,11 @@ import (
 
 func main() {
 	runtime.LockOSThread()
+	defer func() {
+		if e := recover(); e != nil {
+			panic(e)
+		}
+	}()
 
 	game := NewGameDefinition()
 

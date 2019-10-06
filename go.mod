@@ -10,7 +10,6 @@ require (
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/tinygametools v0.1.0
 	github.com/galaco/vmf v1.0.0
-	github.com/galaco/vpk2 v0.0.0-20181012095330-21e4d1f6c888
 	github.com/galaco/vtf v1.1.1
 	github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7
 	github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1

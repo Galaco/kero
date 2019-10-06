@@ -14,10 +14,11 @@ import (
 )
 
 type Renderer struct {
-	context       *systems.Context
-	materialCache *cache.Material
-	textureCache  *cache.Texture
-	shaderCache   *cache.Shader
+	context        *systems.Context
+	materialCache  *cache.Material
+	textureCache   *cache.Texture
+	shaderCache    *cache.Shader
+	gpuStaticProps map[string]*cache.GpuProp
 
 	gpuItemCache *cache.GpuItem
 	activeShader *graphics.Shader
@@ -43,10 +44,10 @@ func (s *Renderer) Update(dt float64) {
 		return
 	}
 	s.scene.RecomputeVisibleClusters()
-	viewFrustum := vis.FrustumFromCamera(s.scene.camera)
-
+	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
 	s.startFrame()
-	s.renderBsp(viewFrustum)
+	s.renderBsp(clusters)
+	s.renderStaticProps(clusters)
 }
 
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
@@ -57,7 +58,8 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 			message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
 			s.materialCache,
 			s.textureCache,
-			s.gpuItemCache)
+			s.gpuItemCache,
+			s.gpuStaticProps)
 	}
 }
 
@@ -71,22 +73,14 @@ func (s *Renderer) startFrame() {
 	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
 }
 
-func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
+func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
 	var mat *cache.GpuMaterial
 
-	renderClusters := make([]*vis.ClusterLeaf, 0)
-	for idx, cluster := range s.scene.visibleClusterLeafs {
-		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
-			continue
-		}
-		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])
-	}
-
-	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(renderClusters)
+	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.materialCache.Find(clusterFaceMaterial)
 
@@ -99,10 +93,37 @@ func (s *Renderer) renderBsp(viewFrustum *vis.Frustum) {
 	}
 }
 
+func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
+	for _, cluster := range clusters {
+		for _, prop := range cluster.StaticProps {
+			graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
+			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
+				for idx := range gpuProp.Id {
+					graphics.BindMesh(gpuProp.Id[idx])
+					graphics.BindTexture(gpuProp.Material[idx].Diffuse)
+					graphics.DrawArray(0, len(prop.Model().Meshes()[idx].Vertices()))
+				}
+			}
+		}
+	}
+}
+
+func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
+	renderClusters := make([]*vis.ClusterLeaf, 0)
+	for idx, cluster := range s.scene.visibleClusterLeafs {
+		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
+			continue
+		}
+		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])
+	}
+	return renderClusters
+}
+
 func NewRenderer() *Renderer {
 	return &Renderer{
-		textureCache:  cache.NewTextureCache(),
-		materialCache: cache.NewMaterialCache(),
-		gpuItemCache:  cache.NewGpuItemCache(),
+		textureCache:   cache.NewTextureCache(),
+		materialCache:  cache.NewMaterialCache(),
+		gpuItemCache:   cache.NewGpuItemCache(),
+		gpuStaticProps: map[string]*cache.GpuProp{},
 	}
 }

@@ -1,8 +1,17 @@
 package graphics
 
 type Model struct {
+	Id        string
 	meshes    []*Mesh
 	materials []string
+}
+
+func (model *Model) Meshes() []*Mesh {
+	return model.meshes
+}
+
+func (model *Model) Materials() []string {
+	return model.materials
 }
 
 func (model *Model) AddMesh(m *Mesh) {
@@ -14,5 +23,7 @@ func (model *Model) AddMaterial(m string) {
 }
 
 func NewModel(id string) *Model {
-	return &Model{}
+	return &Model{
+		Id: id,
+	}
 }
