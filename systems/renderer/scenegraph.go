@@ -51,7 +51,7 @@ func (scene *SceneGraph) RecomputeVisibleClusters() {
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
 		scene.currentLeaf = currentLeaf
 
-		scene.asyncRebuildVisibleWorld(scene.currentLeaf)
+		scene.asyncRebuildVisibleWorld(currentLeaf)
 		return
 	}
 

@@ -96,7 +96,8 @@ func (vis *Vis) clusterVisible(pvs *[]bool, leafCluster int16) bool {
 
 // Test if the camera has moved, and find the current leaf if so
 func (vis *Vis) FindCurrentLeaf(position mgl32.Vec3) *leaf.Leaf {
-	vis.viewCurrentLeaf = &vis.Leafs[vis.findCurrentLeafIndex(vis.viewPosition)]
+	vis.viewPosition = position
+	vis.viewCurrentLeaf = &vis.Leafs[vis.findCurrentLeafIndex(position)]
 	return vis.viewCurrentLeaf
 }
 

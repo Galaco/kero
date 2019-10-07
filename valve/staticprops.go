@@ -63,6 +63,11 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 	waitGroup := sync.WaitGroup{}
 
 	asyncLoadProp := func(path string) {
+		defer func() {
+			if e := recover(); e != nil {
+				event.Dispatch(messages.NewConsoleMessage(console.LevelError, e.(error).Error()))
+			}
+		}()
 		if !strings.HasSuffix(path, ".mdl") {
 			path += ".mdl"
 		}
