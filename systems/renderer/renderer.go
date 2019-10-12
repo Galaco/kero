@@ -11,6 +11,7 @@ import (
 	"github.com/galaco/kero/systems/renderer/shaders"
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
+	"math"
 )
 
 type Renderer struct {
@@ -94,8 +95,18 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 }
 
 func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
+	viewPosition := s.scene.camera.Transform().Position
+
 	for _, cluster := range clusters {
+		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
+			math.Pow(float64(cluster.Origin.Y()-viewPosition.Y()), 2) +
+			math.Pow(float64(cluster.Origin.Z()-viewPosition.Z()), 2)
+
 		for _, prop := range cluster.StaticProps {
+			//  Skip render if staticProp is fully faded
+			if prop.FadeMaxDistance() >= 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
+				continue
+			}
 			graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
 			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
 				for idx := range gpuProp.Id {
