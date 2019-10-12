@@ -3,8 +3,8 @@ package renderer
 import (
 	"fmt"
 	"github.com/galaco/bsp/primitives/leaf"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/messages"
@@ -103,10 +103,12 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
+	var tex *graphics.Texture
+	var err error
 	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
-			if err != nil {
+			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
+			if err != nil || tex == nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
@@ -127,9 +129,8 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	// finish bsp mesh
 	// Add MATERIALS TO FACES
+	tex = nil
 	for _, bspFace := range level.Faces() {
-		// Generate texture coordinates
-		var tex *graphics.Texture
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material())))
 			tex = texCache.Find(cache.ErrorTexturePath)
@@ -140,6 +141,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
 		}
+		// Generate texture coordinates
 		level.Mesh().AddUV(
 			valve.TexCoordsForFaceFromTexInfo(
 				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],

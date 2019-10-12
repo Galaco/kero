@@ -20,6 +20,10 @@ import (
 	"sync"
 )
 
+const (
+	ErrorName = "error"
+)
+
 type bspstructs struct {
 	faces     []face.Face
 	planes    []plane.Plane
@@ -114,8 +118,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 		mat, err := graphics.LoadMaterial(fs, filePath)
 		if err != nil {
 			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
-			waitGroup.Done()
-			return
+			mat = graphics.NewMaterial(filePath)
 		}
 		dictMutex.Lock()
 		dictionary[strings.ToLower(filePath)] = mat

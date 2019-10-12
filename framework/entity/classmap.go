@@ -1,5 +1,7 @@
 package entity
 
+import "sync"
+
 var classMap entityClassMapper
 
 // entityClassMapper provides a reflection-like construct for creating
@@ -14,11 +16,14 @@ var classMap entityClassMapper
 // where possible.
 type entityClassMapper struct {
 	entityMap map[string]Entity
+	mut sync.Mutex
 }
 
 // find creates a new Entity of the specified
 // Classname.
 func (classMap *entityClassMapper) find(classname string) Entity {
+	classMap.mut.Lock()
+	defer classMap.mut.Unlock()
 	if classMap.entityMap[classname] != nil {
 		return classMap.entityMap[classname]
 	}
@@ -33,7 +38,9 @@ func RegisterClass(entity Entity) {
 		classMap.entityMap = map[string]Entity{}
 	}
 
+	classMap.mut.Lock()
 	classMap.entityMap[entity.Classname()] = entity
+	classMap.mut.Unlock()
 }
 
 // New creates a new Entity of the specified
