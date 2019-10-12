@@ -8,7 +8,7 @@
 
 > Kero is a Source Engine game engine implementation written in Go.
 
-
+![de_dust2](https://cdn.galaco.me/github/lambda-client/readme/de_dust2_optimised.gif)
 
 ## Installation
 To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later installed)
