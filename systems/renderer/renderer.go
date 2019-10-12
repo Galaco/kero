@@ -48,6 +48,7 @@ func (s *Renderer) Update(dt float64) {
 	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
 	s.startFrame()
 	s.renderBsp(clusters)
+	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(clusters)
 }
 
@@ -94,6 +95,17 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	}
 }
 
+func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
+	var mat *cache.GpuMaterial
+	for _, displacement := range displacements {
+		mat = s.materialCache.Find(displacement.Material())
+		graphics.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
+		if err := graphics.GpuError(); err != nil {
+			event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
+		}
+	}
+}
+
 func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 	viewPosition := s.scene.camera.Transform().Position
 
@@ -104,7 +116,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 
 		for _, prop := range cluster.StaticProps {
 			//  Skip render if staticProp is fully faded
-			if prop.FadeMaxDistance() >= 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
+			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
 			graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
