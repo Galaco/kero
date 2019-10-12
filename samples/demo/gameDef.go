@@ -3,41 +3,41 @@ package main
 import (
 	loader "github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/game"
-	"github.com/galaco/kero/game/common/entity"
+	common "github.com/galaco/kero/game/entity"
 )
 
-// Cstrike
-type Cstrike struct {
-	client Client
+// cstrike
+type cstrike struct {
+	client client
 }
 
 // ContentDirectory returns the game content directory relative to the game
 // root directory
-func (def *Cstrike) ContentDirectory() string {
+func (def *cstrike) ContentDirectory() string {
 	return "cstrike"
 }
 
 // RegisterEntityClasses loads all Game entity classes into the engine.
-func (def *Cstrike) RegisterEntityClasses() {
-	loader.RegisterClass(&entity.InfoPlayerStart{})
-	loader.RegisterClass(&entity.PropDoorRotating{})
-	loader.RegisterClass(&entity.PropDynamic{})
-	loader.RegisterClass(&entity.PropDynamicOrnament{})
-	loader.RegisterClass(&entity.PropDynamicOverride{})
-	loader.RegisterClass(&entity.PropPhysics{})
-	loader.RegisterClass(&entity.PropPhysicsMultiplayer{})
-	loader.RegisterClass(&entity.PropPhysicsOverride{})
-	loader.RegisterClass(&entity.PropRagdoll{})
+func (def *cstrike) RegisterEntityClasses() {
+	loader.RegisterClass(&common.InfoPlayerStart{})
+	loader.RegisterClass(&common.PropDoorRotating{})
+	loader.RegisterClass(&common.PropDynamic{})
+	loader.RegisterClass(&common.PropDynamicOrnament{})
+	loader.RegisterClass(&common.PropDynamicOverride{})
+	loader.RegisterClass(&common.PropPhysics{})
+	loader.RegisterClass(&common.PropPhysicsMultiplayer{})
+	loader.RegisterClass(&common.PropPhysicsOverride{})
+	loader.RegisterClass(&common.PropRagdoll{})
 }
 
-// Client returns the game client
-func (def *Cstrike) Client() game.Client {
+// client returns the game client
+func (def *cstrike) Client() game.Client {
 	return &def.client
 }
 
 // NewGameDefinition returns the game definition
-func NewGameDefinition() *Cstrike {
-	return &Cstrike{
+func NewGameDefinition() *cstrike {
+	return &cstrike{
 		client: NewClient(),
 	}
 }

@@ -111,7 +111,6 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 	dictMutex := sync.Mutex{}
 
 	asyncLoadMaterial := func(filePath string) {
-		waitGroup.Add(1)
 		mat, err := graphics.LoadMaterial(fs, filePath)
 		if err != nil {
 			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
@@ -124,6 +123,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 		waitGroup.Done()
 	}
 
+	waitGroup.Add(len(materials))
 	for _, filePath := range materials {
 		go asyncLoadMaterial(filePath)
 	}

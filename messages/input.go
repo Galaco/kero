@@ -1,7 +1,7 @@
 package messages
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/input"
 )
 

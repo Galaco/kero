@@ -1,7 +1,7 @@
 package kero
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"

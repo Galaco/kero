@@ -1,7 +1,7 @@
 package views
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/dialogs"
 	"github.com/galaco/kero/messages"

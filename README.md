@@ -15,8 +15,8 @@ To build the project on Windows, Mac OS or Linux, all you need to do is run (ass
 in the directory `samples/demo`:
 `go build .`
 
-To run it, copy `config.example.json` to `config.json`, then change the `gameDirectory` value to a Source Engine game installation
-on your machine. After that, just run the binary you compiled.
+NOTE: You may need to change the `const` `GameDirectory` in `samples/demo/main.go` to point to a valid game installation
+directory on your machine.
 
 
 ## Contributing

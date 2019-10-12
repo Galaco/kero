@@ -3,7 +3,7 @@ package renderer
 import (
 	"fmt"
 	"github.com/galaco/bsp/primitives/leaf"
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"

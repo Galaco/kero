@@ -1,7 +1,7 @@
 package scene
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/input"

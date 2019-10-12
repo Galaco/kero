@@ -1,7 +1,7 @@
 package input
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"

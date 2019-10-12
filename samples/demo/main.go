@@ -4,7 +4,6 @@ import (
 	"fmt"
 	keyvalues "github.com/galaco/KeyValues"
 	kero2 "github.com/galaco/kero"
-	"github.com/galaco/kero/config"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
@@ -17,6 +16,10 @@ import (
 	"strings"
 )
 
+const (
+	GameDirectory = "E:/Program Files/Steam/Steamapps/common/Counter-Strike Source"
+)
+
 func main() {
 	runtime.LockOSThread()
 	defer func() {
@@ -27,29 +30,18 @@ func main() {
 
 	game := NewGameDefinition()
 
-	cfg := loadConfig()
-	fs := initFilesystem(cfg.GameDirectory + "/" + game.ContentDirectory())
-	if err := initFramework(cfg); err != nil {
+	fs := initFilesystem(GameDirectory + "/" + game.ContentDirectory())
+	if err := initFramework(); err != nil {
 		panic(err)
 	}
 	context := systems.Context{
 		Client:     game.Client(),
-		Config:     cfg,
 		Filesystem: fs,
 	}
 
 	keroImpl := kero2.NewKero(context)
 	keroImpl.RegisterGameDefinitions(game)
 	keroImpl.Start()
-}
-
-func loadConfig() *config.Config {
-	cfg, err := config.Load("./config.json")
-	if err != nil {
-		panic(err)
-	}
-
-	return cfg
 }
 
 func initFilesystem(gameDir string) filesystem.FileSystem {
@@ -76,8 +68,8 @@ func initFilesystem(gameDir string) filesystem.FileSystem {
 	return fs
 }
 
-func initFramework(cfg *config.Config) error {
-	win, err := window.CreateWindow(cfg.Video.Width, cfg.Video.Height, "Kero")
+func initFramework() error {
+	win, err := window.CreateWindow(800, 600, "Kero")
 	if err != nil {
 		return err
 	}

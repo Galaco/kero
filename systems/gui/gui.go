@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/context"
 	"github.com/galaco/kero/framework/input"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/event"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/studiomodel"
@@ -82,8 +82,8 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 		waitGroup.Done()
 	}
 
+	waitGroup.Add(len(propPaths))
 	for _, path := range propPaths {
-		waitGroup.Add(1)
 		go asyncLoadProp(path)
 	}
 	waitGroup.Wait()
