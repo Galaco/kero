@@ -3,8 +3,8 @@ package loader
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/entity"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/valve"

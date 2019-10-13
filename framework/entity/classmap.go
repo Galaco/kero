@@ -16,7 +16,7 @@ var classMap entityClassMapper
 // where possible.
 type entityClassMapper struct {
 	entityMap map[string]Entity
-	mut sync.Mutex
+	mut       sync.Mutex
 }
 
 // find creates a new Entity of the specified

@@ -2,9 +2,9 @@ package studiomodel
 
 import (
 	"errors"
-	"github.com/galaco/StudioModel"
-	"github.com/galaco/StudioModel/vtx"
-	"github.com/galaco/StudioModel/vvd"
+	"github.com/galaco/studiomodel"
+	"github.com/galaco/studiomodel/vtx"
+	"github.com/galaco/studiomodel/vvd"
 )
 
 // VertexDataForModel loads model vertex data

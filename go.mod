@@ -4,10 +4,10 @@ go 1.12
 
 require (
 	github.com/galaco/KeyValues v1.4.1
-	github.com/galaco/StudioModel v0.1.0
 	github.com/galaco/bsp v0.2.2
 	github.com/galaco/gosigl v0.1.1
 	github.com/galaco/source-tools-common v0.1.0
+	github.com/galaco/studiomodel v0.1.2
 	github.com/galaco/tinygametools v0.1.0
 	github.com/galaco/vmf v1.0.0
 	github.com/galaco/vtf v1.1.1
@@ -20,4 +20,5 @@ require (
 	github.com/gotk3/gotk3 v0.0.0-20191010201156-711c17fcaec0 // indirect
 	github.com/inkyblackness/imgui-go v1.10.0
 	github.com/sqweek/dialog v0.0.0-20190728103509-6254ed5b0d3c
+	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 )

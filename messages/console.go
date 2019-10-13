@@ -1,8 +1,8 @@
 package messages
 
 import (
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/event"
 )
 
 const (

@@ -21,8 +21,8 @@ type fileSystem interface {
 }
 
 type SceneGraph struct {
-	bspMesh  *graphics.Mesh
-	bspFaces []valve.BspFace
+	bspMesh           *graphics.Mesh
+	bspFaces          []valve.BspFace
 	displacementFaces []*valve.BspFace
 
 	gpuMesh     graphics.GpuMesh
@@ -122,10 +122,9 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	// generate displacement faces
 	dispFaces := make([]*valve.BspFace, 0, 1024)
-	for _,i := range level.DispFaces() {
+	for _, i := range level.DispFaces() {
 		dispFaces = append(dispFaces, &level.Faces()[i])
 	}
-
 
 	// finish bsp mesh
 	// Add MATERIALS TO FACES
@@ -199,14 +198,14 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	return &SceneGraph{
-		bspMesh:      level.Mesh(),
-		gpuMesh:      graphics.UploadMesh(level.Mesh()),
-		bspFaces:     remappedFaces,
+		bspMesh:           level.Mesh(),
+		gpuMesh:           graphics.UploadMesh(level.Mesh()),
+		bspFaces:          remappedFaces,
 		displacementFaces: dispFaces,
-		staticProps:  level.StaticProps,
-		clusterLeafs: clusterLeafs,
-		visData:      visibility,
-		camera:       level.Camera(),
+		staticProps:       level.StaticProps,
+		clusterLeafs:      clusterLeafs,
+		visData:           visibility,
+		camera:            level.Camera(),
 	}
 }
 

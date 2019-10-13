@@ -2,8 +2,8 @@ package renderer
 
 import (
 	"github.com/galaco/gosigl"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"

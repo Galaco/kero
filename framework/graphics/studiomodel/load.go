@@ -1,12 +1,12 @@
 package studiomodel
 
 import (
-	"github.com/galaco/StudioModel"
-	"github.com/galaco/StudioModel/mdl"
-	"github.com/galaco/StudioModel/phy"
-	"github.com/galaco/StudioModel/vtx"
-	"github.com/galaco/StudioModel/vvd"
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/studiomodel"
+	"github.com/galaco/studiomodel/mdl"
+	"github.com/galaco/studiomodel/phy"
+	"github.com/galaco/studiomodel/vtx"
+	"github.com/galaco/studiomodel/vvd"
 	"io"
 	"strings"
 )

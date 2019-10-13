@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/studiomodel"
 	"github.com/galaco/kero/messages"
@@ -38,7 +38,7 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 			staticPropList = append(staticPropList, *graphics.NewStaticProp(propEntry, &propLump.LeafLump, m))
 			continue
 		} else {
-			// error Prop
+			// TODO error Prop
 		}
 	}
 
