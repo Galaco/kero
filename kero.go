@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// Kero
+// Kero provides a game loop
 type Kero struct {
 	isRunning bool
 
@@ -22,11 +22,12 @@ type Kero struct {
 	systems []System
 }
 
+// RegisterGameDefinitions sets up provided game-specific configuration
 func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 	def.RegisterEntityClasses()
 }
 
-// RunGameLoop
+// Start runs the game loop
 func (kero *Kero) Start() {
 	kero.systems = []System{
 		console.NewConsole(),
@@ -73,7 +74,7 @@ func (kero *Kero) exit() {
 
 }
 
-// NewKero
+// NewKero returns a new Kero instance
 func NewKero(ctx systems.Context) *Kero {
 	return &Kero{
 		context:   ctx,
@@ -81,6 +82,7 @@ func NewKero(ctx systems.Context) *Kero {
 	}
 }
 
+// System
 type System interface {
 	Register(ctx *systems.Context)
 	Update(dt float64)

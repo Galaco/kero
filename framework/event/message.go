@@ -13,5 +13,6 @@ type Dispatchable interface {
 }
 
 type receiveable interface {
+	// ProcessMessage receives Dispatchables for processing
 	ProcessMessage(Dispatchable)
 }
