@@ -136,7 +136,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 }
 
 // generateBspFace Create primitives from face data in the bsp
-func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.Mesh) BspFace {
+func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) BspFace {
 	offset := int32(len(bspMesh.Vertices())) / 3
 	length := int32(0)
 
@@ -177,7 +177,7 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.M
 // generateDisplacementFace Create Primitive from Displacement face
 // This is based on:
 // https://github.com/Metapyziks/VBspViewer/blob/master/Assets/VBspViewer/Scripts/Importing/VBsp/VBspFile.cs
-func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.Mesh) BspFace {
+func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) BspFace {
 	corners := make([]mgl32.Vec3, 4)
 	normal := bspStructure.planes[f.Planenum].Normal
 
@@ -271,7 +271,7 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 type Bsp struct {
 	file *bsp.Bsp
 
-	mesh      *graphics.Mesh
+	mesh      *graphics.BasicMesh
 	faces     []BspFace
 	dispFaces []int
 
@@ -284,8 +284,8 @@ type Bsp struct {
 	camera *graphics3d.Camera
 }
 
-// Mesh
-func (bsp *Bsp) Mesh() *graphics.Mesh {
+// BasicMesh
+func (bsp *Bsp) Mesh() *graphics.BasicMesh {
 	return bsp.mesh
 }
 
@@ -319,7 +319,7 @@ func (bsp *Bsp) File() *bsp.Bsp {
 // NewBsp
 func NewBsp(
 	file *bsp.Bsp,
-	mesh *graphics.Mesh,
+	mesh *graphics.BasicMesh,
 	faces []BspFace,
 	dispFaces []int,
 	materialDictionary map[string]*graphics.Material,
@@ -331,7 +331,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
-		camera:             graphics3d.NewCamera(90, 16/9),
+		camera:             graphics3d.NewCamera(mgl32.DegToRad(70), 4/3),
 	}
 }
 

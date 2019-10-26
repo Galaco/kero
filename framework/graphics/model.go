@@ -2,11 +2,11 @@ package graphics
 
 type Model struct {
 	Id        string
-	meshes    []*Mesh
+	meshes    []*BasicMesh
 	materials []string
 }
 
-func (model *Model) Meshes() []*Mesh {
+func (model *Model) Meshes() []*BasicMesh {
 	return model.meshes
 }
 
@@ -14,7 +14,7 @@ func (model *Model) Materials() []string {
 	return model.materials
 }
 
-func (model *Model) AddMesh(m *Mesh) {
+func (model *Model) AddMesh(m *BasicMesh) {
 	model.meshes = append(model.meshes, m)
 }
 

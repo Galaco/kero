@@ -13,6 +13,7 @@ type ClusterLeaf struct {
 	DispFaces   []int
 	Mins, Maxs  mgl32.Vec3
 	Origin      mgl32.Vec3
+	SkyVisible  bool
 }
 
 // groupClusterFacesByMaterial groups all faces in a collections of

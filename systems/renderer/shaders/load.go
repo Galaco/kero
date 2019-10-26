@@ -7,6 +7,8 @@ import (
 )
 
 func LoadShaders() (*cache.Shader, error) {
+	shaderCache := cache.NewShaderCache()
+
 	lightmappedGenericShader := graphics.NewShader()
 	if err := lightmappedGenericShader.Add(gosigl.VertexShader, LightMappedGenericVertex); err != nil {
 		return nil, err
@@ -15,9 +17,17 @@ func LoadShaders() (*cache.Shader, error) {
 		return nil, err
 	}
 	lightmappedGenericShader.Finish()
-
-	shaderCache := cache.NewShaderCache()
 	shaderCache.Add("LightMappedGeneric", lightmappedGenericShader)
+
+	skyboxShader := graphics.NewShader()
+	if err := skyboxShader.Add(gosigl.VertexShader, SkyboxVertex); err != nil {
+		return nil, err
+	}
+	if err := skyboxShader.Add(gosigl.FragmentShader, SkyboxFragment); err != nil {
+		return nil, err
+	}
+	skyboxShader.Finish()
+	shaderCache.Add("Skybox", skyboxShader)
 
 	return shaderCache, nil
 }

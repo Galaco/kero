@@ -4,8 +4,15 @@ import (
 	"github.com/galaco/kero/framework/graphics/util"
 )
 
-// Mesh
-type Mesh struct {
+type Mesh interface {
+	Vertices() []float32
+	Normals() []float32
+	UVs() []float32
+	Tangents() []float32
+}
+
+// BasicMesh
+type BasicMesh struct {
 	vertices []float32
 	normals  []float32
 	uvs      []float32
@@ -13,51 +20,51 @@ type Mesh struct {
 }
 
 // AddVertex
-func (mesh *Mesh) AddVertex(vertex ...float32) {
+func (mesh *BasicMesh) AddVertex(vertex ...float32) {
 	mesh.vertices = append(mesh.vertices, vertex...)
 }
 
 // AddNormal
-func (mesh *Mesh) AddNormal(normal ...float32) {
+func (mesh *BasicMesh) AddNormal(normal ...float32) {
 	mesh.normals = append(mesh.normals, normal...)
 }
 
 // AddUV
-func (mesh *Mesh) AddUV(uv ...float32) {
+func (mesh *BasicMesh) AddUV(uv ...float32) {
 	mesh.uvs = append(mesh.uvs, uv...)
 }
 
 // AddTangent
-func (mesh *Mesh) AddTangent(tangent ...float32) {
+func (mesh *BasicMesh) AddTangent(tangent ...float32) {
 	mesh.tangents = append(mesh.tangents, tangent...)
 }
 
 // Vertices
-func (mesh *Mesh) Vertices() []float32 {
+func (mesh *BasicMesh) Vertices() []float32 {
 	return mesh.vertices
 }
 
 // Normals
-func (mesh *Mesh) Normals() []float32 {
+func (mesh *BasicMesh) Normals() []float32 {
 	return mesh.normals
 }
 
 // UVs
-func (mesh *Mesh) UVs() []float32 {
+func (mesh *BasicMesh) UVs() []float32 {
 	return mesh.uvs
 }
 
 // Tangents
-func (mesh *Mesh) Tangents() []float32 {
+func (mesh *BasicMesh) Tangents() []float32 {
 	return mesh.tangents
 }
 
 // GenerateTangents
-func (mesh *Mesh) GenerateTangents() {
+func (mesh *BasicMesh) GenerateTangents() {
 	mesh.tangents = util.GenerateTangents(mesh.Vertices(), mesh.Normals(), mesh.UVs())
 }
 
 // NewMesh
-func NewMesh() *Mesh {
-	return &Mesh{}
+func NewMesh() *BasicMesh {
+	return &BasicMesh{}
 }

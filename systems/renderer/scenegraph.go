@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/galaco/bsp/primitives/leaf"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/systems/renderer/scene"
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
 	"github.com/go-gl/mathgl/mgl32"
@@ -21,12 +23,14 @@ type fileSystem interface {
 }
 
 type SceneGraph struct {
-	bspMesh           *graphics.Mesh
+	bspMesh           *graphics.BasicMesh
 	bspFaces          []valve.BspFace
 	displacementFaces []*valve.BspFace
+	skybox 			  *scene.Skybox
 
 	gpuMesh     graphics.GpuMesh
 	staticProps []graphics.StaticProp
+	entities 	[]entity.Entity
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -95,6 +99,7 @@ func (scene *SceneGraph) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 
 func NewSceneGraphFromBsp(fs fileSystem,
 	level *valve.Bsp,
+	entities []entity.Entity,
 	materialCache *cache.Material,
 	texCache *cache.Texture,
 	gpuItemCache *cache.GpuItem,
@@ -197,11 +202,22 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	visibility := vis.LoadVisData(level.File())
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
+	var worldspawn entity.Entity
+	for idx,e := range entities {
+		if e.Classname() == "worldspawn" {
+			worldspawn = entities[idx]
+			break
+		}
+	}
+	skybox := scene.LoadSkybox(fs, worldspawn)
+
 	return &SceneGraph{
 		bspMesh:           level.Mesh(),
 		gpuMesh:           graphics.UploadMesh(level.Mesh()),
 		bspFaces:          remappedFaces,
 		displacementFaces: dispFaces,
+		skybox:			   skybox,
+		entities: 		   entities,
 		staticProps:       level.StaticProps,
 		clusterLeafs:      clusterLeafs,
 		visData:           visibility,
@@ -233,6 +249,11 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 				float32(bspLeaf.Maxs[2]),
 			}
 			bspClusters[bspLeaf.Cluster].Origin = bspClusters[bspLeaf.Cluster].Mins.Add(bspClusters[bspLeaf.Cluster].Maxs.Sub(bspClusters[bspLeaf.Cluster].Mins))
+
+
+			if bspLeaf.Flags()&leaf.LeafFlagsSky > 0 {
+				bspClusters[bspLeaf.Cluster].SkyVisible = true
+			}
 		}
 	}
 

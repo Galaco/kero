@@ -62,7 +62,7 @@ func (s *Scene) ProcessMessage(message event.Dispatchable) {
 			// Change level: we must clear the current event queue
 			event.ClearQueue()
 			s.currentLevel = level
-			event.Dispatch(messages.NewLoadingLevelParsed(level))
+			event.Dispatch(messages.NewLoadingLevelParsed(level, ents))
 			event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateFinished))
 		}(message.(*messages.ChangeLevel))
 	case messages.TypeKeyRelease:

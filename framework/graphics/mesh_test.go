@@ -6,13 +6,13 @@ import (
 )
 
 func TestNewMesh(t *testing.T) {
-	if reflect.TypeOf(NewMesh()) != reflect.TypeOf(&Mesh{}) {
-		t.Errorf("unexpected type returned for NewMesh. Expected: %s, but received: %s", reflect.TypeOf(&Mesh{}), reflect.TypeOf(NewMesh()))
+	if reflect.TypeOf(NewMesh()) != reflect.TypeOf(&BasicMesh{}) {
+		t.Errorf("unexpected type returned for NewMesh. Expected: %s, but received: %s", reflect.TypeOf(&BasicMesh{}), reflect.TypeOf(NewMesh()))
 	}
 }
 
 func TestMesh_AddNormal(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}
@@ -26,7 +26,7 @@ func TestMesh_AddNormal(t *testing.T) {
 }
 
 func TestMesh_AddTextureCoordinate(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}
@@ -40,7 +40,7 @@ func TestMesh_AddTextureCoordinate(t *testing.T) {
 }
 
 func TestMesh_AddVertex(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}
@@ -54,7 +54,7 @@ func TestMesh_AddVertex(t *testing.T) {
 }
 
 func TestMesh_Normals(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}
@@ -68,7 +68,7 @@ func TestMesh_Normals(t *testing.T) {
 }
 
 func TestMesh_TextureCoordinates(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}
@@ -82,7 +82,7 @@ func TestMesh_TextureCoordinates(t *testing.T) {
 }
 
 func TestMesh_Vertices(t *testing.T) {
-	sut := Mesh{}
+	sut := BasicMesh{}
 	expected := []float32{
 		1, 2, 3, 4,
 	}

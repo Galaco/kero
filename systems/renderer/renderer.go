@@ -3,11 +3,13 @@ package renderer
 import (
 	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/systems/renderer/scene"
 	"github.com/galaco/kero/systems/renderer/shaders"
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
@@ -50,6 +52,8 @@ func (s *Renderer) Update(dt float64) {
 	s.renderBsp(clusters)
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(clusters)
+
+	s.renderSkybox(clusters, s.scene.skybox)
 }
 
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
@@ -58,6 +62,7 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 		s.scene = NewSceneGraphFromBsp(
 			s.context.Filesystem,
 			message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
+			message.(*messages.LoadingLevelParsed).Entities().([]entity.Entity),
 			s.materialCache,
 			s.textureCache,
 			s.gpuItemCache,
@@ -140,6 +145,41 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.Cl
 		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])
 	}
 	return renderClusters
+}
+
+func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybox) {
+	// Skip sky rendering if all renderable clusters cannot see the sky
+	var isVisible bool
+	for _,c := range clusters {
+		if c.SkyVisible{
+			isVisible = true
+			break
+		}
+	}
+	if !isVisible {
+		return
+	}
+
+	skyboxTransform := skybox.SkyMeshTransform
+	skyboxTransform.Position = s.scene.camera.Transform().Position
+
+	s.activeShader = s.shaderCache.Find("Skybox")
+	s.activeShader.Bind()
+	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	graphics.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
+	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
+
+	//gosigl.EnableDepthTest()
+	//gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
+
+	graphics.BindMesh(&skybox.SkyMeshGpuID)
+	graphics.BindCubemap(skybox.SkyMaterialGpuID)
+	graphics.DrawArray(0, len(skybox.SkyMesh.Vertices()))
+	//
+	//gosigl.EnableBlend()
+	//gosigl.EnableDepthTest()
+	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
 func NewRenderer() *Renderer {

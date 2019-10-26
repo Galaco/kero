@@ -32,13 +32,36 @@ func UploadTexture(texture *Texture) uint32 {
 		gosigl.TextureSlot(0),
 		texture.Width(),
 		texture.Height(),
-		texture.colour,
+		texture.Image(),
 		gosigl.PixelFormat(texture.Format()),
 		false))
 }
 
+func UploadCubemap(textures []*Texture) uint32 {
+	colour := [6][]byte {
+		textures[0].Image(),
+		textures[1].Image(),
+		textures[2].Image(),
+		textures[3].Image(),
+		textures[4].Image(),
+		textures[5].Image(),
+	}
+
+	return uint32(gosigl.CreateTextureCubemap(
+		gosigl.TextureSlot(0),
+		textures[0].Width(),
+		textures[0].Height(),
+		colour,
+		gosigl.PixelFormat(textures[0].Format()),
+		true))
+}
+
 func BindTexture(id uint32) {
 	gosigl.BindTexture2D(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
+}
+
+func BindCubemap(id uint32) {
+	gosigl.BindTextureCubemap(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }
 
 // textureFormatFromVtfFormat swap vtf format to openGL format
@@ -65,7 +88,7 @@ func textureFormatFromVtfFormat(vtfFormat uint32) uint32 {
 
 type GpuMesh *gosigl.VertexObject
 
-func UploadMesh(mesh *Mesh) GpuMesh {
+func UploadMesh(mesh Mesh) GpuMesh {
 	gpuResource := gosigl.NewMesh(mesh.Vertices())
 	gosigl.CreateVertexAttribute(gpuResource, mesh.UVs(), 2)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Normals(), 3)
@@ -101,4 +124,10 @@ func GpuError() error {
 		return fmt.Errorf("gl error. Code: %d", glError)
 	}
 	return nil
+}
+
+func SetSkyboxFace() {
+	gl.CullFace(gl.FRONT)
+	gl.DepthFunc(gl.LEQUAL)
+	gl.DepthMask(false)
 }
