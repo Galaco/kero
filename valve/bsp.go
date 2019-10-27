@@ -13,6 +13,7 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/window"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/golang-source-engine/stringtable"
 	"math"
@@ -331,7 +332,9 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
-		camera:             graphics3d.NewCamera(mgl32.DegToRad(70), 4/3),
+		camera:             graphics3d.NewCamera(
+			mgl32.DegToRad(70),
+			float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())),
 	}
 }
 

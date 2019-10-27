@@ -103,7 +103,7 @@ func (camera *Camera) ViewMatrix() mgl32.Mat4 {
 // ProjectionMatrix calculates projection matrix.
 // This is unlikely to change throughout program lifetime, but could do
 func (camera *Camera) ProjectionMatrix() mgl32.Mat4 {
-	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.1, 32768)
+	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.1, 16384)
 }
 
 // NewCamera returns a new camera

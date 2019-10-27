@@ -1,16 +1,22 @@
 package cache
 
+import (
+	"github.com/galaco/kero/framework/graphics"
+)
+
 const (
 	ErrorMaterialPath = "materials/error.vmt"
 )
 
 type GpuMaterial struct {
 	Diffuse uint32
+	Properties *graphics.Material
 }
 
-func NewGpuMaterial(diffuse uint32) *GpuMaterial {
+func NewGpuMaterial(diffuse uint32, mat *graphics.Material) *GpuMaterial {
 	return &GpuMaterial{
 		Diffuse: diffuse,
+		Properties: mat,
 	}
 }
 

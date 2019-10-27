@@ -16,6 +16,18 @@ type Window struct {
 	window *tinygametools.Window
 }
 
+// Width
+func (win *Window) Width() int {
+	w,_ :=win.Handle().Handle().GetFramebufferSize()
+	return w
+}
+
+// Height
+func (win *Window) Height() int {
+	_,h :=win.Handle().Handle().GetFramebufferSize()
+	return h
+}
+
 // SetActive marks this windows reference as current
 func (win *Window) SetActive() {
 	win.Handle().Handle().MakeContextCurrent()

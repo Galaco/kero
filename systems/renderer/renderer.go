@@ -91,6 +91,10 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.materialCache.Find(clusterFaceMaterial)
 
+		if mat.Properties.Skip {
+			continue
+		}
+
 		for _, face := range faces {
 			graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
 			if err := graphics.GpuError(); err != nil {
@@ -148,7 +152,10 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.Cl
 }
 
 func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybox) {
-	// Skip sky rendering if all renderable clusters cannot see the sky
+	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
+	if s.scene.currentLeaf == nil || s.scene.currentLeaf.Cluster == -1 {
+		return
+	}
 	var isVisible bool
 	for _,c := range clusters {
 		if c.SkyVisible{

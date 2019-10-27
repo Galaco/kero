@@ -122,7 +122,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 				gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
 			}
 		}
-		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName)))
+		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
 	}
 
 	// generate displacement faces
@@ -193,7 +193,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 					gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
 				}
 			}
-			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName)))
+			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
 			gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
 		}
 	}

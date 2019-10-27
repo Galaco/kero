@@ -67,7 +67,7 @@ func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture, erro
 	names := [6]string{"ft", "bk", "up", "dn", "rt", "lf"}
 	wg.Add(6)
 	for i := 0; i < 6; i++ {
-		loadCubemapSide(i, skyName + names[i])
+		go loadCubemapSide(i, skyName + names[i])
 	}
 	wg.Wait()
 

@@ -11,6 +11,8 @@ type Material struct {
 	ShaderName string
 	// BaseTextureName
 	BaseTextureName string
+	// Skip
+	Skip bool
 }
 
 // FilePath returns this materials location in whatever
@@ -33,5 +35,10 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
 	props := rawProps.(*vmt.Properties)
 	mat := NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
+
+	if props.CompileSky == 1 || props.CompileNoDraw == 1{
+		mat.Skip = true
+	}
+
 	return mat, nil
 }
