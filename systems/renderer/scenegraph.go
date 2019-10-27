@@ -26,11 +26,11 @@ type SceneGraph struct {
 	bspMesh           *graphics.BasicMesh
 	bspFaces          []valve.BspFace
 	displacementFaces []*valve.BspFace
-	skybox 			  *scene.Skybox
+	skybox            *scene.Skybox
 
 	gpuMesh     graphics.GpuMesh
 	staticProps []graphics.StaticProp
-	entities 	[]entity.Entity
+	entities    []entity.Entity
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -203,7 +203,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	var worldspawn entity.Entity
-	for idx,e := range entities {
+	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
 			break
@@ -216,8 +216,8 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		gpuMesh:           graphics.UploadMesh(level.Mesh()),
 		bspFaces:          remappedFaces,
 		displacementFaces: dispFaces,
-		skybox:			   skybox,
-		entities: 		   entities,
+		skybox:            skybox,
+		entities:          entities,
 		staticProps:       level.StaticProps,
 		clusterLeafs:      clusterLeafs,
 		visData:           visibility,
@@ -249,7 +249,6 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 				float32(bspLeaf.Maxs[2]),
 			}
 			bspClusters[bspLeaf.Cluster].Origin = bspClusters[bspLeaf.Cluster].Mins.Add(bspClusters[bspLeaf.Cluster].Maxs.Sub(bspClusters[bspLeaf.Cluster].Mins))
-
 
 			if bspLeaf.Flags()&leaf.LeafFlagsSky > 0 {
 				bspClusters[bspLeaf.Cluster].SkyVisible = true

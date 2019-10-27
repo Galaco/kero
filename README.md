@@ -9,7 +9,7 @@
 > Kero is a Source Engine game engine implementation written in Go.
 
 <p align="center">
-  <img width="600" height="400" src="https://cdn.galaco.me/github/lambda-client/readme/de_dust2_optimised.gif">
+  <img width="640" height="480" src="https://cdn.galaco.me/github/kero/readme/de_dust2.gif">
 </p>
 
 ## Installation

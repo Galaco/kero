@@ -25,7 +25,7 @@ type Skybox struct {
 	Origin           mgl32.Vec3
 }
 
-func LoadSkybox(fs fileSystem, worldspawn entity.Entity) *Skybox{
+func LoadSkybox(fs fileSystem, worldspawn entity.Entity) *Skybox {
 	skyName := worldspawn.ValueForKey("skyname")
 	textures, err := loadSkyboxTexture(fs, skyName)
 	if err != nil {
@@ -54,9 +54,9 @@ func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture, erro
 
 	wg := sync.WaitGroup{}
 	loadCubemapSide := func(idx int, path string) {
-		rawMaterial, err := graphics.LoadMaterial(fs, "skybox/" + path)
+		rawMaterial, err := graphics.LoadMaterial(fs, "skybox/"+path)
 		if err != nil {
-			errs[idx] = fmt.Errorf("failed to load material: %s, %s", "skybox/" + path, err.Error())
+			errs[idx] = fmt.Errorf("failed to load material: %s, %s", "skybox/"+path, err.Error())
 			wg.Done()
 			return
 		}
@@ -67,16 +67,15 @@ func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture, erro
 	names := [6]string{"ft", "bk", "up", "dn", "rt", "lf"}
 	wg.Add(6)
 	for i := 0; i < 6; i++ {
-		go loadCubemapSide(i, skyName + names[i])
+		go loadCubemapSide(i, skyName+names[i])
 	}
 	wg.Wait()
 
-	for idx,err := range errs {
+	for idx, err := range errs {
 		if err != nil {
-			return nil, fmt.Errorf("failed to load texture: %s, %s", "skybox/" + skyName + names[idx], err.Error())
+			return nil, fmt.Errorf("failed to load texture: %s, %s", "skybox/"+skyName+names[idx], err.Error())
 		}
 	}
-
 
 	return sides, nil
 }

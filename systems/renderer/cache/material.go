@@ -9,13 +9,13 @@ const (
 )
 
 type GpuMaterial struct {
-	Diffuse uint32
+	Diffuse    uint32
 	Properties *graphics.Material
 }
 
 func NewGpuMaterial(diffuse uint32, mat *graphics.Material) *GpuMaterial {
 	return &GpuMaterial{
-		Diffuse: diffuse,
+		Diffuse:    diffuse,
 		Properties: mat,
 	}
 }

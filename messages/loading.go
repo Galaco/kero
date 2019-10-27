@@ -31,7 +31,7 @@ const (
 )
 
 type LoadingLevelParsed struct {
-	level interface{}
+	level    interface{}
 	entities interface{}
 }
 
@@ -53,7 +53,7 @@ func (msg *LoadingLevelParsed) Entities() interface{} {
 // NewLoadingLevelParsed
 func NewLoadingLevelParsed(level interface{}, entities interface{}) *LoadingLevelParsed {
 	return &LoadingLevelParsed{
-		level: level,
+		level:    level,
 		entities: entities,
 	}
 }

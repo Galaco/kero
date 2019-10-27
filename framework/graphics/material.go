@@ -36,7 +36,7 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
 	mat := NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
 
-	if props.CompileSky == 1 || props.CompileNoDraw == 1{
+	if props.CompileSky == 1 || props.CompileNoDraw == 1 {
 		mat.Skip = true
 	}
 

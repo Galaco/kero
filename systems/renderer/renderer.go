@@ -157,8 +157,8 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 		return
 	}
 	var isVisible bool
-	for _,c := range clusters {
-		if c.SkyVisible{
+	for _, c := range clusters {
+		if c.SkyVisible {
 			isVisible = true
 			break
 		}

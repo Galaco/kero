@@ -38,7 +38,7 @@ func UploadTexture(texture *Texture) uint32 {
 }
 
 func UploadCubemap(textures []*Texture) uint32 {
-	colour := [6][]byte {
+	colour := [6][]byte{
 		textures[0].Image(),
 		textures[1].Image(),
 		textures[2].Image(),

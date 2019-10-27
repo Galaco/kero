@@ -332,7 +332,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
-		camera:             graphics3d.NewCamera(
+		camera: graphics3d.NewCamera(
 			mgl32.DegToRad(70),
 			float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())),
 	}
