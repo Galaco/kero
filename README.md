@@ -1,4 +1,4 @@
-![Kero](https://github.com/galaco/kero/blob/master/docs/images/banner.jpg)
+![Kero](https://cdn.galaco.me/github/kero/readme/banner.jpg)
 [![GoDoc](https://godoc.org/github.com/Galaco/kero?status.svg)](https://godoc.org/github.com/Galaco/kero)
 [![Go report card](https://goreportcard.com/badge/github.com/galaco/kero)](https://goreportcard.com/report/github.com/galaco/kero)
 [![codecov](https://codecov.io/gh/Galaco/kero/branch/master/graph/badge.svg)](https://codecov.io/gh/Galaco/kero)
