@@ -1,13 +1,15 @@
 package cache
 
-import "github.com/galaco/kero/framework/graphics"
+import (
+	"github.com/galaco/kero/framework/graphics/adapter"
+)
 
 type GpuProp struct {
-	Id       []*graphics.GpuMesh
+	Id       []*adapter.GpuMesh
 	Material []GpuMaterial
 }
 
-func (prop *GpuProp) AddMesh(id *graphics.GpuMesh) {
+func (prop *GpuProp) AddMesh(id *adapter.GpuMesh) {
 	prop.Id = append(prop.Id, id)
 }
 

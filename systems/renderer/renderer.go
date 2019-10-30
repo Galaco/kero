@@ -6,9 +6,13 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/input"
+	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/systems/renderer/deferred"
 	"github.com/galaco/kero/systems/renderer/scene"
 	"github.com/galaco/kero/systems/renderer/shaders"
 	"github.com/galaco/kero/systems/renderer/vis"
@@ -26,17 +30,30 @@ type Renderer struct {
 	gpuItemCache *cache.GpuItem
 	activeShader *graphics.Shader
 
+	deferred deferred.Renderer
+
 	scene *SceneGraph
 }
 
 func (s *Renderer) Register(ctx *systems.Context) {
+	win, err := window.CreateWindow(800, 600, "Kero")
+	if err != nil {
+		panic(err)
+	}
+	win.SetActive()
+	input.SetBoundWindow(win)
+	if err = adapter.Init(); err != nil {
+		panic(err)
+	}
 	s.context = ctx
-	var err error
 	s.shaderCache, err = shaders.LoadShaders()
 	if err != nil {
 		panic(err)
 	}
 
+	//if err = s.deferred.Init(win.Width(), win.Height()); err != nil {
+	//	panic(err)
+	//}
 	gosigl.EnableBlend()
 	gosigl.EnableDepthTest()
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
@@ -49,9 +66,13 @@ func (s *Renderer) Update(dt float64) {
 	s.scene.RecomputeVisibleClusters()
 	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
 	s.startFrame()
+
+	//s.deferred.GeometryPass(s.scene.camera)
 	s.renderBsp(clusters)
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(clusters)
+
+	//s.deferred.LightPass()
 
 	s.renderSkybox(clusters, s.scene.skybox)
 }
@@ -71,20 +92,16 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 }
 
 func (s *Renderer) startFrame() {
-	projection := s.scene.camera.ProjectionMatrix()
-	view := s.scene.camera.ViewMatrix()
-
 	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
 	s.activeShader.Bind()
-	graphics.PushMat4(s.activeShader.GetUniform("projection"), 1, false, projection)
-	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
+	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
 }
 
 func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
-	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
-
-	graphics.BindMesh(&s.scene.gpuMesh)
-	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	adapter.BindMesh(&s.scene.gpuMesh)
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
@@ -96,8 +113,8 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 		}
 
 		for _, face := range faces {
-			graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
-			if err := graphics.GpuError(); err != nil {
+			adapter.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
+			if err := adapter.GpuError(); err != nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 			}
 		}
@@ -108,8 +125,8 @@ func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 	var mat *cache.GpuMaterial
 	for _, displacement := range displacements {
 		mat = s.materialCache.Find(displacement.Material())
-		graphics.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
-		if err := graphics.GpuError(); err != nil {
+		adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
+		if err := adapter.GpuError(); err != nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 		}
 	}
@@ -128,12 +145,12 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
-			graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
+			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
 			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
 				for idx := range gpuProp.Id {
-					graphics.BindMesh(gpuProp.Id[idx])
-					graphics.BindTexture(gpuProp.Material[idx].Diffuse)
-					graphics.DrawArray(0, len(prop.Model().Meshes()[idx].Vertices()))
+					adapter.BindMesh(gpuProp.Id[idx])
+					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+					adapter.DrawArray(0, len(prop.Model().Meshes()[idx].Vertices()))
 				}
 			}
 		}
@@ -172,18 +189,18 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 
 	s.activeShader = s.shaderCache.Find("Skybox")
 	s.activeShader.Bind()
-	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	graphics.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
-	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
-	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
+	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
 	//gosigl.EnableDepthTest()
 	//gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
 
-	graphics.BindMesh(&skybox.SkyMeshGpuID)
-	graphics.BindCubemap(skybox.SkyMaterialGpuID)
-	graphics.DrawArray(0, len(skybox.SkyMesh.Vertices()))
-	//
+	adapter.BindMesh(&skybox.SkyMeshGpuID)
+	adapter.BindCubemap(skybox.SkyMaterialGpuID)
+	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices()))
+
 	//gosigl.EnableBlend()
 	//gosigl.EnableDepthTest()
 	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)

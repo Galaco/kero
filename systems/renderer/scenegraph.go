@@ -8,6 +8,7 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
 	"github.com/galaco/kero/systems/renderer/scene"
@@ -28,7 +29,7 @@ type SceneGraph struct {
 	displacementFaces []*valve.BspFace
 	skybox            *scene.Skybox
 
-	gpuMesh     graphics.GpuMesh
+	gpuMesh     adapter.GpuMesh
 	staticProps []graphics.StaticProp
 	entities    []entity.Entity
 
@@ -105,7 +106,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	gpuItemCache *cache.GpuItem,
 	gpuStaticProps map[string]*cache.GpuProp) *SceneGraph {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
-	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
+	gpuItemCache.Add(cache.ErrorTexturePath, adapter.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
 	var tex *graphics.Texture
@@ -119,7 +120,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
 				texCache.Add(mat.BaseTextureName, tex)
-				gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
 			}
 		}
 		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
@@ -169,7 +170,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	for _, prop := range level.StaticPropDictionary {
 		gpuStaticProps[prop.Id] = cache.NewGpuProp()
 		for _, m := range prop.Meshes() {
-			gpuMesh := graphics.UploadMesh(m)
+			gpuMesh := adapter.UploadMesh(m)
 			gpuStaticProps[prop.Id].AddMesh(&gpuMesh)
 		}
 		for _, materialPath := range prop.Materials() {
@@ -190,7 +191,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
-					gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
 				}
 			}
 			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
@@ -213,7 +214,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	return &SceneGraph{
 		bspMesh:           level.Mesh(),
-		gpuMesh:           graphics.UploadMesh(level.Mesh()),
+		gpuMesh:           adapter.UploadMesh(level.Mesh()),
 		bspFaces:          remappedFaces,
 		displacementFaces: dispFaces,
 		skybox:            skybox,

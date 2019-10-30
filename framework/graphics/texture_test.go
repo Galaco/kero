@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"testing"
 )
 
@@ -98,7 +97,7 @@ func TestNewError(t *testing.T) {
 
 func TestColour2D_Format(t *testing.T) {
 	tex := NewErrorTexture("error.vtf")
-	if tex.Format() != gl.RGB {
+	if tex.Format() != 0x1097 {
 		t.Error("unexpected error colour data format")
 	}
 }

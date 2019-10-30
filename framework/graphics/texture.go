@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
 	"strings"
@@ -48,7 +49,7 @@ func NewTexture(filePath string, width, height int, format uint32, colour []uint
 		filePath: filePath,
 		width:    width,
 		height:   height,
-		format:   textureFormatFromVtfFormat(format),
+		format:   adapter.TextureFormatFromVtfFormat(format),
 		colour:   colour,
 	}
 }

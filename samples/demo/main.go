@@ -3,11 +3,8 @@ package main
 import (
 	"fmt"
 	keyvalues "github.com/galaco/KeyValues"
-	kero2 "github.com/galaco/kero"
+	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/framework/input"
-	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/systems"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"log"
@@ -31,15 +28,12 @@ func main() {
 	game := NewGameDefinition()
 
 	fs := initFilesystem(GameDirectory + "/" + game.ContentDirectory())
-	if err := initFramework(); err != nil {
-		panic(err)
-	}
 	context := systems.Context{
 		Client:     game.Client(),
 		Filesystem: fs,
 	}
 
-	keroImpl := kero2.NewKero(context)
+	keroImpl := kero.NewKero(context)
 	keroImpl.RegisterGameDefinitions(game)
 	keroImpl.Start()
 }
@@ -66,14 +60,4 @@ func initFilesystem(gameDir string) filesystem.FileSystem {
 	}
 
 	return fs
-}
-
-func initFramework() error {
-	win, err := window.CreateWindow(800, 600, "Kero")
-	if err != nil {
-		return err
-	}
-	win.SetActive()
-	input.SetBoundWindow(win)
-	return graphics.Init()
 }
