@@ -2,7 +2,6 @@ package kero
 
 import (
 	"github.com/galaco/kero/framework/event"
-	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
 	"github.com/galaco/kero/systems"
@@ -53,8 +52,8 @@ func (kero *Kero) Start() {
 		}
 
 		window.CurrentWindow().SwapBuffers()
-		adapter.ClearColor(0, 1, 0, 1)
-		adapter.ClearAll()
+		//adapter.ClearColor(0, 1, 0, 1)
+		//adapter.ClearAll()
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
 		startingTime = time.Now().UTC()

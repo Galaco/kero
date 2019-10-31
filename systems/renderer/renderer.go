@@ -51,12 +51,12 @@ func (s *Renderer) Register(ctx *systems.Context) {
 		panic(err)
 	}
 
-	//if err = s.deferred.Init(win.Width(), win.Height()); err != nil {
-	//	panic(err)
-	//}
-	gosigl.EnableBlend()
+	if err = s.deferred.Init(win.Width(), win.Height()); err != nil {
+		panic(err)
+	}
+	//gosigl.EnableBlend()
 	gosigl.EnableDepthTest()
-	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
 func (s *Renderer) Update(dt float64) {
@@ -65,16 +65,18 @@ func (s *Renderer) Update(dt float64) {
 	}
 	s.scene.RecomputeVisibleClusters()
 	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
-	s.startFrame()
+	//s.startFrame()
 
-	//s.deferred.GeometryPass(s.scene.camera)
+	s.deferred.GeometryPass(s.scene.camera)
 	s.renderBsp(clusters)
-	s.renderDisplacements(s.scene.displacementFaces)
-	s.renderStaticProps(clusters)
+	//s.renderDisplacements(s.scene.displacementFaces)
+	//s.renderStaticProps(clusters)
 
-	//s.deferred.LightPass()
+	//s.deferred.EndGeometryPass()
 
-	s.renderSkybox(clusters, s.scene.skybox)
+	s.deferred.LightPass()
+
+	//s.renderSkybox(clusters, s.scene.skybox)
 }
 
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {

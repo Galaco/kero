@@ -9,13 +9,13 @@ const (
 	GBufferTextureTypeDiffuse           = 1
 	GBufferTextureTypeNormal            = 2
 	GBufferTextureTypeTextureCoordinate = 3
-	gBufferTextureCount                 = 4
+	gBufferTextureCount                 = 3
 )
 
 type GBuffer struct {
-	fbo          uint32
-	textures     [gBufferTextureCount]uint32
-	depthTexture uint32
+	fbo         uint32
+	Textures    [3]uint32
+	depthBuffer uint32
 }
 
 func (gbuffer *GBuffer) Initialize(width, height int) bool {
@@ -23,24 +23,29 @@ func (gbuffer *GBuffer) Initialize(width, height int) bool {
 	gl.GenFramebuffers(1, &gbuffer.fbo)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, gbuffer.fbo)
 
-	// Create the gbuffer textures
-	gl.GenTextures(int32(gBufferTextureCount), &gbuffer.textures[0])
-	gl.GenTextures(1, &gbuffer.depthTexture)
+	gl.GenTextures(1, &gbuffer.Textures[0])
+	gl.BindTexture(gl.TEXTURE_2D, gbuffer.Textures[0])
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, gbuffer.Textures[0], 0)
+	gl.BindTexture(gl.TEXTURE_2D, 0)
 
-	for i := uint32(0); i < uint32(gBufferTextureCount); i++ {
-		gl.BindTexture(gl.TEXTURE_2D, gbuffer.textures[i])
-		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, int32(width), int32(height), 0, gl.RGB, gl.FLOAT, nil)
-		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i, gl.TEXTURE_2D, gbuffer.textures[i], 0)
+	for i := uint32(1); i < 3; i++ {
+		gl.GenTextures(1, &gbuffer.Textures[i])
+		gl.BindTexture(gl.TEXTURE_2D, gbuffer.Textures[i])
+		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, int32(width), int32(height), 0, gl.RGBA, gl.FLOAT, nil)
+		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i, gl.TEXTURE_2D, gbuffer.Textures[i], 0)
+		gl.BindTexture(gl.TEXTURE_2D, 0)
 	}
 
 	// depth
-	gl.BindTexture(gl.TEXTURE_2D, gbuffer.depthTexture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT32F, int32(width), int32(height), 0, gl.DEPTH_COMPONENT, gl.FLOAT,
-		nil)
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, gbuffer.depthTexture, 0)
+	gl.GenRenderbuffers(1, &gbuffer.depthBuffer)
+	gl.BindRenderbuffer(gl.RENDERBUFFER, gbuffer.depthBuffer)
+	gl.RenderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT32, int32(width), int32(height))
+	gl.BindRenderbuffer(gl.RENDERBUFFER, 0)
+	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, gbuffer.depthBuffer)
 
-	drawBuffers := []uint32{gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3}
-	gl.DrawBuffers(int32(len(drawBuffers)), &drawBuffers[0])
+	drawBuffers := [3]uint32{gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2}
+	gl.DrawBuffers(3, &drawBuffers[0])
 
 	status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 
@@ -49,7 +54,7 @@ func (gbuffer *GBuffer) Initialize(width, height int) bool {
 	}
 
 	// restore default FBO
-	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 
 	return true
 }

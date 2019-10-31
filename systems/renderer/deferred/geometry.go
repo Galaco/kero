@@ -6,12 +6,11 @@ import (
 )
 
 func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
-	renderer.geometryShader.Bind()
-	renderer.geometryShader.Bind()
-
 	renderer.gbuffer.BindReadWrite()
-
+	adapter.ClearColor(0,1,0,1)
 	adapter.ClearAll()
+
+	renderer.geometryShader.Bind()
 
 	adapter.PushMat4(renderer.geometryShader.GetUniform("projection"), 1, false, camera.ProjectionMatrix())
 	adapter.PushMat4(renderer.geometryShader.GetUniform("view"), 1, false, camera.ViewMatrix())

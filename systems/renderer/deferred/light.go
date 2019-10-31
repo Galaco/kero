@@ -10,24 +10,17 @@ func (renderer *Renderer) LightPass() {
 
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	renderer.gbuffer.BindReadOnly()
+	renderer.directionalLightShader.Bind()
+	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uColorTex"), 0)
+	gl.ActiveTexture(gl.TEXTURE0 + 0)
+	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.Textures[0])
 
-	halfWidth := renderer.width / 2.0
-	halfHeight := renderer.height / 2.0
+	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uNormalTex"), 1)
+	gl.ActiveTexture(gl.TEXTURE0 + 1)
+	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.Textures[1])
 
-	renderer.gbuffer.SetReadBuffer(adapter.GBufferTextureTypePosition)
-	gl.BlitFramebuffer(0, 0, renderer.width, renderer.height,
-		0, 0, halfWidth, halfHeight, gl.COLOR_BUFFER_BIT, gl.LINEAR)
-
-	renderer.gbuffer.SetReadBuffer(adapter.GBufferTextureTypeDiffuse)
-	gl.BlitFramebuffer(0, 0, renderer.width, renderer.height,
-		0, halfHeight, halfWidth, renderer.height, gl.COLOR_BUFFER_BIT, gl.LINEAR)
-
-	renderer.gbuffer.SetReadBuffer(adapter.GBufferTextureTypeNormal)
-	gl.BlitFramebuffer(0, 0, renderer.width, renderer.height,
-		halfWidth, halfHeight, renderer.width, renderer.height, gl.COLOR_BUFFER_BIT, gl.LINEAR)
-
-	renderer.gbuffer.SetReadBuffer(adapter.GBufferTextureTypeTextureCoordinate)
-	gl.BlitFramebuffer(0, 0, renderer.width, renderer.height,
-		halfWidth, 0, renderer.width, halfHeight, gl.COLOR_BUFFER_BIT, gl.LINEAR)
+	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uPositionTex"), 2)
+	gl.ActiveTexture(gl.TEXTURE0 + 2)
+	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.Textures[2])
+	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 }

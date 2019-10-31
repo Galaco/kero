@@ -12,6 +12,7 @@ type Renderer struct {
 	width, height int32
 
 	geometryShader *graphics.Shader
+	directionalLightShader *graphics.Shader
 }
 
 func (renderer *Renderer) Init(width, height int) error {
@@ -32,5 +33,14 @@ func (renderer *Renderer) Init(width, height int) error {
 	renderer.geometryShader.Finish()
 	renderer.geometryShader.Bind()
 	adapter.PushInt32(renderer.geometryShader.GetUniform("albedoSampler"), 0)
+
+	renderer.directionalLightShader = graphics.NewShader()
+	if err := renderer.directionalLightShader.Add(gosigl.VertexShader, DirectionalLightPassVertex); err != nil {
+		return err
+	}
+	if err := renderer.directionalLightShader.Add(gosigl.FragmentShader, DirectionalLightPassFragment); err != nil {
+		return err
+	}
+	renderer.directionalLightShader.Finish()
 	return nil
 }
