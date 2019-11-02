@@ -13,16 +13,16 @@ var GeometryPassVertex = `
 	layout(location = 2) in vec3 vertexNormal;
 	layout(location = 3) in vec4 vertexTangent;
 
-	out vec2 UV;
-	out vec3 Normal;
 	out vec3 Position;
+	out vec3 Normal;
+	out vec2 UV;
 	
 	void main() {
 		gl_Position = projection * view * model * vec4(vertexPosition, 1.0);
 
-		UV = vertexUV;
-		Normal = (model * vec4(vertexNormal, 0.0)).xyz;
 		Position = (model * vec4(vertexPosition, 1.0)).xyz;
+		Normal = (model * vec4(vertexNormal, 0.0)).xyz;
+		UV = vertexUV;
 	}
 ` + "\x00"
 
@@ -32,25 +32,30 @@ var GeometryPassFragment = `
 	
 	uniform sampler2D albedoSampler;
 	
-	in vec2 UV;
-	in vec3 Normal;
 	in vec3 Position;
+	in vec3 Normal;
+	in vec2 UV;
 	
-	layout(location = 0) out vec4 DiffuseOut;
-	layout(location = 1) out vec4 NormalOut;
-	layout(location = 2) out vec4 PositionOut;
-	//layout(location = 3) out vec3 UVOut;
+	layout (location = 0) out vec3 PositionOut;
+	layout (location = 1) out vec3 NormalOut;
+	layout (location = 2) out vec4 AlbedoSpecularOut;
 
-	vec4 GetAlbedo(in sampler2D sampler, in vec2 uv) 
+	vec3 GetAlbedo(in sampler2D sampler, in vec2 uv) 
 	{
-		return texture(sampler, uv).rgba;
+		return texture(sampler, uv).rgb;
+	}
+
+	float GetSpecular(in sampler2D sampler, in vec2 uv) 
+	{
+		return 1;
+		// return texture(sampler, uv).r;
 	}
 	
 	void main() {
-		DiffuseOut = GetAlbedo(albedoSampler, UV);
-		NormalOut = vec4(normalize(Normal), 1);
-		PositionOut = vec4(Position, 1);
-		//UVOut = vec3(UV, 0.0);
+		PositionOut = Position;
+		NormalOut = normalize(Normal);
+		AlbedoSpecularOut.rgb = GetAlbedo(albedoSampler, UV);
+		AlbedoSpecularOut.a = GetSpecular(albedoSampler, UV);
 	}
 ` + "\x00"
 
@@ -59,6 +64,7 @@ var GeometryPassFragment = `
 // language=glsl
 var DirectionalLightPassVertex = `
 	#version 410
+
 	out vec2 fsUv;
 
 	// full screen triangle vertices.
@@ -77,9 +83,9 @@ var DirectionalLightPassFragment = `
 	
 	in vec2 fsUv;
 
-	uniform sampler2D uColorTex;
-	uniform sampler2D uNormalTex;
 	uniform sampler2D uPositionTex;
+	uniform sampler2D uNormalTex;
+	uniform sampler2D uColorTex;
 
 	out vec4 outColor;
 	

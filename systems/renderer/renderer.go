@@ -5,7 +5,6 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
-	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
@@ -28,7 +27,6 @@ type Renderer struct {
 	gpuStaticProps map[string]*cache.GpuProp
 
 	gpuItemCache *cache.GpuItem
-	activeShader *graphics.Shader
 
 	deferred deferred.Renderer
 
@@ -56,27 +54,6 @@ func (s *Renderer) Register(ctx *systems.Context) {
 	}
 	//gosigl.EnableBlend()
 	gosigl.EnableDepthTest()
-	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
-}
-
-func (s *Renderer) Update(dt float64) {
-	if s.scene == nil {
-		return
-	}
-	s.scene.RecomputeVisibleClusters()
-	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
-	//s.startFrame()
-
-	s.deferred.GeometryPass(s.scene.camera)
-	s.renderBsp(clusters)
-	//s.renderDisplacements(s.scene.displacementFaces)
-	//s.renderStaticProps(clusters)
-
-	//s.deferred.EndGeometryPass()
-
-	s.deferred.LightPass()
-
-	//s.renderSkybox(clusters, s.scene.skybox)
 }
 
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
@@ -93,13 +70,27 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 	}
 }
 
-func (s *Renderer) startFrame() {
-	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
-	s.activeShader.Bind()
-	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
-	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+func (s *Renderer) Update(dt float64) {
+	if s.scene == nil {
+		return
+	}
+	s.scene.RecomputeVisibleClusters()
+	s.DrawFrame(s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera)))
+}
+
+func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
+
+	s.deferred.GeometryPass(s.scene.camera)
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+	s.renderBsp(visibleClusters)
+	s.renderDisplacements(s.scene.displacementFaces)
+	s.renderStaticProps(visibleClusters)
+
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingCounterClockwise)
+	s.deferred.LightPass()
+
+	s.deferred.ForwardPass()
+	s.renderSkybox(visibleClusters, s.scene.skybox)
 }
 
 func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
@@ -147,7 +138,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
-			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
+			adapter.PushMat4(s.deferred.ActiveShader().GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
 			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
 				for idx := range gpuProp.Id {
 					adapter.BindMesh(gpuProp.Id[idx])
@@ -189,12 +180,12 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 	skyboxTransform := skybox.SkyMeshTransform
 	skyboxTransform.Position = s.scene.camera.Transform().Position
 
-	s.activeShader = s.shaderCache.Find("Skybox")
-	s.activeShader.Bind()
-	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
+	shader := s.shaderCache.Find("Skybox")
+	shader.Bind()
+	adapter.PushInt32(shader.GetUniform("albedoSampler"), 0)
+	adapter.PushMat4(shader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
+	adapter.PushMat4(shader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	adapter.PushMat4(shader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
 	//gosigl.EnableDepthTest()
 	//gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
