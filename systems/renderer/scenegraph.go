@@ -32,6 +32,7 @@ type SceneGraph struct {
 	gpuMesh     adapter.GpuMesh
 	staticProps []graphics.StaticProp
 	entities    []entity.Entity
+	pointLights []entity.Entity
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -40,19 +41,18 @@ type SceneGraph struct {
 	visibleClusterLeafs []*vis.ClusterLeaf
 	currentLeaf         *leaf.Leaf
 
-	camera             *graphics3d.Camera
 	cameraPrevPosition mgl32.Vec3
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
 // recalculating using vvis data
-func (scene *SceneGraph) RecomputeVisibleClusters() {
-	if scene.camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
+func (scene *SceneGraph) RecomputeVisibleClusters(camera *graphics3d.Camera) {
+	if camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
 		return
 	}
-	scene.cameraPrevPosition = scene.camera.Transform().Position
+	scene.cameraPrevPosition = camera.Transform().Position
 	// View hasn't moved
-	currentLeaf := scene.visData.FindCurrentLeaf(scene.camera.Transform().Position)
+	currentLeaf := scene.visData.FindCurrentLeaf(camera.Transform().Position)
 
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
 		scene.currentLeaf = currentLeaf
@@ -204,10 +204,14 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	var worldspawn entity.Entity
+	var pointlights []entity.Entity
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
-			break
+			continue
+		}
+		if e.Classname() == "light" {
+			pointlights = append(pointlights, e)
 		}
 	}
 	skybox := scene.LoadSkybox(fs, worldspawn)
@@ -218,11 +222,12 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		bspFaces:          remappedFaces,
 		displacementFaces: dispFaces,
 		skybox:            skybox,
+		pointLights: 	   pointlights,
 		entities:          entities,
 		staticProps:       level.StaticProps,
 		clusterLeafs:      clusterLeafs,
 		visData:           visibility,
-		camera:            level.Camera(),
+		cameraPrevPosition: mgl32.Vec3{65536, 65536, 65536},
 	}
 }
 
@@ -268,10 +273,6 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 			bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &level.StaticProps[idx])
 		}
 	}
-
-	//for _, idx := range bspClusters[0].DispFaces {
-	//	defaultCluster.Faces = append(defaultCluster.Faces, baseWorldBspFaces[idx])
-	//}
 
 	return bspClusters
 }

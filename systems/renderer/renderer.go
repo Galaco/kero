@@ -21,18 +21,24 @@ import (
 
 type Renderer struct {
 	context        *systems.Context
-	materialCache  *cache.Material
-	textureCache   *cache.Texture
-	shaderCache    *cache.Shader
-	gpuStaticProps map[string]*cache.GpuProp
 
-	gpuItemCache *cache.GpuItem
+	cache struct {
+		materialCache  *cache.Material
+		textureCache   *cache.Texture
+		shaderCache    *cache.Shader
+	}
+
+	gpu struct {
+		staticProps map[string]*cache.GpuProp
+		itemCache *cache.GpuItem
+	}
 
 	deferred deferred.Renderer
 
 	scene *SceneGraph
 }
 
+// Register
 func (s *Renderer) Register(ctx *systems.Context) {
 	win, err := window.CreateWindow(800, 600, "Kero")
 	if err != nil {
@@ -44,7 +50,7 @@ func (s *Renderer) Register(ctx *systems.Context) {
 		panic(err)
 	}
 	s.context = ctx
-	s.shaderCache, err = shaders.LoadShaders()
+	s.cache.shaderCache, err = shaders.LoadShaders()
 	if err != nil {
 		panic(err)
 	}
@@ -56,6 +62,7 @@ func (s *Renderer) Register(ctx *systems.Context) {
 	gosigl.EnableDepthTest()
 }
 
+// ProcessMessage
 func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 	switch message.Type() {
 	case messages.TypeLoadingLevelParsed:
@@ -63,43 +70,52 @@ func (s *Renderer) ProcessMessage(message event.Dispatchable) {
 			s.context.Filesystem,
 			message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
 			message.(*messages.LoadingLevelParsed).Entities().([]entity.Entity),
-			s.materialCache,
-			s.textureCache,
-			s.gpuItemCache,
-			s.gpuStaticProps)
+			s.cache.materialCache,
+			s.cache.textureCache,
+			s.gpu.itemCache,
+			s.gpu.staticProps)
 	}
 }
 
+// Update
 func (s *Renderer) Update(dt float64) {
 	if s.scene == nil {
 		return
 	}
-	s.scene.RecomputeVisibleClusters()
-	s.DrawFrame(s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera)))
+	s.scene.RecomputeVisibleClusters(s.context.Client.Camera())
+	s.DrawFrame(s.computeRenderableClusters(vis.FrustumFromCamera(s.context.Client.Camera())))
 }
 
+// DrawFrame
 func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
 
-	s.deferred.GeometryPass(s.scene.camera)
+	s.deferred.GeometryPass(s.context.Client.Camera())
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 	s.renderBsp(visibleClusters)
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(visibleClusters)
 
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingCounterClockwise)
-	s.deferred.LightPass()
+	s.deferred.DirectionalLightPass()
+
+	s.deferred.PointLightPass()
+	// render point lights
+
+	s.deferred.SpotLightPass()
+	// render spot lights
 
 	s.deferred.ForwardPass()
-	s.renderSkybox(visibleClusters, s.scene.skybox)
+	//s.renderSkybox(visibleClusters, s.scene.skybox)
 }
 
+// renderBsp
 func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	adapter.BindMesh(&s.scene.gpuMesh)
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
-		mat = s.materialCache.Find(clusterFaceMaterial)
+		mat = s.cache.materialCache.Find(clusterFaceMaterial)
 
 		if mat.Properties.Skip {
 			continue
@@ -114,10 +130,11 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	}
 }
 
+// renderDisplacements
 func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 	var mat *cache.GpuMaterial
 	for _, displacement := range displacements {
-		mat = s.materialCache.Find(displacement.Material())
+		mat = s.cache.materialCache.Find(displacement.Material())
 		adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
 		if err := adapter.GpuError(); err != nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
@@ -125,8 +142,9 @@ func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 	}
 }
 
+// renderStaticProps
 func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
-	viewPosition := s.scene.camera.Transform().Position
+	viewPosition := s.context.Client.Camera().Transform().Position
 
 	for _, cluster := range clusters {
 		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
@@ -139,7 +157,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 				continue
 			}
 			adapter.PushMat4(s.deferred.ActiveShader().GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
-			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
+			if gpuProp, ok := s.gpu.staticProps[prop.Model().Id]; ok {
 				for idx := range gpuProp.Id {
 					adapter.BindMesh(gpuProp.Id[idx])
 					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
@@ -150,6 +168,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 	}
 }
 
+// computeRenderableClusters
 func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
 	renderClusters := make([]*vis.ClusterLeaf, 0)
 	for idx, cluster := range s.scene.visibleClusterLeafs {
@@ -161,6 +180,7 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.Cl
 	return renderClusters
 }
 
+// renderSkybox
 func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybox) {
 	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
 	if s.scene.currentLeaf == nil || s.scene.currentLeaf.Cluster == -1 {
@@ -178,32 +198,37 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 	}
 
 	skyboxTransform := skybox.SkyMeshTransform
-	skyboxTransform.Position = s.scene.camera.Transform().Position
+	skyboxTransform.Position = s.context.Client.Camera().Transform().Position
 
-	shader := s.shaderCache.Find("Skybox")
+	shader := s.cache.shaderCache.Find("Skybox")
 	shader.Bind()
 	adapter.PushInt32(shader.GetUniform("albedoSampler"), 0)
-	adapter.PushMat4(shader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
-	adapter.PushMat4(shader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	adapter.PushMat4(shader.GetUniform("projection"), 1, false, s.context.Client.Camera().ProjectionMatrix())
+	adapter.PushMat4(shader.GetUniform("view"), 1, false, s.context.Client.Camera().ViewMatrix())
 	adapter.PushMat4(shader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
-
-	//gosigl.EnableDepthTest()
-	//gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
 
 	adapter.BindMesh(&skybox.SkyMeshGpuID)
 	adapter.BindCubemap(skybox.SkyMaterialGpuID)
 	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices()))
-
-	//gosigl.EnableBlend()
-	//gosigl.EnableDepthTest()
-	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
+// NewRenderer
 func NewRenderer() *Renderer {
 	return &Renderer{
-		textureCache:   cache.NewTextureCache(),
-		materialCache:  cache.NewMaterialCache(),
-		gpuItemCache:   cache.NewGpuItemCache(),
-		gpuStaticProps: map[string]*cache.GpuProp{},
+		cache: struct {
+			materialCache  *cache.Material
+			textureCache   *cache.Texture
+			shaderCache    *cache.Shader
+		}{
+			textureCache:   cache.NewTextureCache(),
+			materialCache:  cache.NewMaterialCache(),
+		},
+		gpu: struct {
+			staticProps map[string]*cache.GpuProp
+			itemCache *cache.GpuItem
+		}{
+			itemCache:   cache.NewGpuItemCache(),
+			staticProps: map[string]*cache.GpuProp{},
+		},
 	}
 }

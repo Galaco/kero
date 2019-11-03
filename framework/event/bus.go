@@ -32,6 +32,13 @@ func Dispatch(message Dispatchable) {
 	eventBus.newMessages = append(eventBus.newMessages, message)
 }
 
+// Dispatch queues a message to be sent to listeners
+func DispatchImmediate(message Dispatchable) {
+	for _, s := range eventBus.systems {
+		s.ProcessMessage(message)
+	}
+}
+
 // ClearQueue wipes the current queue.
 // This should be used with care.
 func ClearQueue() {

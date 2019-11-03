@@ -59,14 +59,6 @@ func (renderer *Renderer) bindShader(shader *graphics.Shader) {
 }
 
 func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
-	//gl.Enable(gl.DEPTH_TEST)
-	//gl.DepthMask(true)
-	//gl.Disable(gl.BLEND)
-	//gl.ColorMask(true, true, true, true)
-	//gl.Enable(gl.CULL_FACE)
-	//gl.FrontFace(gl.CCW)
-
-
 	renderer.gbuffer.BindReadWrite()
 	adapter.ClearColor(0,0,0.3,1)
 	adapter.ClearAll()
@@ -79,7 +71,7 @@ func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
 	adapter.PushInt32(renderer.geometryShader.GetUniform("albedoSampler"), 0)
 }
 
-func (renderer *Renderer) LightPass() {
+func (renderer *Renderer) DirectionalLightPass() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -98,6 +90,14 @@ func (renderer *Renderer) LightPass() {
 	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.AlbedoSpecularBuffer)
 
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
+}
+
+func (renderer *Renderer) PointLightPass() {
+
+}
+
+func (renderer *Renderer) SpotLightPass() {
+
 }
 
 func (renderer *Renderer) ForwardPass() {
