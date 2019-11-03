@@ -67,6 +67,10 @@ func BindTexture(id uint32) {
 	gosigl.BindTexture2D(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }
 
+func BindTextureToSlot(slot int, id uint32) {
+	gosigl.BindTexture2D(gosigl.TextureSlot(slot), gosigl.TextureBindingId(id))
+}
+
 func BindCubemap(id uint32) {
 	gosigl.BindTextureCubemap(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }

@@ -136,21 +136,21 @@ func NewSphere() *Sphere {
 	vertices := make([]float32, 0)
 
 	// Calc The Index Positions
-	for i := 0; i < slices * stacks + slices; i++ {
+	for i := 0; i < slices*stacks+slices; i++ {
 		vertices = append(vertices, positions[i*3:i*3+3]...)
-		vertices = append(vertices, positions[(i + slices + 1)*3:(i + slices + 1)*3+3]...)
-		vertices = append(vertices, positions[(i + slices)*3:(i + slices)*3+3]...)
+		vertices = append(vertices, positions[(i+slices+1)*3:(i+slices+1)*3+3]...)
+		vertices = append(vertices, positions[(i+slices)*3:(i+slices)*3+3]...)
 		//indices = append(indices, uint(i), uint(i + slices + 1), uint(i + slices))
 
-		vertices = append(vertices, positions[(i + slices + 1)*3:(i + slices + 1)*3+3]...)
+		vertices = append(vertices, positions[(i+slices+1)*3:(i+slices+1)*3+3]...)
 		vertices = append(vertices, positions[i*3:i*3+3]...)
-		vertices = append(vertices, positions[(i + 1)*3:(i + 1)*3+3]...)
+		vertices = append(vertices, positions[(i+1)*3:(i+1)*3+3]...)
 		//indices = append(indices, uint(i + slices + 1), uint(i), uint(i + 1))
 	}
 
 	sphere := &Sphere{}
 	sphere.AddVertex(vertices...)
-	sphere.AddUV(make([]float32, len(vertices)/3 * 2)...)
+	sphere.AddUV(make([]float32, len(vertices)/3*2)...)
 	sphere.AddNormal(make([]float32, len(vertices))...)
 	sphere.GenerateTangents()
 

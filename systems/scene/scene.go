@@ -9,7 +9,6 @@ import (
 	"github.com/galaco/kero/systems"
 	loader "github.com/galaco/kero/systems/scene/loaders"
 	"github.com/galaco/kero/valve"
-	"log"
 )
 
 type Scene struct {
@@ -60,8 +59,7 @@ func (s *Scene) ProcessMessage(message event.Dispatchable) {
 				return
 			}
 			s.entities = ents
-			for _,e := range ents {
-				log.Println(e.Classname())
+			for _, e := range ents {
 				if e.Classname() == "info_player_start" {
 					s.context.Client.Camera().Transform().Position = e.Origin()
 					s.context.Client.Camera().Transform().Rotation = e.Angles()

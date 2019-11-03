@@ -59,8 +59,6 @@ var GeometryPassFragment = `
 	}
 ` + "\x00"
 
-
-
 // language=glsl
 var DirectionalLightPassVertex = `
 	#version 410

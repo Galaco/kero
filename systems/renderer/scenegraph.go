@@ -217,16 +217,16 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	skybox := scene.LoadSkybox(fs, worldspawn)
 
 	return &SceneGraph{
-		bspMesh:           level.Mesh(),
-		gpuMesh:           adapter.UploadMesh(level.Mesh()),
-		bspFaces:          remappedFaces,
-		displacementFaces: dispFaces,
-		skybox:            skybox,
-		pointLights: 	   pointlights,
-		entities:          entities,
-		staticProps:       level.StaticProps,
-		clusterLeafs:      clusterLeafs,
-		visData:           visibility,
+		bspMesh:            level.Mesh(),
+		gpuMesh:            adapter.UploadMesh(level.Mesh()),
+		bspFaces:           remappedFaces,
+		displacementFaces:  dispFaces,
+		skybox:             skybox,
+		pointLights:        pointlights,
+		entities:           entities,
+		staticProps:        level.StaticProps,
+		clusterLeafs:       clusterLeafs,
+		visData:            visibility,
 		cameraPrevPosition: mgl32.Vec3{65536, 65536, 65536},
 	}
 }

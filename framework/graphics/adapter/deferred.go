@@ -13,9 +13,9 @@ const (
 )
 
 type GBuffer struct {
-	fbo         uint32
-	PositionBuffer, NormalBuffer, AlbedoSpecularBuffer    uint32
-	depthBuffer uint32
+	fbo                                                uint32
+	PositionBuffer, NormalBuffer, AlbedoSpecularBuffer uint32
+	depthBuffer                                        uint32
 }
 
 func (gbuffer *GBuffer) Initialize(width, height int) bool {

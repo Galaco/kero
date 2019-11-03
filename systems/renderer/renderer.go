@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -20,17 +19,17 @@ import (
 )
 
 type Renderer struct {
-	context        *systems.Context
+	context *systems.Context
 
 	cache struct {
-		materialCache  *cache.Material
-		textureCache   *cache.Texture
-		shaderCache    *cache.Shader
+		materialCache *cache.Material
+		textureCache  *cache.Texture
+		shaderCache   *cache.Shader
 	}
 
 	gpu struct {
 		staticProps map[string]*cache.GpuProp
-		itemCache *cache.GpuItem
+		itemCache   *cache.GpuItem
 	}
 
 	deferred deferred.Renderer
@@ -58,8 +57,6 @@ func (s *Renderer) Register(ctx *systems.Context) {
 	if err = s.deferred.Init(win.Width(), win.Height()); err != nil {
 		panic(err)
 	}
-	//gosigl.EnableBlend()
-	gosigl.EnableDepthTest()
 }
 
 // ProcessMessage
@@ -90,12 +87,10 @@ func (s *Renderer) Update(dt float64) {
 func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
 
 	s.deferred.GeometryPass(s.context.Client.Camera())
-	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 	s.renderBsp(visibleClusters)
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(visibleClusters)
 
-	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingCounterClockwise)
 	s.deferred.DirectionalLightPass()
 
 	s.deferred.PointLightPass()
@@ -216,16 +211,16 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 func NewRenderer() *Renderer {
 	return &Renderer{
 		cache: struct {
-			materialCache  *cache.Material
-			textureCache   *cache.Texture
-			shaderCache    *cache.Shader
+			materialCache *cache.Material
+			textureCache  *cache.Texture
+			shaderCache   *cache.Shader
 		}{
-			textureCache:   cache.NewTextureCache(),
-			materialCache:  cache.NewMaterialCache(),
+			textureCache:  cache.NewTextureCache(),
+			materialCache: cache.NewMaterialCache(),
 		},
 		gpu: struct {
 			staticProps map[string]*cache.GpuProp
-			itemCache *cache.GpuItem
+			itemCache   *cache.GpuItem
 		}{
 			itemCache:   cache.NewGpuItemCache(),
 			staticProps: map[string]*cache.GpuProp{},

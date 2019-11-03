@@ -6,7 +6,6 @@ import (
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/framework/graphics/adapter"
-	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 type Renderer struct {
@@ -45,6 +44,8 @@ func (renderer *Renderer) Init(width, height int) error {
 		return err
 	}
 	renderer.directionalLightShader.Finish()
+
+	gosigl.EnableDepthTest()
 	return nil
 }
 
@@ -60,7 +61,7 @@ func (renderer *Renderer) bindShader(shader *graphics.Shader) {
 
 func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
 	renderer.gbuffer.BindReadWrite()
-	adapter.ClearColor(0,0,0.3,1)
+	adapter.ClearColor(0, 0, 0.3, 1)
 	adapter.ClearAll()
 
 	renderer.bindShader(renderer.geometryShader)
@@ -69,27 +70,28 @@ func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
 	adapter.PushMat4(renderer.geometryShader.GetUniform("view"), 1, false, camera.ViewMatrix())
 	adapter.PushMat4(renderer.geometryShader.GetUniform("model"), 1, false, camera.ModelMatrix())
 	adapter.PushInt32(renderer.geometryShader.GetUniform("albedoSampler"), 0)
+
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
 func (renderer *Renderer) DirectionalLightPass() {
-	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingCounterClockwise)
+
+	adapter.BindFrameBuffer(0)
+	adapter.ClearAll()
 
 	renderer.bindShader(renderer.directionalLightShader)
 
 	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uPositionTex"), 0)
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.PositionBuffer)
+	adapter.BindTextureToSlot(0, renderer.gbuffer.PositionBuffer)
 
 	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uNormalTex"), 1)
-	gl.ActiveTexture(gl.TEXTURE1)
-	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.NormalBuffer)
+	adapter.BindTextureToSlot(1, renderer.gbuffer.NormalBuffer)
 
 	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uColorTex"), 2)
-	gl.ActiveTexture(gl.TEXTURE2)
-	gl.BindTexture(gl.TEXTURE_2D, renderer.gbuffer.AlbedoSpecularBuffer)
+	adapter.BindTextureToSlot(2, renderer.gbuffer.AlbedoSpecularBuffer)
 
-	gl.DrawArrays(gl.TRIANGLES, 0, 3)
+	adapter.DrawArray(0, 3)
 }
 
 func (renderer *Renderer) PointLightPass() {
@@ -102,17 +104,7 @@ func (renderer *Renderer) SpotLightPass() {
 
 func (renderer *Renderer) ForwardPass() {
 	renderer.gbuffer.BindReadOnly()
-	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0)
-	gl.BlitFramebuffer(
-		0,
-		0,
-		int32(renderer.width),
-		int32(renderer.height),
-		0,
-		0,
-		int32(renderer.width),
-		int32(renderer.height),
-		gl.DEPTH_BUFFER_BIT,
-		gl.NEAREST)
-	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+	adapter.BindFrameBufferDraw(0)
+	adapter.BlitDepthBuffer(int32(renderer.width), int32(renderer.height))
+	adapter.BindFrameBuffer(0)
 }
