@@ -111,21 +111,39 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	gpuItemCache.Add(cache.ErrorTexturePath, adapter.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
-	var tex *graphics.Texture
+	var albedoTexture, normalTexture *graphics.Texture
 	var err error
 	for _, mat := range level.MaterialDictionary() {
-		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
-			if err != nil || tex == nil {
+		if albedoTexture = texCache.Find(mat.BaseTextureName); albedoTexture == nil {
+			albedoTexture, err = graphics.LoadTexture(fs, mat.BaseTextureName)
+			if err != nil || albedoTexture == nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
-				texCache.Add(mat.BaseTextureName, tex)
-				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+				texCache.Add(mat.BaseTextureName, albedoTexture)
+				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(albedoTexture))
 			}
 		}
-		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
+		if mat.HasBumpMap {
+			if normalTexture = texCache.Find(mat.BumpMapName); normalTexture == nil {
+				normalTexture, err = graphics.LoadTexture(fs, mat.BumpMapName)
+				if err != nil || normalTexture == nil {
+					event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+					texCache.Add(mat.BumpMapName, texCache.Find(cache.ErrorTexturePath))
+					gpuItemCache.Add(mat.BumpMapName, gpuItemCache.Find(cache.ErrorTexturePath))
+				} else {
+					texCache.Add(mat.BumpMapName, normalTexture)
+					gpuItemCache.Add(mat.BumpMapName, adapter.UploadTexture(normalTexture))
+				}
+			}
+		}
+		gpuMat := cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat)
+		if normalTexture != nil {
+			gpuMat.AddNormalMap(gpuItemCache.Find(mat.BumpMapName))
+		}
+
+		materialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
 	}
 
 	// generate displacement faces
@@ -136,16 +154,16 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	// finish bsp mesh
 	// Add MATERIALS TO FACES
-	tex = nil
+	albedoTexture = nil
 	for _, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material())))
-			tex = texCache.Find(cache.ErrorTexturePath)
+			albedoTexture = texCache.Find(cache.ErrorTexturePath)
 		} else {
 			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
-				tex = texCache.Find(cache.ErrorTexturePath)
+				albedoTexture = texCache.Find(cache.ErrorTexturePath)
 			} else {
-				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
+				albedoTexture = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
 		}
 		// Generate texture coordinates
@@ -153,8 +171,8 @@ func NewSceneGraphFromBsp(fs fileSystem,
 			valve.TexCoordsForFaceFromTexInfo(
 				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
 				bspFace.TexInfo(),
-				tex.Width(),
-				tex.Height())...)
+				albedoTexture.Width(),
+				albedoTexture.Height())...)
 	}
 
 	level.Mesh().GenerateTangents()

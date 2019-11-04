@@ -25,8 +25,7 @@ func DrawArray(offset int, num int) {
 	gosigl.DrawArray(offset, num)
 }
 
-func DrawFace(offset int, num int, textureId uint32) {
-	BindTexture(textureId)
+func DrawFace(offset int, num int) {
 	DrawArray(offset, num)
 }
 

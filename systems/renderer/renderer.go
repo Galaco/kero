@@ -109,6 +109,7 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
+	var hasNormalMap int32
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.cache.materialCache.Find(clusterFaceMaterial)
 
@@ -116,21 +117,41 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 			continue
 		}
 
+		adapter.BindTexture(mat.Diffuse)
+		hasNormalMap = 0
+		if mat.Properties.HasBumpMap {
+			hasNormalMap = 1
+		}
+		adapter.PushInt32(s.deferred.ActiveShader().GetUniform("hasNormalSampler"), hasNormalMap)
+		if mat.Properties.HasBumpMap {
+			adapter.BindTextureToSlot(1, mat.Normal)
+		}
 		for _, face := range faces {
-			adapter.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
+			adapter.DrawFace(face.Offset(), face.Length())
 			if err := adapter.GpuError(); err != nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 			}
 		}
 	}
+	adapter.PushInt32(s.deferred.ActiveShader().GetUniform("hasNormalSampler"), 0)
 }
 
 // renderDisplacements
 func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 	var mat *cache.GpuMaterial
+	var hasNormalMap int32
 	for _, displacement := range displacements {
 		mat = s.cache.materialCache.Find(displacement.Material())
-		adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
+		adapter.BindTexture(mat.Diffuse)
+		hasNormalMap = 0
+		if mat.Properties.HasBumpMap {
+			hasNormalMap = 1
+		}
+		adapter.PushInt32(s.deferred.ActiveShader().GetUniform("hasNormalSampler"), hasNormalMap)
+		if mat.Properties.HasBumpMap {
+			adapter.BindTextureToSlot(1, mat.Normal)
+		}
+		adapter.DrawFace(displacement.Offset(), displacement.Length())
 		if err := adapter.GpuError(); err != nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
 		}
@@ -140,6 +161,7 @@ func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 // renderStaticProps
 func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 	viewPosition := s.context.Client.Camera().Transform().Position
+	var hasNormalMap int32
 
 	for _, cluster := range clusters {
 		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
@@ -156,6 +178,14 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 				for idx := range gpuProp.Id {
 					adapter.BindMesh(gpuProp.Id[idx])
 					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+					hasNormalMap = 0
+					if gpuProp.Material[idx].Properties.HasBumpMap {
+						hasNormalMap = 1
+					}
+					adapter.PushInt32(s.deferred.ActiveShader().GetUniform("hasNormalSampler"), hasNormalMap)
+					if gpuProp.Material[idx].Properties.HasBumpMap {
+						adapter.BindTextureToSlot(1, gpuProp.Material[idx].Normal)
+					}
 					adapter.DrawArray(0, len(prop.Model().Meshes()[idx].Vertices()))
 				}
 			}

@@ -35,6 +35,7 @@ func (renderer *Renderer) Init(width, height int) error {
 	renderer.geometryShader.Finish()
 	renderer.bindShader(renderer.geometryShader)
 	adapter.PushInt32(renderer.geometryShader.GetUniform("albedoSampler"), 0)
+	adapter.PushInt32(renderer.geometryShader.GetUniform("normalSampler"), 1)
 
 	renderer.directionalLightShader = graphics.NewShader()
 	if err := renderer.directionalLightShader.Add(gosigl.VertexShader, DirectionalLightPassVertex); err != nil {

@@ -10,6 +10,7 @@ const (
 
 type GpuMaterial struct {
 	Diffuse    uint32
+	Normal     uint32
 	Properties *graphics.Material
 }
 
@@ -18,6 +19,10 @@ func NewGpuMaterial(diffuse uint32, mat *graphics.Material) *GpuMaterial {
 		Diffuse:    diffuse,
 		Properties: mat,
 	}
+}
+
+func (mat *GpuMaterial) AddNormalMap(normal uint32) {
+	mat.Normal = normal
 }
 
 type Material struct {

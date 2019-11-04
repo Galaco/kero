@@ -31,6 +31,8 @@ var GeometryPassFragment = `
 	#version 410
 	
 	uniform sampler2D albedoSampler;
+	uniform int hasNormalSampler;
+	uniform sampler2D normalSampler;
 	
 	in vec3 Position;
 	in vec3 Normal;
@@ -45,6 +47,14 @@ var GeometryPassFragment = `
 		return texture(sampler, uv).rgb;
 	}
 
+	vec3 GetNormal(in sampler2D sampler, in vec2 uv) 
+	{
+		if (hasNormalSampler > 0) {
+			return texture(sampler, uv).rgb;
+		}
+		return normalize(Normal);
+	}
+
 	float GetSpecular(in sampler2D sampler, in vec2 uv) 
 	{
 		return 1;
@@ -53,7 +63,7 @@ var GeometryPassFragment = `
 	
 	void main() {
 		PositionOut = Position;
-		NormalOut = normalize(Normal);
+		NormalOut = GetNormal(normalSampler, UV);
 		AlbedoSpecularOut.rgb = GetAlbedo(albedoSampler, UV);
 		AlbedoSpecularOut.a = GetSpecular(albedoSampler, UV);
 	}
