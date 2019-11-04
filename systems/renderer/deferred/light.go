@@ -19,6 +19,7 @@ type Attenuation struct {
 }
 
 type PointLight struct {
+	BaseLight
 	Position    mgl32.Vec3
 	Attenuation Attenuation
 }

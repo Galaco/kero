@@ -131,7 +131,7 @@ var DirectionalLightPassFragment = `
 //			float specularFactor = dot(vertexToEye, lightReflect);
 //			if (specularFactor > 0) {
 //				specularFactor = pow(specularFactor, gSpecularPower);
-//				specularColor = vec4(Light.Color * gMatSpecularIntensity * specularFactor, 1.0f);
+//				specularColor = vec4(Light.Color * texture(uColorTex, fsUV).a * specularFactor, 1.0f);
 //			}
 		}
 

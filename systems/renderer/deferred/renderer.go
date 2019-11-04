@@ -104,7 +104,7 @@ func (renderer *Renderer) DirectionalLightPass(light *DirectionalLight) {
 		light.AmbientColor.X(), light.AmbientColor.Y(), light.AmbientColor.Z())
 	adapter.PushFloat32(
 		renderer.directionalLightShader.GetUniform("directionalLight.AmbientIntensity"),
-		light.AmbientIntensity/10)
+		light.AmbientIntensity)
 	normalizedDirection := light.Direction.Normalize()
 	adapter.PushVec3(
 		renderer.directionalLightShader.GetUniform("directionalLight.Direction"),
@@ -126,4 +126,6 @@ func (renderer *Renderer) ForwardPass() {
 	adapter.BindFrameBufferDraw(0)
 	adapter.BlitDepthBuffer(int32(renderer.width), int32(renderer.height))
 	adapter.BindFrameBuffer(0)
+
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }

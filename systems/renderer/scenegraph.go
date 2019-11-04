@@ -34,7 +34,7 @@ type SceneGraph struct {
 	staticProps      []graphics.StaticProp
 	entities         []entity.Entity
 	lightEnvironment *deferred.DirectionalLight
-	pointLights      []entity.Entity
+	pointLights      []*deferred.PointLight
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -224,7 +224,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	var worldspawn entity.Entity
-	var pointlights []entity.Entity
+	var pointlights []*deferred.PointLight
 	var lightEnvironment *deferred.DirectionalLight
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
@@ -232,29 +232,43 @@ func NewSceneGraphFromBsp(fs fileSystem,
 			continue
 		}
 		if e.Classname() == "light" {
-			pointlights = append(pointlights, e)
+			light := &deferred.PointLight{
+				Position: e.VectorForKey("origin"),
+				Attenuation: deferred.Attenuation{
+					Constant:    e.FloatForKey("_constant_attn"),
+					Linear:      e.FloatForKey("_linear_attn"),
+					Exponential: e.FloatForKey("_quadratic_attn"),
+				},
+			}
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_light"),
+				"%f %f %f %f",
+				&light.Color[0],
+				&light.Color[1],
+				&light.Color[2],
+				&light.DiffuseIntensity)
+			light.Color[0] /= 255
+			light.Color[1] /= 255
+			light.Color[2] /= 255
+			light.DiffuseIntensity /= 255
+			pointlights = append(pointlights, light)
 		}
 		if e.Classname() == "light_environment" && lightEnvironment == nil {
-			// _ambient = vec3 color, float intensity
-			// _light = vec3 color, float intensity
-			// angles = vec3
-			// pitch -60
-			// origin vec3
 			lightEnvironment = &deferred.DirectionalLight{
 				BaseLight: deferred.BaseLight{},
 				Direction: e.VectorForKey("angles"),
 			}
 			lightEnvironment.Direction[0] = e.FloatForKey("pitch")
-			lightEnvironment.Direction[1] = lightEnvironment.Direction[0]
+			lightEnvironment.Direction[2] = lightEnvironment.Direction[0]
 			_, _ = fmt.Sscanf(
-				e.ValueForKey("_ambient"),
+				e.ValueForKey("_light"),
 				"%f %f %f %f",
 				&lightEnvironment.AmbientColor[0],
 				&lightEnvironment.AmbientColor[1],
 				&lightEnvironment.AmbientColor[2],
 				&lightEnvironment.AmbientIntensity)
 			_, _ = fmt.Sscanf(
-				e.ValueForKey("_light"),
+				e.ValueForKey("_ambient"),
 				"%f %f %f %f",
 				&lightEnvironment.Color[0],
 				&lightEnvironment.Color[1],
