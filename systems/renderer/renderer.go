@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -100,7 +101,7 @@ func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
 	// render spot lights
 
 	s.deferred.ForwardPass()
-	//s.renderSkybox(visibleClusters, s.scene.skybox)
+	s.renderSkybox(visibleClusters, s.scene.skybox)
 }
 
 // renderBsp
@@ -222,6 +223,7 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 		return
 	}
 
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 	skyboxTransform := skybox.SkyMeshTransform
 	skyboxTransform.Position = s.context.Client.Camera().Transform().Position
 

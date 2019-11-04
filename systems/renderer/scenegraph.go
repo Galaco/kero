@@ -245,7 +245,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 				Direction: e.VectorForKey("angles"),
 			}
 			lightEnvironment.Direction[0] = e.FloatForKey("pitch")
-			lightEnvironment.Direction[2] = lightEnvironment.Direction[0]
+			lightEnvironment.Direction[1] = lightEnvironment.Direction[0]
 			_, _ = fmt.Sscanf(
 				e.ValueForKey("_ambient"),
 				"%f %f %f %f",
