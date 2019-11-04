@@ -11,6 +11,7 @@ import (
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/systems/renderer/deferred"
 	"github.com/galaco/kero/systems/renderer/scene"
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
@@ -29,10 +30,11 @@ type SceneGraph struct {
 	displacementFaces []*valve.BspFace
 	skybox            *scene.Skybox
 
-	gpuMesh     adapter.GpuMesh
-	staticProps []graphics.StaticProp
-	entities    []entity.Entity
-	pointLights []entity.Entity
+	gpuMesh          adapter.GpuMesh
+	staticProps      []graphics.StaticProp
+	entities         []entity.Entity
+	lightEnvironment *deferred.DirectionalLight
+	pointLights      []entity.Entity
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -205,6 +207,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	var worldspawn entity.Entity
 	var pointlights []entity.Entity
+	var lightEnvironment *deferred.DirectionalLight
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
@@ -212,6 +215,41 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		}
 		if e.Classname() == "light" {
 			pointlights = append(pointlights, e)
+		}
+		if e.Classname() == "light_environment" && lightEnvironment == nil {
+			// _ambient = vec3 color, float intensity
+			// _light = vec3 color, float intensity
+			// angles = vec3
+			// pitch -60
+			// origin vec3
+			lightEnvironment = &deferred.DirectionalLight{
+				BaseLight: deferred.BaseLight{},
+				Direction: e.VectorForKey("angles"),
+			}
+			lightEnvironment.Direction[0] = e.FloatForKey("pitch")
+			lightEnvironment.Direction[2] = lightEnvironment.Direction[0]
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_ambient"),
+				"%f %f %f %f",
+				&lightEnvironment.AmbientColor[0],
+				&lightEnvironment.AmbientColor[1],
+				&lightEnvironment.AmbientColor[2],
+				&lightEnvironment.AmbientIntensity)
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_light"),
+				"%f %f %f %f",
+				&lightEnvironment.Color[0],
+				&lightEnvironment.Color[1],
+				&lightEnvironment.Color[2],
+				&lightEnvironment.DiffuseIntensity)
+			lightEnvironment.AmbientColor[0] /= 255
+			lightEnvironment.AmbientColor[1] /= 255
+			lightEnvironment.AmbientColor[2] /= 255
+			lightEnvironment.AmbientIntensity /= 255
+			lightEnvironment.Color[0] /= 255
+			lightEnvironment.Color[1] /= 255
+			lightEnvironment.Color[2] /= 255
+			lightEnvironment.DiffuseIntensity /= 255
 		}
 	}
 	skybox := scene.LoadSkybox(fs, worldspawn)
@@ -228,6 +266,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		clusterLeafs:       clusterLeafs,
 		visData:            visibility,
 		cameraPrevPosition: mgl32.Vec3{65536, 65536, 65536},
+		lightEnvironment:   lightEnvironment,
 	}
 }
 

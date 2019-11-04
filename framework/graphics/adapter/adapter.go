@@ -33,6 +33,14 @@ func PushInt32(uniform int32, value int32) {
 	gl.Uniform1i(uniform, value)
 }
 
+func PushVec3(uniform int32, x, y, z float32) {
+	gl.Uniform3f(uniform, x, y, z)
+}
+
+func PushFloat32(uniform int32, x float32) {
+	gl.Uniform1f(uniform, x)
+}
+
 func GpuError() error {
 	if glError := gl.GetError(); glError != gl.NO_ERROR {
 		return fmt.Errorf("gl error. Code: %d", glError)

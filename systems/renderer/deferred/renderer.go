@@ -61,7 +61,7 @@ func (renderer *Renderer) bindShader(shader *graphics.Shader) {
 
 func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
 	renderer.gbuffer.BindReadWrite()
-	adapter.ClearColor(0, 0, 0.3, 1)
+	adapter.ClearColor(0, 0, 0, 1)
 	adapter.ClearAll()
 
 	renderer.bindShader(renderer.geometryShader)
@@ -74,7 +74,7 @@ func (renderer *Renderer) GeometryPass(camera *graphics3d.Camera) {
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
-func (renderer *Renderer) DirectionalLightPass() {
+func (renderer *Renderer) DirectionalLightPass(light *DirectionalLight) {
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingCounterClockwise)
 
 	adapter.BindFrameBuffer(0)
@@ -90,6 +90,24 @@ func (renderer *Renderer) DirectionalLightPass() {
 
 	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uColorTex"), 2)
 	adapter.BindTextureToSlot(2, renderer.gbuffer.AlbedoSpecularBuffer)
+
+	adapter.PushVec3(
+		renderer.directionalLightShader.GetUniform("directionalLight.Base.Color"),
+		light.Color.X(), light.Color.Y(), light.Color.Z())
+	adapter.PushFloat32(
+		renderer.directionalLightShader.GetUniform("directionalLight.Base.DiffuseIntensity"),
+		light.DiffuseIntensity)
+
+	adapter.PushVec3(
+		renderer.directionalLightShader.GetUniform("directionalLight.AmbientColor"),
+		light.AmbientColor.X(), light.AmbientColor.Y(), light.AmbientColor.Z())
+	adapter.PushFloat32(
+		renderer.directionalLightShader.GetUniform("directionalLight.AmbientIntensity"),
+		light.AmbientIntensity/10)
+	normalizedDirection := light.Direction.Normalize()
+	adapter.PushVec3(
+		renderer.directionalLightShader.GetUniform("directionalLight.Direction"),
+		normalizedDirection.X(), normalizedDirection.Y(), normalizedDirection.Z())
 
 	adapter.DrawArray(0, 3)
 }

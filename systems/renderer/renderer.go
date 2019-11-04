@@ -91,7 +91,7 @@ func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(visibleClusters)
 
-	s.deferred.DirectionalLightPass()
+	s.deferred.DirectionalLightPass(s.scene.lightEnvironment)
 
 	s.deferred.PointLightPass()
 	// render point lights

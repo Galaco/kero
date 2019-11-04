@@ -78,6 +78,20 @@ var DirectionalLightPassVertex = `
 // language=glsl
 var DirectionalLightPassFragment = `
 	#version 410
+
+	struct BaseLight
+	{
+		vec3 Color;
+		float DiffuseIntensity;
+	};
+
+	struct DirectionalLight
+	{
+		BaseLight Base;
+		vec3 AmbientColor;
+		float AmbientIntensity;
+		vec3 Direction;
+	};
 	
 	in vec2 fsUv;
 
@@ -85,9 +99,40 @@ var DirectionalLightPassFragment = `
 	uniform sampler2D uNormalTex;
 	uniform sampler2D uColorTex;
 
+	uniform DirectionalLight directionalLight;
+
 	out vec4 outColor;
+
+	vec4 CalculateLightGeneric(BaseLight light, vec3 lightDirection) {
+		vec3 worldPos = texture(uPositionTex, fsUv).xyz;
+		vec3 normal = texture(uNormalTex, fsUv).xyz;
+
+		vec4 ambientColor = vec4(directionalLight.AmbientColor * directionalLight.AmbientIntensity, 1.0f);
+		float diffuseFactor = dot(normal, -lightDirection);
+																								
+		vec4 diffuseColor  = vec4(0, 0, 0, 0);
+		vec4 specularColor = vec4(0, 0, 0, 0);
+
+		if (diffuseFactor > 0) {
+			diffuseColor = vec4(light.Color * light.DiffuseIntensity * diffuseFactor, 1.0f);
+
+//			vec3 vertexToEye = normalize(gEyeWorldPos - worldPos);
+//			vec3 lightReflect = normalize(reflect(lightDirection, normal));
+//			float specularFactor = dot(vertexToEye, lightReflect);
+//			if (specularFactor > 0) {
+//				specularFactor = pow(specularFactor, gSpecularPower);
+//				specularColor = vec4(Light.Color * gMatSpecularIntensity * specularFactor, 1.0f);
+//			}
+		}
+
+		return (ambientColor + diffuseColor + specularColor);
+	}
+
+	vec4 CalculateDirectionalLight() {
+		return CalculateLightGeneric(directionalLight.Base, directionalLight.Direction);
+	}
 	
 	void main() {
-		outColor = vec4(texture(uColorTex, fsUv).xyz, 1.0);
+		outColor = vec4(texture(uColorTex, fsUv).xyz, 1.0) * CalculateDirectionalLight();
 	}
 ` + "\x00"
