@@ -97,8 +97,8 @@ func TestNewError(t *testing.T) {
 
 func TestColour2D_Format(t *testing.T) {
 	tex := NewErrorTexture("error.vtf")
-	if tex.Format() != 0x1097 {
-		t.Error("unexpected error colour data format")
+	if tex.Format() != 0x1907 {
+		t.Errorf("unexpected error colour data format. Expected 0x1907, but received %d", tex.Format())
 	}
 }
 

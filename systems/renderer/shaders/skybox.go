@@ -14,7 +14,7 @@ var SkyboxFragment = `
 		// Output color = color of the texture at the specified UV
 		frag_colour = texture( albedoSampler, UV );
     }
-` + "\x00"
+`
 
 // language=glsl
 var SkyboxVertex = `
@@ -35,4 +35,4 @@ var SkyboxVertex = `
     	gl_Position = WVP_Pos.xyww;
     	UV = vertexPosition;
     }
-` + "\x00"
+`

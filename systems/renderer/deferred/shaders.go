@@ -24,7 +24,7 @@ var GeometryPassVertex = `
 		Normal = (model * vec4(vertexNormal, 0.0)).xyz;
 		UV = vertexUV;
 	}
-` + "\x00"
+`
 
 // language=glsl
 var GeometryPassFragment = `
@@ -67,7 +67,7 @@ var GeometryPassFragment = `
 		AlbedoSpecularOut.rgb = GetAlbedo(albedoSampler, UV);
 		AlbedoSpecularOut.a = GetSpecular(albedoSampler, UV);
 	}
-` + "\x00"
+`
 
 // language=glsl
 var DirectionalLightPassVertex = `
@@ -83,7 +83,7 @@ var DirectionalLightPassVertex = `
 		fsUv = uvs[gl_VertexID];
 		gl_Position = vec4(verts[gl_VertexID], 0.0, 1.0);
 	}
-` + "\x00"
+`
 
 // language=glsl
 var DirectionalLightPassFragment = `
@@ -145,4 +145,4 @@ var DirectionalLightPassFragment = `
 	void main() {
 		outColor = vec4(texture(uColorTex, fsUv).xyz, 1.0) * CalculateDirectionalLight();
 	}
-` + "\x00"
+`

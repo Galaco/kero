@@ -10,7 +10,7 @@ type Shader struct {
 }
 
 func (shader *Shader) Add(shaderType gosigl.ShaderType, code string) error {
-	return shader.context.AddShader(code, shaderType)
+	return shader.context.AddShader(code+"\x00", shaderType)
 }
 
 func (shader *Shader) Finish() {
