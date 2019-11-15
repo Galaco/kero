@@ -1,4 +1,4 @@
-package valve
+package loader
 
 import (
 	"github.com/galaco/bsp"

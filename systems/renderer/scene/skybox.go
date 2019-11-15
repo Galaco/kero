@@ -7,6 +7,7 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/messages"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
@@ -20,7 +21,7 @@ type fileSystem interface {
 type Skybox struct {
 	SkyMaterialGpuID uint32
 	SkyMesh          graphics.Mesh
-	SkyMeshGpuID     graphics.GpuMesh
+	SkyMeshGpuID     adapter.GpuMesh
 	SkyMeshTransform graphics3d.Transform
 	Origin           mgl32.Vec3
 }
@@ -40,17 +41,17 @@ func LoadSkybox(fs fileSystem, worldspawn entity.Entity) *Skybox {
 	t.Rotation[0] = 90
 
 	return &Skybox{
-		SkyMaterialGpuID: graphics.UploadCubemap(textures),
+		SkyMaterialGpuID: adapter.UploadCubemap(textures),
 		SkyMesh:          skyCube,
-		SkyMeshGpuID:     graphics.UploadMesh(skyCube),
+		SkyMeshGpuID:     adapter.UploadMesh(skyCube),
 		Origin:           cameraPosition,
 		SkyMeshTransform: t,
 	}
 }
 
-func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture, error) {
+func loadSkyboxTexture(fs fileSystem, skyName string) ([]adapter.Texture, error) {
 	var errs [6]error
-	sides := make([]*graphics.Texture, 6)
+	sides := make([]adapter.Texture, 6)
 
 	wg := sync.WaitGroup{}
 	loadCubemapSide := func(idx int, path string) {

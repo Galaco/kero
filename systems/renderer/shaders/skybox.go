@@ -1,21 +1,5 @@
 package shaders
 
-//language=glsl
-var SkyboxFragment = `
-    #version 410
-
-	in vec3 UV;
-
-    out vec4 frag_colour;
-
-	uniform samplerCube albedoSampler;
-
-    void main() {
-		// Output color = color of the texture at the specified UV
-		frag_colour = texture( albedoSampler, UV );
-    }
-` + "\x00"
-
 // language=glsl
 var SkyboxVertex = `
     #version 410
@@ -35,4 +19,20 @@ var SkyboxVertex = `
     	gl_Position = WVP_Pos.xyww;
     	UV = vertexPosition;
     }
-` + "\x00"
+`
+
+//language=glsl
+var SkyboxFragment = `
+    #version 410
+
+	in vec3 UV;
+
+    out vec4 frag_colour;
+
+	uniform samplerCube albedoSampler;
+
+    void main() {
+		// Output color = color of the texture at the specified UV
+		frag_colour = texture( albedoSampler, UV );
+    }
+`

@@ -1,13 +1,16 @@
 package graphics
 
-import "github.com/galaco/gosigl"
+import (
+	"github.com/galaco/gosigl"
+)
 
 type Shader struct {
-	context gosigl.Context
+	context  gosigl.Context
+	uniforms map[string]int32
 }
 
 func (shader *Shader) Add(shaderType gosigl.ShaderType, code string) error {
-	return shader.context.AddShader(code, shaderType)
+	return shader.context.AddShader(code+"\x00", shaderType)
 }
 
 func (shader *Shader) Finish() {
@@ -19,11 +22,15 @@ func (shader *Shader) Bind() {
 }
 
 func (shader *Shader) GetUniform(name string) int32 {
-	return shader.context.GetUniform(name)
+	if _, ok := shader.uniforms[name]; !ok {
+		shader.uniforms[name] = shader.context.GetUniform(name)
+	}
+	return shader.uniforms[name]
 }
 
 func NewShader() *Shader {
 	return &Shader{
-		context: gosigl.NewShader(),
+		context:  gosigl.NewShader(),
+		uniforms: map[string]int32{},
 	}
 }

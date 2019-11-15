@@ -11,6 +11,10 @@ type Material struct {
 	ShaderName string
 	// BaseTextureName
 	BaseTextureName string
+	// HasBumpMap
+	HasBumpMap bool
+	// BumpMapName
+	BumpMapName string
 	// Skip
 	Skip bool
 }
@@ -27,14 +31,23 @@ func NewMaterial(filePath string) *Material {
 	}
 }
 
-func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
+func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
 	rawProps, err := vmt.FromFilesystem(filePath, fs, vmt.NewProperties())
 	if err != nil {
 		return nil, err
 	}
 	props := rawProps.(*vmt.Properties)
-	mat := NewMaterial(filePath)
+	mat = NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
+	if props.Bumpmap != "" {
+		mat.BumpMapName = props.Bumpmap
+		mat.HasBumpMap = true
+	}
 
 	if props.CompileSky == 1 || props.CompileNoDraw == 1 {
 		mat.Skip = true

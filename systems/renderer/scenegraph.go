@@ -8,8 +8,10 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/systems/renderer/deferred"
 	"github.com/galaco/kero/systems/renderer/scene"
 	"github.com/galaco/kero/systems/renderer/vis"
 	"github.com/galaco/kero/valve"
@@ -28,9 +30,11 @@ type SceneGraph struct {
 	displacementFaces []*valve.BspFace
 	skybox            *scene.Skybox
 
-	gpuMesh     graphics.GpuMesh
-	staticProps []graphics.StaticProp
-	entities    []entity.Entity
+	gpuMesh          adapter.GpuMesh
+	staticProps      []graphics.StaticProp
+	entities         []entity.Entity
+	lightEnvironment *deferred.DirectionalLight
+	pointLights      []*deferred.PointLight
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -39,19 +43,18 @@ type SceneGraph struct {
 	visibleClusterLeafs []*vis.ClusterLeaf
 	currentLeaf         *leaf.Leaf
 
-	camera             *graphics3d.Camera
 	cameraPrevPosition mgl32.Vec3
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
 // recalculating using vvis data
-func (scene *SceneGraph) RecomputeVisibleClusters() {
-	if scene.camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
+func (scene *SceneGraph) RecomputeVisibleClusters(camera *graphics3d.Camera) {
+	if camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
 		return
 	}
-	scene.cameraPrevPosition = scene.camera.Transform().Position
+	scene.cameraPrevPosition = camera.Transform().Position
 	// View hasn't moved
-	currentLeaf := scene.visData.FindCurrentLeaf(scene.camera.Transform().Position)
+	currentLeaf := scene.visData.FindCurrentLeaf(camera.Transform().Position)
 
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
 		scene.currentLeaf = currentLeaf
@@ -105,24 +108,42 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	gpuItemCache *cache.GpuItem,
 	gpuStaticProps map[string]*cache.GpuProp) *SceneGraph {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
-	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
+	gpuItemCache.Add(cache.ErrorTexturePath, adapter.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
-	var tex *graphics.Texture
+	var albedoTexture, normalTexture *graphics.Texture
 	var err error
 	for _, mat := range level.MaterialDictionary() {
-		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
-			if err != nil || tex == nil {
+		if albedoTexture = texCache.Find(mat.BaseTextureName); albedoTexture == nil {
+			albedoTexture, err = graphics.LoadTexture(fs, mat.BaseTextureName)
+			if err != nil || albedoTexture == nil {
 				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
-				texCache.Add(mat.BaseTextureName, tex)
-				gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+				texCache.Add(mat.BaseTextureName, albedoTexture)
+				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(albedoTexture))
 			}
 		}
-		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
+		if mat.HasBumpMap {
+			if normalTexture = texCache.Find(mat.BumpMapName); normalTexture == nil {
+				normalTexture, err = graphics.LoadTexture(fs, mat.BumpMapName)
+				if err != nil || normalTexture == nil {
+					event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+					texCache.Add(mat.BumpMapName, texCache.Find(cache.ErrorTexturePath))
+					gpuItemCache.Add(mat.BumpMapName, gpuItemCache.Find(cache.ErrorTexturePath))
+				} else {
+					texCache.Add(mat.BumpMapName, normalTexture)
+					gpuItemCache.Add(mat.BumpMapName, adapter.UploadTexture(normalTexture))
+				}
+			}
+		}
+		gpuMat := cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat)
+		if normalTexture != nil {
+			gpuMat.AddNormalMap(gpuItemCache.Find(mat.BumpMapName))
+		}
+
+		materialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
 	}
 
 	// generate displacement faces
@@ -133,16 +154,16 @@ func NewSceneGraphFromBsp(fs fileSystem,
 
 	// finish bsp mesh
 	// Add MATERIALS TO FACES
-	tex = nil
+	albedoTexture = nil
 	for _, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material())))
-			tex = texCache.Find(cache.ErrorTexturePath)
+			albedoTexture = texCache.Find(cache.ErrorTexturePath)
 		} else {
 			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
-				tex = texCache.Find(cache.ErrorTexturePath)
+				albedoTexture = texCache.Find(cache.ErrorTexturePath)
 			} else {
-				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
+				albedoTexture = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
 		}
 		// Generate texture coordinates
@@ -150,8 +171,8 @@ func NewSceneGraphFromBsp(fs fileSystem,
 			valve.TexCoordsForFaceFromTexInfo(
 				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
 				bspFace.TexInfo(),
-				tex.Width(),
-				tex.Height())...)
+				albedoTexture.Width(),
+				albedoTexture.Height())...)
 	}
 
 	level.Mesh().GenerateTangents()
@@ -169,7 +190,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	for _, prop := range level.StaticPropDictionary {
 		gpuStaticProps[prop.Id] = cache.NewGpuProp()
 		for _, m := range prop.Meshes() {
-			gpuMesh := graphics.UploadMesh(m)
+			gpuMesh := adapter.UploadMesh(m)
 			gpuStaticProps[prop.Id].AddMesh(&gpuMesh)
 		}
 		for _, materialPath := range prop.Materials() {
@@ -190,7 +211,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
-					gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
 				}
 			}
 			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
@@ -203,25 +224,81 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	var worldspawn entity.Entity
+	var pointlights []*deferred.PointLight
+	var lightEnvironment *deferred.DirectionalLight
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
-			break
+			continue
+		}
+		if e.Classname() == "light" {
+			light := &deferred.PointLight{
+				Position: e.VectorForKey("origin"),
+				Attenuation: deferred.Attenuation{
+					Constant:    e.FloatForKey("_constant_attn"),
+					Linear:      e.FloatForKey("_linear_attn"),
+					Exponential: e.FloatForKey("_quadratic_attn"),
+				},
+			}
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_light"),
+				"%f %f %f %f",
+				&light.Color[0],
+				&light.Color[1],
+				&light.Color[2],
+				&light.DiffuseIntensity)
+			light.Color[0] /= 255
+			light.Color[1] /= 255
+			light.Color[2] /= 255
+			light.DiffuseIntensity /= 255
+			pointlights = append(pointlights, light)
+		}
+		if e.Classname() == "light_environment" && lightEnvironment == nil {
+			lightEnvironment = &deferred.DirectionalLight{
+				BaseLight: deferred.BaseLight{},
+				Direction: e.VectorForKey("angles"),
+			}
+			lightEnvironment.Direction[0] = e.FloatForKey("pitch")
+			lightEnvironment.Direction[2] = lightEnvironment.Direction[0]
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_light"),
+				"%f %f %f %f",
+				&lightEnvironment.AmbientColor[0],
+				&lightEnvironment.AmbientColor[1],
+				&lightEnvironment.AmbientColor[2],
+				&lightEnvironment.AmbientIntensity)
+			_, _ = fmt.Sscanf(
+				e.ValueForKey("_ambient"),
+				"%f %f %f %f",
+				&lightEnvironment.Color[0],
+				&lightEnvironment.Color[1],
+				&lightEnvironment.Color[2],
+				&lightEnvironment.DiffuseIntensity)
+			lightEnvironment.AmbientColor[0] /= 255
+			lightEnvironment.AmbientColor[1] /= 255
+			lightEnvironment.AmbientColor[2] /= 255
+			lightEnvironment.AmbientIntensity /= 255
+			lightEnvironment.Color[0] /= 255
+			lightEnvironment.Color[1] /= 255
+			lightEnvironment.Color[2] /= 255
+			lightEnvironment.DiffuseIntensity /= 255
 		}
 	}
 	skybox := scene.LoadSkybox(fs, worldspawn)
 
 	return &SceneGraph{
-		bspMesh:           level.Mesh(),
-		gpuMesh:           graphics.UploadMesh(level.Mesh()),
-		bspFaces:          remappedFaces,
-		displacementFaces: dispFaces,
-		skybox:            skybox,
-		entities:          entities,
-		staticProps:       level.StaticProps,
-		clusterLeafs:      clusterLeafs,
-		visData:           visibility,
-		camera:            level.Camera(),
+		bspMesh:            level.Mesh(),
+		gpuMesh:            adapter.UploadMesh(level.Mesh()),
+		bspFaces:           remappedFaces,
+		displacementFaces:  dispFaces,
+		skybox:             skybox,
+		pointLights:        pointlights,
+		entities:           entities,
+		staticProps:        level.StaticProps,
+		clusterLeafs:       clusterLeafs,
+		visData:            visibility,
+		cameraPrevPosition: mgl32.Vec3{65536, 65536, 65536},
+		lightEnvironment:   lightEnvironment,
 	}
 }
 
@@ -267,10 +344,6 @@ func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf 
 			bspClusters[clusterId].StaticProps = append(bspClusters[clusterId].StaticProps, &level.StaticProps[idx])
 		}
 	}
-
-	//for _, idx := range bspClusters[0].DispFaces {
-	//	defaultCluster.Faces = append(defaultCluster.Faces, baseWorldBspFaces[idx])
-	//}
 
 	return bspClusters
 }

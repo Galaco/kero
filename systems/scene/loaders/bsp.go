@@ -34,11 +34,11 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateGeometryLoaded))
 
 	// Load staticprops
-	level.StaticPropDictionary, level.StaticProps = valve.LoadStaticProps(fs, file)
+	level.StaticPropDictionary, level.StaticProps = LoadStaticProps(fs, file)
 	event.Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStaticPropsLoaded))
 
 	// Load entities
-	ents, err := valve.LoadEntdata(fs, file)
+	ents, err := LoadEntdata(fs, file)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -29,19 +29,19 @@ func (s *Scene) Update(dt float64) {
 	}
 	if s.listenToInput {
 		if input.Keyboard().IsKeyPressed(input.KeyW) {
-			s.currentLevel.Camera().Forwards(dt)
+			s.context.Client.Camera().Forwards(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyA) {
-			s.currentLevel.Camera().Left(dt)
+			s.context.Client.Camera().Left(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyS) {
-			s.currentLevel.Camera().Backwards(dt)
+			s.context.Client.Camera().Backwards(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyD) {
-			s.currentLevel.Camera().Right(dt)
+			s.context.Client.Camera().Right(dt)
 		}
 
-		s.currentLevel.Camera().Update(dt)
+		s.context.Client.Camera().Update(dt)
 	}
 	for _, e := range s.entities {
 		e.Think(dt)
@@ -59,6 +59,13 @@ func (s *Scene) ProcessMessage(message event.Dispatchable) {
 				return
 			}
 			s.entities = ents
+			for _, e := range ents {
+				if e.Classname() == "info_player_start" {
+					s.context.Client.Camera().Transform().Position = e.Origin()
+					s.context.Client.Camera().Transform().Rotation = e.Angles()
+					break
+				}
+			}
 			// Change level: we must clear the current event queue
 			event.ClearQueue()
 			s.currentLevel = level
@@ -71,11 +78,11 @@ func (s *Scene) ProcessMessage(message event.Dispatchable) {
 			s.listenToInput = !s.listenToInput
 		}
 	case messages.TypeMouseMove:
-		if s.currentLevel == nil || s.currentLevel.Camera() == nil {
+		if s.currentLevel == nil {
 			return
 		}
 		msg := message.(*messages.MouseMove)
-		s.currentLevel.Camera().Rotate(float32(msg.X), 0, float32(msg.Y))
+		s.context.Client.Camera().Rotate(float32(msg.X), 0, float32(msg.Y))
 	}
 }
 
