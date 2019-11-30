@@ -18,7 +18,7 @@ require (
 	github.com/golang-source-engine/stringtable v0.1.0
 	github.com/golang-source-engine/vmt v0.1.2
 	github.com/gotk3/gotk3 v0.0.0-20191010201156-711c17fcaec0 // indirect
-	github.com/inkyblackness/imgui-go v1.10.0
+	github.com/inkyblackness/imgui-go v1.11.0
 	github.com/sqweek/dialog v0.0.0-20190728103509-6254ed5b0d3c
 	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 )
