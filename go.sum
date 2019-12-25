@@ -51,6 +51,8 @@ github.com/inkyblackness/imgui-go v1.10.0 h1:DEgLKIhFQga7ElKmwfHucphTPq8QcOOEeiW
 github.com/inkyblackness/imgui-go v1.10.0/go.mod h1:Mki1fp0SBQ0dq2wkAPKjI3Zod0fgpEFsPM9cGUoCNi8=
 github.com/inkyblackness/imgui-go v1.11.0 h1:K1o4b04eMMXQN+hHWNCPDg/C+GrmdaFByy/jqsPGtQI=
 github.com/inkyblackness/imgui-go v1.11.0/go.mod h1:Mki1fp0SBQ0dq2wkAPKjI3Zod0fgpEFsPM9cGUoCNi8=
+github.com/inkyblackness/imgui-go v1.12.0 h1:uaxSM5SbbqCTGEx5ig7B2J78hM3g3az4f5NC6b4J7lY=
+github.com/inkyblackness/imgui-go v1.12.0/go.mod h1:S9wTWrw/HfxYPbOnqsbck9A6mxHRauv+Sy+bz5+BQwc=
 github.com/mattn/go-gtk v0.0.0-20180216084204-5a311a1830ab/go.mod h1:PwzwfeB5syFHXORC3MtPylVcjIoTDT/9cvkKpEndGVI=
 github.com/mattn/go-pointer v0.0.0-20171114154726-1d30dc4b6f28/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
