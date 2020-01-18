@@ -195,6 +195,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 
 // computeRenderableClusters
 func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
+	//return  s.scene.visibleClusterLeafs
 	renderClusters := make([]*vis.ClusterLeaf, 0)
 	for idx, cluster := range s.scene.visibleClusterLeafs {
 		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {

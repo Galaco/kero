@@ -97,14 +97,14 @@ func (renderer *Renderer) DirectionalLightPass(light *DirectionalLight) {
 		light.Color.X(), light.Color.Y(), light.Color.Z())
 	adapter.PushFloat32(
 		renderer.directionalLightShader.GetUniform("directionalLight.Base.DiffuseIntensity"),
-		light.DiffuseIntensity)
+		light.DiffuseIntensity / 10)
 
 	adapter.PushVec3(
 		renderer.directionalLightShader.GetUniform("directionalLight.AmbientColor"),
 		light.AmbientColor.X(), light.AmbientColor.Y(), light.AmbientColor.Z())
 	adapter.PushFloat32(
 		renderer.directionalLightShader.GetUniform("directionalLight.AmbientIntensity"),
-		light.AmbientIntensity)
+		light.AmbientIntensity / 2)
 	normalizedDirection := light.Direction.Normalize()
 	adapter.PushVec3(
 		renderer.directionalLightShader.GetUniform("directionalLight.Direction"),
@@ -124,8 +124,15 @@ func (renderer *Renderer) SpotLightPass() {
 func (renderer *Renderer) ForwardPass() {
 	renderer.gbuffer.BindReadOnly()
 	adapter.BindFrameBufferDraw(0)
-	adapter.BlitDepthBuffer(int32(renderer.width), int32(renderer.height))
+	adapter.BlitDepthBuffer(renderer.width, renderer.height)
 	adapter.BindFrameBuffer(0)
 
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+}
+
+func (renderer *Renderer) renderPointLight() {
+	//adapter.PushFloat32(glGetUniformLocation(pointLightShader, "uLightRadius"), radius)
+	//glUniform3f(glGetUniformLocation(pointLightShader, "uLightPosition"), position.x, position.y, position.z)
+	//glUniform3f(glGetUniformLocation(pointLightShader, "uLightColor"), color.x, color.y, color.z)
+	//glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, 0)
 }

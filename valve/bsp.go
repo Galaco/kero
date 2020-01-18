@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
+	"github.com/galaco/bsp/primitives/common"
 	"github.com/galaco/bsp/primitives/dispinfo"
 	"github.com/galaco/bsp/primitives/dispvert"
 	"github.com/galaco/bsp/primitives/face"
@@ -34,6 +35,7 @@ type bspstructs struct {
 	texInfos  []texinfo.TexInfo
 	dispInfos []dispinfo.DispInfo
 	dispVerts []dispvert.DispVert
+	lightmapSamples []common.ColorRGBExponent32
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -52,6 +54,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 		texInfos:  file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
 		dispInfos: file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
 		dispVerts: file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
+		lightmapSamples: file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
 	}
 
 	//MATERIALS
@@ -246,6 +249,64 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 
 	return origin.Add(vert.Vec.Mul(vert.Dist))
 }
+
+//func loadLightmap(bspStructure *bspstructs) {
+//	lightmap := new Texture2D(1, 1, TextureFormat.RGB24, false)
+//
+//	litFaces := bspStructure.faces.Count(x => x.LightOffset != -1)
+//	textures := make([]Texture2D, litFaces)
+//
+//
+//	// Generate all lightmap textures
+//	samples := bspStructure.lightmapSamples
+//
+//	texIndex := 0
+//	for _,face := range bspStructure.faces {
+//		if face.Lightofs == -1 {
+//			continue
+//		}
+//
+//		samplesWidth := int(face.LightmapTextureSizeInLuxels[0] + 1)
+//		samplesHeight := int(face.LightmapTextureSizeInLuxels[1] + 1)
+//
+//
+//		subTex := new Texture2D(samplesWidth, samplesHeight, TextureFormat.RGB24, false)
+//
+//		for x := 0; x < samplesWidth; x++ {
+//			for y := 0; y < samplesHeight; y++ {
+//				index := int(face.Lightofs) + ((x + y*samplesWidth) << 2)
+//
+//				r := samples[index + 0].R
+//				g := samples[index + 1].G
+//				b := samples[index + 2].B
+//				e := int8(samples[index + 3].Exponent)
+//
+//				subTex.SetPixel(x, y, new LightmapSample{R = r, G = g, B = b, Exponent = e});
+//			}
+//		}
+//
+//		textures[texIndex] = subTex
+//		texIndex++
+//	}
+//
+//	lightmapRects.Clear()
+//	var rects = lightmap.PackTextures(textures, 0)
+//
+//	texIndex := 0
+//	for faceIndex := 0; faceIndex < len(bspStructure.faces); faceIndex++ {
+//		face := bspStructure.faces[faceIndex]
+//		if face.Lightofs == -1 {
+//			continue
+//		}
+//
+//		var rect = rects[texIndex]
+//		texIndex++
+//		lightmapRects.Add(faceIndex, rect)
+//	}
+//
+//	lightmap.Apply()
+//	return lightmap
+//}
 
 // TexCoordsForFaceFromTexInfo Generate texturecoordinates for face data
 func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
