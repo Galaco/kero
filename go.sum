@@ -18,6 +18,8 @@ github.com/galaco/studiomodel v0.1.2 h1:y9aPGiL64hP1TEdWn2n3JaeZDFGUMet5dzmXPva1
 github.com/galaco/studiomodel v0.1.2/go.mod h1:8bzTjcsmb1OsLLaf2ES60avF9WfAaZtVGKUw/IXe14c=
 github.com/galaco/tinygametools v0.1.0 h1:cWrd3YUd2XdBQQCOtaoNOj/hWBj3VUlX7AMZBDROYQg=
 github.com/galaco/tinygametools v0.1.0/go.mod h1:uhxliQyadXV+GSlkwsQMUPv45lr61vNv1Z8N+CsDvFQ=
+github.com/galaco/tinygametools v0.1.1 h1:s65gIex1OQpWERPD1FdtZsaMXtf/D3J84eYN1RJE/Z4=
+github.com/galaco/tinygametools v0.1.1/go.mod h1:odt4iPoOUUb0Es074CVcukYLC80qyieSvdOcazcgSH8=
 github.com/galaco/vmf v0.0.0-20180309175744-7a9ccb6e8abb/go.mod h1:+hpnZQBHJ5xrERgGMr6f/KO0ZkxEkrvjqr3RI9aNHes=
 github.com/galaco/vmf v1.0.0 h1:7HiZS3TzgaBzbArBtN7BLdLW2ycc2t5MuK+9YaCDkns=
 github.com/galaco/vmf v1.0.0/go.mod h1:+hpnZQBHJ5xrERgGMr6f/KO0ZkxEkrvjqr3RI9aNHes=
@@ -33,6 +35,8 @@ github.com/go-gl/glfw v0.0.0-20191125211704-12ad95a8df72 h1:LgLYrxDRSVv3kStk6lou
 github.com/go-gl/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw v0.0.0-20200221102942-eb749776b5d7 h1:uyLPeqcUL3PEnrv7h5Z+eCoKgx+rIWlgP1SWLwb5J00=
 github.com/go-gl/glfw v0.0.0-20200221102942-eb749776b5d7/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72 h1:b+9H1GAsx5RsjvDFLoS5zkNBzIQMuVKUYQDmxU3N5XE=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a h1:2n5w2v3knlspzjJWyQPC0j88Mwvq0SZV0Jdws34GJwc=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a h1:yoAEv7yeWqfL/l9A/J5QOndXIJCldv+uuQB1DSNQbS0=
