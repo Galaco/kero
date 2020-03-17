@@ -91,13 +91,17 @@ func (s *Renderer) DrawFrame(visibleClusters []*vis.ClusterLeaf) {
 	s.renderDisplacements(s.scene.displacementFaces)
 	s.renderStaticProps(visibleClusters)
 
+	// render ambient light
 	s.deferred.DirectionalLightPass(s.scene.lightEnvironment)
 
-	s.deferred.PointLightPass()
 	// render point lights
+	s.deferred.PointLightPass(s.context.Client.Camera())
+	for _,light := range s.scene.pointLights {
+		s.deferred.RenderPointLight(light)
+	}
 
-	s.deferred.SpotLightPass()
 	// render spot lights
+	s.deferred.SpotLightPass()
 
 	s.deferred.ForwardPass()
 	s.renderSkybox(visibleClusters, s.scene.skybox)

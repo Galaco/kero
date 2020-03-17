@@ -6,6 +6,7 @@ import (
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 type Renderer struct {
@@ -14,7 +15,12 @@ type Renderer struct {
 
 	geometryShader         *graphics.Shader
 	directionalLightShader *graphics.Shader
+	pointLightShader	   *graphics.Shader
 	activeShader           *graphics.Shader
+
+	lightMesh 			   graphics.Mesh
+	gpuLightMesh 		   adapter.GpuMesh
+	lightMeshIndexVbo      uint32
 }
 
 func (renderer *Renderer) Init(width, height int) error {
@@ -46,7 +52,21 @@ func (renderer *Renderer) Init(width, height int) error {
 	}
 	renderer.directionalLightShader.Finish()
 
+	renderer.pointLightShader = graphics.NewShader()
+	if err := renderer.pointLightShader.Add(gosigl.VertexShader,PointLightPassVertex); err != nil {
+		return err
+	}
+	if err := renderer.pointLightShader.Add(gosigl.FragmentShader, PointLightPassFragment); err != nil {
+		return err
+	}
+	renderer.pointLightShader.Finish()
+
 	gosigl.EnableDepthTest()
+
+	// Create light mesh
+	renderer.lightMesh = graphics.NewSphere()
+	renderer.gpuLightMesh, renderer.lightMeshIndexVbo = adapter.UploadLightMesh(renderer.lightMesh)
+
 	return nil
 }
 
@@ -83,14 +103,7 @@ func (renderer *Renderer) DirectionalLightPass(light *DirectionalLight) {
 
 	renderer.bindShader(renderer.directionalLightShader)
 
-	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uPositionTex"), 0)
-	adapter.BindTextureToSlot(0, renderer.gbuffer.PositionBuffer)
-
-	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uNormalTex"), 1)
-	adapter.BindTextureToSlot(1, renderer.gbuffer.NormalBuffer)
-
-	adapter.PushInt32(renderer.directionalLightShader.GetUniform("uColorTex"), 2)
-	adapter.BindTextureToSlot(2, renderer.gbuffer.AlbedoSpecularBuffer)
+	renderer.bindPass(renderer.directionalLightShader)
 
 	adapter.PushVec3(
 		renderer.directionalLightShader.GetUniform("directionalLight.Base.Color"),
@@ -113,7 +126,26 @@ func (renderer *Renderer) DirectionalLightPass(light *DirectionalLight) {
 	adapter.DrawArray(0, 3)
 }
 
-func (renderer *Renderer) PointLightPass() {
+// PointLightPass
+func (renderer *Renderer) PointLightPass(camera *graphics3d.Camera) {
+	// @TODO TEST THESE PARAMS
+	//gl.Disable(gl.DEPTH_TEST)
+	//gl.Enable(gl.BLEND)
+	//gl.BlendFunc(gl.ONE, gl.ONE)
+
+	//gl.FrontFace(gl.CW)
+
+	renderer.pointLightShader.Bind()
+
+	renderer.bindShader(renderer.pointLightShader)
+	renderer.bindPass(renderer.pointLightShader)
+	adapter.PushVec3(renderer.pointLightShader.GetUniform( "uCameraPos"), camera.Transform().Position.X(), camera.Transform().Position.Y(), camera.Transform().Position.Z())
+
+	adapter.PushMat4(renderer.pointLightShader.GetUniform("uVp"), 1, false, camera.ViewMatrix().Mul4(camera.ProjectionMatrix()))
+	// We render every point light as a light sphere. And this light sphere is added onto the framebuffer
+	// with additive alpha blending.
+	adapter.BindMesh(&renderer.gpuLightMesh)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, renderer.lightMeshIndexVbo)
 
 }
 
@@ -130,9 +162,20 @@ func (renderer *Renderer) ForwardPass() {
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }
 
-func (renderer *Renderer) renderPointLight() {
-	//adapter.PushFloat32(glGetUniformLocation(pointLightShader, "uLightRadius"), radius)
-	//glUniform3f(glGetUniformLocation(pointLightShader, "uLightPosition"), position.x, position.y, position.z)
-	//glUniform3f(glGetUniformLocation(pointLightShader, "uLightColor"), color.x, color.y, color.z)
-	//glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, 0)
+func (renderer *Renderer) RenderPointLight(light *PointLight) {
+	adapter.PushFloat32(renderer.pointLightShader.GetUniform("uLightRadius"), light.DiffuseIntensity)
+	adapter.PushVec3(renderer.pointLightShader.GetUniform("uLightPosition"), light.Position.X(), light.Position.Y(), light.Position.Z())
+	adapter.PushVec3(renderer.pointLightShader.GetUniform("uLightColor"), light.Color.X(), light.Color.Y(), light.Color.Z())
+	adapter.DrawElements(len(renderer.lightMesh.Indices()))
+}
+
+func (renderer *Renderer) bindPass(shader *graphics.Shader) {
+	adapter.PushInt32(shader.GetUniform("uPositionTex"), 0)
+	adapter.BindTextureToSlot(0, renderer.gbuffer.PositionBuffer)
+
+	adapter.PushInt32(shader.GetUniform("uNormalTex"), 1)
+	adapter.BindTextureToSlot(1, renderer.gbuffer.NormalBuffer)
+
+	adapter.PushInt32(shader.GetUniform("uColorTex"), 2)
+	adapter.BindTextureToSlot(2, renderer.gbuffer.AlbedoSpecularBuffer)
 }
