@@ -37,6 +37,8 @@ github.com/go-gl/glfw v0.0.0-20191125211704-12ad95a8df72 h1:LgLYrxDRSVv3kStk6lou
 github.com/go-gl/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72 h1:b+9H1GAsx5RsjvDFLoS5zkNBzIQMuVKUYQDmxU3N5XE=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4 h1:WtGNWLvXpe6ZudgnXrq0barxBImvnnJoMEhXAzcbM0I=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a h1:2n5w2v3knlspzjJWyQPC0j88Mwvq0SZV0Jdws34GJwc=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a h1:yoAEv7yeWqfL/l9A/J5QOndXIJCldv+uuQB1DSNQbS0=
@@ -57,6 +59,8 @@ github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5 h1:FEketUKKSYVEM7KBQmh
 github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
 github.com/gotk3/gotk3 v0.0.0-20200129211157-69caac910e50 h1:feE1u+kHXGgxYKOWFYTH8ZVGAoigZyHuzI+EOx9qt1M=
 github.com/gotk3/gotk3 v0.0.0-20200129211157-69caac910e50/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
+github.com/gotk3/gotk3 v0.4.0 h1:TIuhyQitGeRTxOQIV3AJlYtEWWJpC74JHwAIsxlH8MU=
+github.com/gotk3/gotk3 v0.4.0/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
 github.com/inkyblackness/imgui-go v1.10.0 h1:DEgLKIhFQga7ElKmwfHucphTPq8QcOOEeiW4adQCAuE=
 github.com/inkyblackness/imgui-go v1.10.0/go.mod h1:Mki1fp0SBQ0dq2wkAPKjI3Zod0fgpEFsPM9cGUoCNi8=
 github.com/inkyblackness/imgui-go v1.11.0 h1:K1o4b04eMMXQN+hHWNCPDg/C+GrmdaFByy/jqsPGtQI=
@@ -70,6 +74,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/skelterjohn/go.wde v0.0.0-20180104102407-a0324cbf3ffe/go.mod h1:zXxNsJHeUYIqpg890APBNEn9GoCbA4Cdnvuv3mx4fBk=
 github.com/sqweek/dialog v0.0.0-20190728103509-6254ed5b0d3c h1:nQyaARR8WzWW4/AoxpyPA82gJcvuZUxLxnMqVbmW50A=
 github.com/sqweek/dialog v0.0.0-20190728103509-6254ed5b0d3c/go.mod h1:QSrNdZLZB8VoFPGlZ2vDuA2oNaVdhld3g0PZLc7soX8=
+github.com/sqweek/dialog v0.0.0-20200304031853-0dcd55bfe06a h1:BHv3lo0aZg2IPfeBfgYFjq48DoKehP+JC9dtACUEmT4=
+github.com/sqweek/dialog v0.0.0-20200304031853-0dcd55bfe06a/go.mod h1:QSrNdZLZB8VoFPGlZ2vDuA2oNaVdhld3g0PZLc7soX8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
