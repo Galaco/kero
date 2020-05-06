@@ -1,6 +1,9 @@
 package graphics
 
 import (
+	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/event"
+	"github.com/galaco/kero/messages"
 	"github.com/golang-source-engine/vmt"
 )
 
@@ -27,13 +30,19 @@ func NewMaterial(filePath string) *Material {
 	}
 }
 
-func LoadMaterial(fs VirtualFileSystem, filePath string) (*Material, error) {
+func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			event.Dispatch(messages.NewConsoleMessage(console.LevelError, e.(error).Error()))
+			err = e.(error)
+		}
+	}()
 	rawProps, err := vmt.FromFilesystem(filePath, fs, vmt.NewProperties())
 	if err != nil {
 		return nil, err
 	}
 	props := rawProps.(*vmt.Properties)
-	mat := NewMaterial(filePath)
+	mat = NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
 
 	if props.CompileSky == 1 || props.CompileNoDraw == 1 {

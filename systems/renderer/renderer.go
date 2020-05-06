@@ -153,7 +153,7 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.Cl
 
 func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybox) {
 	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
-	if s.scene.currentLeaf == nil || s.scene.currentLeaf.Cluster == -1 {
+	if skybox == nil || s.scene.currentLeaf == nil || s.scene.currentLeaf.Cluster == -1 {
 		return
 	}
 	var isVisible bool
