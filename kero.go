@@ -19,9 +19,9 @@ type Kero struct {
 
 	scene *scene.Scene
 
-	input *middleware.Input
+	input    *middleware.Input
 	renderer *renderer.Renderer
-	ui *gui.Gui
+	ui       *gui.Gui
 }
 
 // RegisterGameDefinitions sets up provided game-specific configuration
@@ -47,7 +47,7 @@ func (kero *Kero) Start() {
 
 	dt := 0.0
 	startingTime := time.Now().UTC()
-	for kero.isRunning && (window.CurrentWindow()!= nil && !window.CurrentWindow().Handle().Handle().ShouldClose()) {
+	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().Handle().Handle().ShouldClose()) {
 		kero.input.Poll()
 
 		kero.renderer.Render()

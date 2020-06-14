@@ -1,6 +1,5 @@
 package messages
 
-
 const (
-	TypeEngineQuit   = "engine:quit"
+	TypeEngineQuit = "engine:quit"
 )

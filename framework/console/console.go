@@ -8,7 +8,7 @@ import (
 type LogLevel int
 
 type logger struct {
-	mut sync.Mutex
+	mut   sync.Mutex
 	pipes []func(LogLevel, interface{})
 }
 

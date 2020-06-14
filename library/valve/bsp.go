@@ -287,7 +287,6 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, t
 	//vert.lightCoord[0] = sOffset + vert.lightCoord[0] * sScale;
 	//vert.lightCoord[1] = tOffset + vert.lightCoord[1] * tScale;
 
-
 	for idx := 0; idx < len(vertexes); idx += 3 {
 		u := (mgl32.Vec3{vertexes[idx], vertexes[idx+1], vertexes[idx+2]}).Dot(
 			mgl32.Vec3{
@@ -326,7 +325,6 @@ func LightmapSamplesFromFace(f *face.Face, samples *[]common.ColorRGBExponent32)
 
 	return (*samples)[firstSampleIdx : firstSampleIdx+numLuxels]
 }
-
 
 // Bsp
 type Bsp struct {

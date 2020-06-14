@@ -214,16 +214,16 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	skybox := scene.LoadSkybox(fs, worldspawn)
 
 	return &StaticScene{
-		bspMesh:           level.Mesh(),
-		gpuMesh:           graphics.UploadMesh(level.Mesh()),
-		bspFaces:          remappedFaces,
-		displacementFaces: dispFaces,
-		skybox:            skybox,
-		entities:          entities,
-		staticProps:       level.StaticProps,
-		clusterLeafs:      clusterLeafs,
-		visData:           visibility,
-		camera:            level.Camera(),
+		bspMesh:            level.Mesh(),
+		gpuMesh:            graphics.UploadMesh(level.Mesh()),
+		bspFaces:           remappedFaces,
+		displacementFaces:  dispFaces,
+		skybox:             skybox,
+		entities:           entities,
+		staticProps:        level.StaticProps,
+		clusterLeafs:       clusterLeafs,
+		visData:            visibility,
+		camera:             level.Camera(),
 		cameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
 	}
 }

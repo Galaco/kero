@@ -11,8 +11,6 @@ import (
 	"strings"
 )
 
-
-
 // FileSystem provides a gateway to interacting with the
 // filesystem structures of Source Engine.
 type FileSystem interface {
