@@ -108,7 +108,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	// load materials
-	var tex *graphics.Texture
+	var tex *graphics.Texture2D
 	var err error
 	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
@@ -152,6 +152,10 @@ func NewSceneGraphFromBsp(fs fileSystem,
 				bspFace.TexInfo(),
 				tex.Width(),
 				tex.Height())...)
+		// LightmapCoordsForFaceFromTexInfo
+
+		// valve.LightmapCoordsForFaceFromTexInfo()
+		//LightmapSamplesFromFace
 	}
 
 	level.Mesh().GenerateTangents()

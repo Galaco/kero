@@ -6,7 +6,7 @@ import (
 
 // OpenFile
 func OpenFile(filterDescription, extension string) (string, error) {
-	return dialog.File().Filter(filterDescription, extension).Load()
+	return dialog.File().SetStartDir("/Users/galaco/Library/Application Support/Steam/steamapps/common/Counter-Strike Source").Filter(filterDescription, extension).Load()
 }
 
 // ErrorMessage

@@ -48,9 +48,9 @@ func LoadSkybox(fs fileSystem, worldspawn entity.Entity) *Skybox {
 	}
 }
 
-func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture, error) {
+func loadSkyboxTexture(fs fileSystem, skyName string) ([]*graphics.Texture2D, error) {
 	var errs [6]error
-	sides := make([]*graphics.Texture, 6)
+	sides := make([]*graphics.Texture2D, 6)
 
 	wg := sync.WaitGroup{}
 	loadCubemapSide := func(idx int, path string) {

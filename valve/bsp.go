@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
+	"github.com/galaco/bsp/primitives/common"
 	"github.com/galaco/bsp/primitives/dispinfo"
 	"github.com/galaco/bsp/primitives/dispvert"
 	"github.com/galaco/bsp/primitives/face"
@@ -19,6 +20,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 const (
@@ -267,6 +269,64 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 
 	return uvs
 }
+
+// LightmapCoordsForFaceFromTexInfo create lightmap coordinates from TexInfo
+func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
+	//vert.lightCoord[0] = DotProduct (vec, MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[0].AsVector3D()) +
+	//	MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[0][3];
+	//vert.lightCoord[0] -= MSurf_LightmapMins( surfID )[0];
+	//vert.lightCoord[0] += 0.5f;
+	//vert.lightCoord[0] /= ( float )MSurf_LightmapExtents( surfID )[0]; //pSurf->texinfo->texture->width;
+	//
+	//vert.lightCoord[1] = DotProduct (vec, MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[1].AsVector3D()) +
+	//	MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[1][3];
+	//vert.lightCoord[1] -= MSurf_LightmapMins( surfID )[1];
+	//vert.lightCoord[1] += 0.5f;
+	//vert.lightCoord[1] /= ( float )MSurf_LightmapExtents( surfID )[1]; //pSurf->texinfo->texture->height;
+	//
+	//vert.lightCoord[0] = sOffset + vert.lightCoord[0] * sScale;
+	//vert.lightCoord[1] = tOffset + vert.lightCoord[1] * tScale;
+
+
+	for idx := 0; idx < len(vertexes); idx += 3 {
+		u := (mgl32.Vec3{vertexes[idx], vertexes[idx+1], vertexes[idx+2]}).Dot(
+			mgl32.Vec3{
+				tx.LightmapVecsLuxelsPerWorldUnits[0][0],
+				tx.LightmapVecsLuxelsPerWorldUnits[0][1],
+				tx.LightmapVecsLuxelsPerWorldUnits[0][2],
+			}) + tx.LightmapVecsLuxelsPerWorldUnits[0][3]
+		v := (mgl32.Vec3{vertexes[idx], vertexes[idx+1], vertexes[idx+2]}).Dot(
+			mgl32.Vec3{
+				tx.LightmapVecsLuxelsPerWorldUnits[1][0],
+				tx.LightmapVecsLuxelsPerWorldUnits[1][1],
+				tx.LightmapVecsLuxelsPerWorldUnits[1][2],
+			}) + tx.LightmapVecsLuxelsPerWorldUnits[1][3]
+
+		u -= float32(faceInfo.LightmapTextureMinsInLuxels[0]) - .5
+		v -= float32(faceInfo.LightmapTextureMinsInLuxels[1]) - .5
+		u /= float32(faceInfo.LightmapTextureSizeInLuxels[0]) + 1
+		v /= float32(faceInfo.LightmapTextureSizeInLuxels[1]) + 1
+
+		//u *= float32(width) // lightmapRect.width
+		//v *= float32(height) //lightmapRect.height
+		//u += lightmapRect.x
+		//v += lightmapRect.y
+
+		uvs = append(uvs, u, v)
+	}
+
+	return uvs
+}
+
+// LightmapSamplesFromFace create a lightmap rectangle for a face
+func LightmapSamplesFromFace(f *face.Face, samples *[]common.ColorRGBExponent32) []common.ColorRGBExponent32 {
+	sampleSize := int32(unsafe.Sizeof((*samples)[0]))
+	numLuxels := (f.LightmapTextureSizeInLuxels[0] + 1) * (f.LightmapTextureSizeInLuxels[1] + 1)
+	firstSampleIdx := f.Lightofs / sampleSize
+
+	return (*samples)[firstSampleIdx : firstSampleIdx+numLuxels]
+}
+
 
 // Bsp
 type Bsp struct {
