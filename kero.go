@@ -47,13 +47,13 @@ func (kero *Kero) Start() {
 
 	dt := 0.0
 	startingTime := time.Now().UTC()
-	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().Handle().Handle().ShouldClose()) {
+	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
 		kero.input.Poll()
+
+		kero.scene.Update(dt)
 
 		kero.renderer.Render()
 		kero.ui.Render()
-
-		kero.scene.Update(dt)
 
 		window.CurrentWindow().SwapBuffers()
 		graphics.ClearColor(0, 0, 0, 1)
@@ -67,7 +67,7 @@ func (kero *Kero) Start() {
 }
 
 func (kero *Kero) onQuit(e interface{}) {
-	window.CurrentWindow().Handle().Handle().SetShouldClose(true)
+	window.CurrentWindow().Close()
 }
 
 func (kero *Kero) exit() {

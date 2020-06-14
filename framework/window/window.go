@@ -28,6 +28,16 @@ func (win *Window) Height() int {
 	return h
 }
 
+// ShouldClose
+func (win *Window) ShouldClose() bool {
+	return win.Handle().Handle().ShouldClose()
+}
+
+// Close
+func (win *Window) Close() {
+	win.Handle().Handle().SetShouldClose(true)
+}
+
 // SetActive marks this windows reference as current
 func (win *Window) SetActive() {
 	win.Handle().Handle().MakeContextCurrent()
