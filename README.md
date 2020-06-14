@@ -8,27 +8,27 @@
 > Kero is a Source Engine game engine implementation written in Go.
 
 <p align="center">
-  <img width="640" height="480" src="https://cdn.galaco.me/github/kero/readme/de_dust2.gif">
+  <img width="640" height="480" src="https://raw.githubusercontent.com/Galaco/kero/dev/.github/readme/de_dust2.gif">
 </p>
 
-## Installation
-To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later installed)
-in the directory `samples/demo`:
+## Building
+To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later 
+installed) in the directory `samples/demo`:
 `go build .`
 
-NOTE: You may need to change the `const` `GameDirectory` in `samples/demo/main.go` to point to a valid game installation
-directory on your machine.
+The demo targets Counterstrike: Source. To target a different game, you will need to modify `ContentDirectory()` in
+`samples/demo/gameDef.go`.
+
+## Running
+First, you will need to have a source engine game installed, unless you are loading a map that has all its content
+bspzipped.
+
+* Run the built executable with this flag: `-game="<GameDir>"`, where `<GameDir>` is the root directory of the game.
 
 
 ## Contributing
-1. Fork it (<https://github.com/galaco/lambda-client/fork>)
+1. Fork it (<https://github.com/galaco/kero/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
 5. Create a new Pull Request
-
-
-### Notes
-**This is based on another project of mine: [https://github.com/galaco/lambda-client](https://github.com/galaco/lambda-client)
-This is meant to be an attempt to create a somewhat more modular and reusable and high-quality codebase. Lambda-Client could
-be considered more of an experimentation ground for feature implementations.**
