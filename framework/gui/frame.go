@@ -2,7 +2,7 @@ package gui
 
 import (
 	"github.com/galaco/kero/framework/gui/context"
-	"github.com/inkyblackness/imgui-go"
+	"github.com/inkyblackness/imgui-go/v2"
 )
 
 func BeginFrame(ctx *context.Context) {
