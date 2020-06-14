@@ -5,19 +5,18 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/systems"
-	"github.com/galaco/kero/systems/renderer/cache"
-	"github.com/galaco/kero/systems/renderer/scene"
-	"github.com/galaco/kero/systems/renderer/shaders"
-	"github.com/galaco/kero/systems/renderer/vis"
-	"github.com/galaco/kero/valve"
+	"github.com/galaco/kero/renderer/cache"
+	"github.com/galaco/kero/renderer/scene"
+	"github.com/galaco/kero/renderer/shaders"
+	"github.com/galaco/kero/renderer/vis"
 	"math"
 )
 
 type Renderer struct {
-	context        *systems.Context
 	materialCache  *cache.Material
 	textureCache   *cache.Texture
 	shaderCache    *cache.Shader
@@ -26,11 +25,10 @@ type Renderer struct {
 	gpuItemCache *cache.GpuItem
 	activeShader *graphics.Shader
 
-	scene *SceneGraph
+	scene *StaticScene
 }
 
-func (s *Renderer) Register(ctx *systems.Context) {
-	s.context = ctx
+func (s *Renderer) Initialize() {
 	var err error
 	s.shaderCache, err = shaders.LoadShaders()
 	if err != nil {
@@ -40,9 +38,11 @@ func (s *Renderer) Register(ctx *systems.Context) {
 	gosigl.EnableBlend()
 	gosigl.EnableDepthTest()
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+
+	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
 }
 
-func (s *Renderer) Update(dt float64) {
+func (s *Renderer) Render() {
 	if s.scene == nil {
 		return
 	}
@@ -56,18 +56,15 @@ func (s *Renderer) Update(dt float64) {
 	s.renderSkybox(clusters, s.scene.skybox)
 }
 
-func (s *Renderer) ProcessMessage(message event.Dispatchable) {
-	switch message.Type() {
-	case messages.TypeLoadingLevelParsed:
-		s.scene = NewSceneGraphFromBsp(
-			s.context.Filesystem,
-			message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
-			message.(*messages.LoadingLevelParsed).Entities().([]entity.Entity),
-			s.materialCache,
-			s.textureCache,
-			s.gpuItemCache,
-			s.gpuStaticProps)
-	}
+func (s *Renderer) onLoadingLevelParsed(message event.Dispatchable) {
+	s.scene = NewStaticSceneFromBsp(
+		filesystem.Get(),
+		message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
+		message.(*messages.LoadingLevelParsed).Entities().([]entity.IEntity),
+		s.materialCache,
+		s.textureCache,
+		s.gpuItemCache,
+		s.gpuStaticProps)
 }
 
 func (s *Renderer) startFrame() {
@@ -98,7 +95,7 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 		for _, face := range faces {
 			graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
 			if err := graphics.GpuError(); err != nil {
-				event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
+				console.PrintString(console.LevelError, err.Error())
 			}
 		}
 	}
@@ -110,7 +107,7 @@ func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 		mat = s.materialCache.Find(displacement.Material())
 		graphics.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
 		if err := graphics.GpuError(); err != nil {
-			event.Dispatch(messages.NewConsoleMessage(console.LevelError, err.Error()))
+			console.PrintString(console.LevelError, err.Error())
 		}
 	}
 }
@@ -143,7 +140,7 @@ func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
 func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
 	renderClusters := make([]*vis.ClusterLeaf, 0)
 	for idx, cluster := range s.scene.visibleClusterLeafs {
-		if !viewFrustum.IsCuboidInFrustum(cluster.Mins, cluster.Maxs) {
+		if !viewFrustum.IsLeafInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
 		renderClusters = append(renderClusters, s.scene.visibleClusterLeafs[idx])

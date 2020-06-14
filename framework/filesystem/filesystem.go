@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"github.com/galaco/KeyValues"
 	"github.com/galaco/bsp/lumps"
+	"github.com/galaco/kero/framework/console"
 	filesystemLib "github.com/golang-source-engine/filesystem"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
+
+
 
 // FileSystem provides a gateway to interacting with the
 // filesystem structures of Source Engine.
@@ -19,6 +21,8 @@ type FileSystem interface {
 	// RegisterPakFile adds a bsp pakfile to the filesystem search paths
 	RegisterPakFile(pakFile *lumps.Pakfile)
 }
+
+var masterFilesystem FileSystem
 
 // InitializeFromGameInfoDefinitions Reads game resource data paths
 // from gameinfo.txt
@@ -31,26 +35,36 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 	return nil, err
 }
 
-func InitFilesystem(gameDir string) FileSystem {
+func Init(gameDir string) (FileSystem, error) {
 	stream, err := os.Open(gameDir + "/gameinfo.txt")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer stream.Close()
 	kvReader := keyvalues.NewReader(stream)
 
 	gameInfo, err := kvReader.Read()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	fs, err := InitializeFromGameInfoDefinitions(gameDir, &gameInfo)
 	if err != nil {
 		if fsErr, ok := err.(*filesystemLib.InvalidResourcePathCollectionError); ok {
 			for _, s := range strings.Split(fsErr.Error(), "|") {
-				log.Println(fmt.Sprintf("Invalid resource path: %s", s))
+				console.PrintString(console.LevelError, fmt.Sprintf("Invalid resource path: %s", s))
 			}
 		}
 	}
 
-	return fs
+	// The reasonable assumption is there will only be 1 filesystem; the first initialized is considered the master fs,
+	// and can be accessed via Get().
+	if masterFilesystem == nil {
+		masterFilesystem = fs
+	}
+
+	return fs, nil
+}
+
+func Get() FileSystem {
+	return masterFilesystem
 }

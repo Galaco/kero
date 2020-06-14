@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func LoadEntdata(fs filesystem.FileSystem, file *bsp.Bsp) ([]entity.Entity, error) {
+func LoadEntdata(fs filesystem.FileSystem, file *bsp.Bsp) ([]entity.IEntity, error) {
 	entdata := file.Lump(bsp.LumpEntities).(*lumps.EntData)
 	vmfEntityTree, err := parseEntdata(entdata.GetData())
 	if err != nil {
@@ -30,10 +30,10 @@ func parseEntdata(data string) (vmf.Vmf, error) {
 	return reader.Read()
 }
 
-func fromVmfNodeTree(entityNodes vmf.Node) []entity.Entity {
+func fromVmfNodeTree(entityNodes vmf.Node) []entity.IEntity {
 	numEntities := len(*entityNodes.GetAllValues())
 
-	entities := make([]entity.Entity, numEntities)
+	entities := make([]entity.IEntity, numEntities)
 	entitiesList := entityLib.FromVmfNodeTree(entityNodes)
 
 	for i := 0; i < entitiesList.Length(); i++ {

@@ -7,7 +7,6 @@ import (
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
-	"github.com/galaco/kero/systems"
 	"runtime"
 )
 
@@ -31,16 +30,15 @@ func main() {
 	game := NewGameDefinition()
 
 
-	fs := filesystem.InitFilesystem(*gameDirectoryPtr + "/" + game.ContentDirectory())
+	_, err := filesystem.Init(*gameDirectoryPtr + "/" + game.ContentDirectory())
+	if err != nil {
+		panic(err)
+	}
 	if err := initFramework(); err != nil {
 		panic(err)
 	}
-	context := systems.Context{
-		Client:     game.Client(),
-		Filesystem: fs,
-	}
 
-	keroImpl := kero.NewKero(context)
+	keroImpl := kero.NewKero()
 	keroImpl.RegisterGameDefinitions(game)
 	keroImpl.Start()
 }
@@ -53,5 +51,6 @@ func initFramework() error {
 
 	win.SetActive()
 	input.SetBoundWindow(win)
+	win.Handle().Handle().Focus()
 	return graphics.Init()
 }

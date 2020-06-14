@@ -5,10 +5,8 @@ import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/studiomodel"
-	"github.com/galaco/kero/messages"
 	"strings"
 	"sync"
 )
@@ -23,11 +21,11 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 		propPaths = append(propPaths, propLump.DictLump.Name[propEntry.GetPropType()])
 	}
 	propPaths = generateUniquePropList(propPaths)
-	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops referenced", len(propPaths))))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("%d staticprops referenced", len(propPaths)))
 
 	// Load Prop data
 	propDictionary := asyncLoadProps(fs, propPaths)
-	event.Dispatch(messages.NewConsoleMessage(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propDictionary))))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propDictionary)))
 
 	//Transform to props to
 	staticPropList := make([]graphics.StaticProp, 0)
@@ -65,7 +63,7 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 	asyncLoadProp := func(path string) {
 		defer func() {
 			if e := recover(); e != nil {
-				event.Dispatch(messages.NewConsoleMessage(console.LevelError, e.(error).Error()))
+				console.PrintString(console.LevelError, e.(error).Error())
 			}
 		}()
 		if !strings.HasSuffix(path, ".mdl") {

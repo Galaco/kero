@@ -4,8 +4,8 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/dialogs"
+	"github.com/galaco/kero/gui/views/menu"
 	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/systems/gui/views/menu"
 )
 
 type Menu struct {
@@ -20,7 +20,7 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			event.Dispatch(messages.NewChangeLevel(name))
+			event.Get().Dispatch(messages.NewChangeLevel(name))
 		}).Draw()
 		gui.EndPanel()
 	}

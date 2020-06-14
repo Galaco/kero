@@ -1,3 +1,7 @@
 /.idea/
-config.json
 imgui.ini
+
+
+
+# Misc
+depgraph.png

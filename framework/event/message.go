@@ -12,7 +12,4 @@ type Dispatchable interface {
 	Type() Type
 }
 
-type receiveable interface {
-	// ProcessMessage receives Dispatchables for processing
-	ProcessMessage(Dispatchable)
-}
+type Receiveable func(Dispatchable)

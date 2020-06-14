@@ -26,6 +26,11 @@ type Frustum struct {
 }
 
 // IsCuboidInFrustum
+func (frustum *Frustum) IsLeafInFrustum(mins, maxs mgl32.Vec3) bool {
+	return frustum.IsCuboidInFrustum(mins, maxs)
+}
+
+// IsCuboidInFrustum
 func (frustum *Frustum) IsCuboidInFrustum(mins, maxs mgl32.Vec3) bool {
 	for i := 0; i < 6; i++ {
 		if frustum.planes[i][planeNormalX]*mins.X()+frustum.planes[i][planeNormalY]*mins.Y()+frustum.planes[i][planeNormalZ]*mins.Z()+frustum.planes[i][planeToOrigin] > 0 {

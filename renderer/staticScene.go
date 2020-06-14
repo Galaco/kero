@@ -5,14 +5,12 @@ import (
 	"github.com/galaco/bsp/primitives/leaf"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/systems/renderer/cache"
-	"github.com/galaco/kero/systems/renderer/scene"
-	"github.com/galaco/kero/systems/renderer/vis"
-	"github.com/galaco/kero/valve"
+	"github.com/galaco/kero/library/valve"
+	"github.com/galaco/kero/renderer/cache"
+	"github.com/galaco/kero/renderer/scene"
+	"github.com/galaco/kero/renderer/vis"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
 	"strings"
@@ -22,7 +20,7 @@ type fileSystem interface {
 	GetFile(string) (io.Reader, error)
 }
 
-type SceneGraph struct {
+type StaticScene struct {
 	bspMesh           *graphics.BasicMesh
 	bspFaces          []valve.BspFace
 	displacementFaces []*valve.BspFace
@@ -30,7 +28,7 @@ type SceneGraph struct {
 
 	gpuMesh     graphics.GpuMesh
 	staticProps []graphics.StaticProp
-	entities    []entity.Entity
+	entities    []entity.IEntity
 
 	visData      *vis.Vis
 	clusterLeafs []vis.ClusterLeaf
@@ -45,7 +43,7 @@ type SceneGraph struct {
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
 // recalculating using vvis data
-func (scene *SceneGraph) RecomputeVisibleClusters() {
+func (scene *StaticScene) RecomputeVisibleClusters() {
 	if scene.camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
 		return
 	}
@@ -74,7 +72,7 @@ func (scene *SceneGraph) RecomputeVisibleClusters() {
 // Launches rebuilding the visible world in a separate thread
 // Note: This *could* cause rendering issues if the rebuild is slower than
 // travelling between clusters
-func (scene *SceneGraph) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
+func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 	visibleWorld := make([]*vis.ClusterLeaf, 0, 1024)
 
 	var visibleClusterIds []int16
@@ -97,13 +95,13 @@ func (scene *SceneGraph) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 	scene.visibleClusterLeafs = visibleWorld
 }
 
-func NewSceneGraphFromBsp(fs fileSystem,
+func NewStaticSceneFromBsp(fs fileSystem,
 	level *valve.Bsp,
-	entities []entity.Entity,
+	entities []entity.IEntity,
 	materialCache *cache.Material,
 	texCache *cache.Texture,
 	gpuItemCache *cache.GpuItem,
-	gpuStaticProps map[string]*cache.GpuProp) *SceneGraph {
+	gpuStaticProps map[string]*cache.GpuProp) *StaticScene {
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
@@ -114,7 +112,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
 			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
 			if err != nil || tex == nil {
-				event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+				console.PrintString(console.LevelWarning, err.Error())
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
@@ -136,7 +134,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	tex = nil
 	for _, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
-			event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material())))
+			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
 			tex = texCache.Find(cache.ErrorTexturePath)
 		} else {
 			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
@@ -189,7 +187,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 			if tex := texCache.Find(mat.BaseTextureName); tex == nil {
 				tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
 				if err != nil {
-					event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+					console.PrintString(console.LevelWarning, err.Error())
 					texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 				} else {
@@ -206,7 +204,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	visibility := vis.LoadVisData(level.File())
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
-	var worldspawn entity.Entity
+	var worldspawn entity.IEntity
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
@@ -215,7 +213,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 	}
 	skybox := scene.LoadSkybox(fs, worldspawn)
 
-	return &SceneGraph{
+	return &StaticScene{
 		bspMesh:           level.Mesh(),
 		gpuMesh:           graphics.UploadMesh(level.Mesh()),
 		bspFaces:          remappedFaces,
@@ -226,6 +224,7 @@ func NewSceneGraphFromBsp(fs fileSystem,
 		clusterLeafs:      clusterLeafs,
 		visData:           visibility,
 		camera:            level.Camera(),
+		cameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
 	}
 }
 

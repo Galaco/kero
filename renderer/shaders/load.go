@@ -3,7 +3,7 @@ package shaders
 import (
 	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/systems/renderer/cache"
+	"github.com/galaco/kero/renderer/cache"
 )
 
 func LoadShaders() (*cache.Shader, error) {

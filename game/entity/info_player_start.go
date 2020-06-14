@@ -6,7 +6,7 @@ import (
 
 // InfoPlayerStart
 type InfoPlayerStart struct {
-	entity.EntityBase
+	entity.Entity
 }
 
 // Classname

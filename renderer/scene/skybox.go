@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/messages"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
 	"sync"
@@ -25,11 +23,11 @@ type Skybox struct {
 	Origin           mgl32.Vec3
 }
 
-func LoadSkybox(fs fileSystem, worldspawn entity.Entity) *Skybox {
+func LoadSkybox(fs fileSystem, worldspawn entity.IEntity) *Skybox {
 	skyName := worldspawn.ValueForKey("skyname")
 	textures, err := loadSkyboxTexture(fs, skyName)
 	if err != nil {
-		event.Dispatch(messages.NewConsoleMessage(console.LevelWarning, err.Error()))
+		console.PrintString(console.LevelWarning, err.Error())
 		return nil
 	}
 

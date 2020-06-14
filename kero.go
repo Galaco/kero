@@ -1,16 +1,13 @@
 package kero
 
 import (
-	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
-	"github.com/galaco/kero/systems"
-	"github.com/galaco/kero/systems/console"
-	"github.com/galaco/kero/systems/gui"
-	"github.com/galaco/kero/systems/input"
-	"github.com/galaco/kero/systems/renderer"
-	"github.com/galaco/kero/systems/scene"
+	"github.com/galaco/kero/gui"
+	"github.com/galaco/kero/middleware"
+	"github.com/galaco/kero/renderer"
+	"github.com/galaco/kero/scene"
 	"time"
 )
 
@@ -18,8 +15,11 @@ import (
 type Kero struct {
 	isRunning bool
 
-	context systems.Context
-	systems []System
+	scene *scene.Scene
+
+	input *middleware.Input
+	renderer *renderer.Renderer
+	ui *gui.Gui
 }
 
 // RegisterGameDefinitions sets up provided game-specific configuration
@@ -29,28 +29,27 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 
 // Start runs the game loop
 func (kero *Kero) Start() {
-	kero.systems = []System{
-		console.NewConsole(),
-		input.NewInput(),
-		scene.NewScene(),
-		renderer.NewRenderer(),
-		gui.NewGui(),
-	}
+	kero.input = middleware.InitializeInput()
+	kero.renderer = renderer.NewRenderer()
+	kero.ui = gui.NewGui()
+	kero.scene = scene.NewScene()
 
 	kero.isRunning = true
 
-	kero.initialize()
+	kero.scene.Initialize()
+
+	kero.renderer.Initialize()
+	kero.ui.Initialize()
 
 	dt := 0.0
 	startingTime := time.Now().UTC()
-	for kero.isRunning {
-		event.ProcessMessages()
+	for kero.isRunning && (window.CurrentWindow()!= nil && !window.CurrentWindow().Handle().Handle().ShouldClose()) {
+		kero.input.Poll()
 
-		kero.context.Client.Update(dt)
+		kero.renderer.Render()
+		kero.ui.Render()
 
-		for _, s := range kero.systems {
-			s.Update(dt)
-		}
+		kero.scene.Update(dt)
 
 		window.CurrentWindow().SwapBuffers()
 		graphics.ClearColor(0, 0, 0, 1)
@@ -63,28 +62,13 @@ func (kero *Kero) Start() {
 	kero.exit()
 }
 
-func (kero *Kero) initialize() {
-	for i := range kero.systems {
-		kero.systems[i].Register(&kero.context)
-		event.AddListener(kero.systems[i])
-	}
-}
-
 func (kero *Kero) exit() {
 
 }
 
 // NewKero returns a new Kero instance
-func NewKero(ctx systems.Context) *Kero {
+func NewKero() *Kero {
 	return &Kero{
-		context:   ctx,
 		isRunning: false,
 	}
-}
-
-// System
-type System interface {
-	Register(ctx *systems.Context)
-	Update(dt float64)
-	ProcessMessage(message event.Dispatchable)
 }
