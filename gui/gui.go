@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/context"
@@ -22,19 +23,24 @@ type Gui struct {
 }
 
 func (s *Gui) Initialize() {
+	console.AddOutputPipe(func(level console.LogLevel, message interface{}) {
+		s.menuView.Console.AddMessage(message.(string))
+	})
+
 	s.uiContext = context.NewContext(window.CurrentWindow())
 	middleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
 	event.Get().AddListener(messages.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
+
 }
 
-func (s *Gui) onKeyRelease(message event.Dispatchable) {
+func (s *Gui) onKeyRelease(message interface{}) {
 	key := message.(*messages.KeyRelease).Key()
 	if key == input.KeyEscape {
 		s.shouldDisplayMenu = !s.shouldDisplayMenu
 	}
 }
 
-func (s *Gui) onLoadingLevelProgress(message event.Dispatchable) {
+func (s *Gui) onLoadingLevelProgress(message interface{}) {
 	msg := message.(*messages.LoadingLevelProgress)
 	s.loadingView.UpdateProgress(msg.State())
 	if msg.State() == messages.LoadingProgressStateError ||

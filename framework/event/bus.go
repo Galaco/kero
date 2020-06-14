@@ -2,7 +2,8 @@ package event
 
 type IDispatcher interface {
 	Initialize()
-	Dispatch(message Dispatchable)
+	DispatchLegacy(message Dispatchable)
+	Dispatch(name Type, value interface{})
 	AddListener(s Receiveable)
 	CancelPending()
 }
@@ -41,10 +42,18 @@ type Dispatcher struct {
 //	eventBus.newMessages = make([]Dispatchable, 0)
 //}
 
-// Dispatch queues a message to be sent to listeners
-func (eventBus *Dispatcher) Dispatch(message Dispatchable) {
+// DispatchLegacy queues a message to be sent to listeners
+func (eventBus *Dispatcher) DispatchLegacy(message Dispatchable) {
 	if _, ok := eventBus.listeners[message.Type()]; ok {
 		for _, cb := range eventBus.listeners[message.Type()] {
+			cb(message)
+		}
+	}
+}
+
+func (eventBus *Dispatcher) Dispatch(name Type, message interface{}) {
+	if _, ok := eventBus.listeners[name]; ok {
+		for _, cb := range eventBus.listeners[name] {
 			cb(message)
 		}
 	}

@@ -50,7 +50,7 @@ func (s *Scene) Update(dt float64) {
 	}
 }
 
-func (s *Scene) onChangeLevel(message event.Dispatchable) {
+func (s *Scene) onChangeLevel(message interface{}) {
 	func(msg *messages.ChangeLevel) {
 		level, ents, err := loader.LoadBspMap(filesystem.Get(), msg.LevelName())
 		if err != nil {
@@ -61,19 +61,19 @@ func (s *Scene) onChangeLevel(message event.Dispatchable) {
 		// Change level: we must clear the current event queue
 		event.Get().CancelPending()
 		s.currentLevel = level
-		event.Get().Dispatch(messages.NewLoadingLevelParsed(level, ents))
-		event.Get().Dispatch(messages.NewLoadingLevelProgress(messages.LoadingProgressStateFinished))
+		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(level, ents))
+		event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateFinished))
 	}(message.(*messages.ChangeLevel))
 }
 
-func (s *Scene) onKeyRelease(message event.Dispatchable) {
+func (s *Scene) onKeyRelease(message interface{}) {
 	key := message.(*messages.KeyRelease).Key()
 	if key == input.KeyEscape {
 		s.listenToInput = !s.listenToInput
 	}
 }
 
-func (s *Scene) onMouseMove(message event.Dispatchable) {
+func (s *Scene) onMouseMove(message interface{}) {
 	if s.currentLevel == nil || s.currentLevel.Camera() == nil {
 		return
 	}

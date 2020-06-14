@@ -20,7 +20,10 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			event.Get().Dispatch(messages.NewChangeLevel(name))
+			event.Get().DispatchLegacy(messages.NewChangeLevel(name))
+		}).Draw()
+		gui.NewButton("menu_quit", "Quit", func() {
+			event.Get().Dispatch(messages.TypeEngineQuit, nil)
 		}).Draw()
 		gui.EndPanel()
 	}

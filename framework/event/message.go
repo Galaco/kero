@@ -12,4 +12,4 @@ type Dispatchable interface {
 	Type() Type
 }
 
-type Receiveable func(Dispatchable)
+type Receiveable func(interface{})

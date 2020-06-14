@@ -1,11 +1,18 @@
 package console
 
 import (
-	"log"
+	"sync"
 )
 
 // LogLevel represents a the importance of a particular console message
 type LogLevel int
+
+type logger struct {
+	mut sync.Mutex
+	pipes []func(LogLevel, interface{})
+}
+
+var singleton logger
 
 const (
 	// LevelUnknown is the default log level
@@ -22,6 +29,12 @@ const (
 	LevelSuccess = LogLevel(5)
 )
 
+func AddOutputPipe(cb func(LogLevel, interface{})) {
+	singleton.mut.Lock()
+	singleton.pipes = append(singleton.pipes, cb)
+	singleton.mut.Unlock()
+}
+
 // PrintString prints pass string to output stream
 func PrintString(level LogLevel, text string) {
 	PrintInterface(level, text)
@@ -29,5 +42,9 @@ func PrintString(level LogLevel, text string) {
 
 // PrintInterface will print anything to output stream
 func PrintInterface(level LogLevel, i interface{}) {
-	log.Println(i)
+	singleton.mut.Lock()
+	for _, cb := range singleton.pipes {
+		cb(level, i)
+	}
+	singleton.mut.Unlock()
 }

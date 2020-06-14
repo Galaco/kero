@@ -20,6 +20,6 @@ require (
 	github.com/golang-source-engine/vmt v0.1.2
 	github.com/gotk3/gotk3 v0.4.0 // indirect
 	github.com/inkyblackness/imgui-go v1.12.0
-	github.com/sqweek/dialog v0.0.0-20200304031853-0dcd55bfe06a
-	golang.org/x/image v0.0.0-20200430140353-33d19683fad8 // indirect
+	github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190
+	golang.org/x/image v0.0.0-20200609002522-3f4726a040e8 // indirect
 )

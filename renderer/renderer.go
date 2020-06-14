@@ -56,7 +56,7 @@ func (s *Renderer) Render() {
 	s.renderSkybox(clusters, s.scene.skybox)
 }
 
-func (s *Renderer) onLoadingLevelParsed(message event.Dispatchable) {
+func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 	s.scene = NewStaticSceneFromBsp(
 		filesystem.Get(),
 		message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
@@ -184,6 +184,10 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 	//gosigl.EnableBlend()
 	//gosigl.EnableDepthTest()
 	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+}
+
+func (s *Renderer) ReleaseGPUResources() {
+
 }
 
 func NewRenderer() *Renderer {

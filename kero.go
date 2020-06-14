@@ -1,10 +1,12 @@
 package kero
 
 import (
+	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
 	"github.com/galaco/kero/gui"
+	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
 	"github.com/galaco/kero/renderer"
 	"github.com/galaco/kero/scene"
@@ -41,6 +43,8 @@ func (kero *Kero) Start() {
 	kero.renderer.Initialize()
 	kero.ui.Initialize()
 
+	event.Get().AddListener(messages.TypeEngineQuit, kero.onQuit)
+
 	dt := 0.0
 	startingTime := time.Now().UTC()
 	for kero.isRunning && (window.CurrentWindow()!= nil && !window.CurrentWindow().Handle().Handle().ShouldClose()) {
@@ -62,8 +66,12 @@ func (kero *Kero) Start() {
 	kero.exit()
 }
 
-func (kero *Kero) exit() {
+func (kero *Kero) onQuit(e interface{}) {
+	window.CurrentWindow().Handle().Handle().SetShouldClose(true)
+}
 
+func (kero *Kero) exit() {
+	kero.renderer.ReleaseGPUResources()
 }
 
 // NewKero returns a new Kero instance

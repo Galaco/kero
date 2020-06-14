@@ -21,7 +21,7 @@ func (s *Input) Poll() {
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {
 	switch action {
 	case input.KeyPress:
-		s.Dispatch(messages.NewKeyPress(key))
+		s.DispatchLegacy(messages.NewKeyPress(key))
 		if key == input.KeyEscape {
 			s.shouldLockMouse = !s.shouldLockMouse
 			if s.shouldLockMouse {
@@ -31,12 +31,12 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 			}
 		}
 	case input.KeyRelease:
-		s.Dispatch(messages.NewKeyRelease(key))
+		s.DispatchLegacy(messages.NewKeyRelease(key))
 	}
 }
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
-	s.Dispatch(messages.NewMouseMove(x, y))
+	s.DispatchLegacy(messages.NewMouseMove(x, y))
 }
 
 func InitializeInput() *Input {
