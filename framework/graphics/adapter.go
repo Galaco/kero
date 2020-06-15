@@ -131,3 +131,27 @@ func SetSkyboxFace() {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.DepthMask(false)
 }
+
+func EnableBlending() {
+	gosigl.EnableBlend()
+}
+
+func DisableBlending() {
+	gosigl.DisableBlend()
+}
+
+func EnableDepthTesting() {
+	gosigl.EnableDepthTest()
+}
+
+func DisableDepthTesting() {
+	gosigl.DisableDepthTest()
+}
+
+func EnableBackFaceCulling() {
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+}
+
+func EnableFrontFaceCulling() {
+	gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
+}

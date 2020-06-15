@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -35,9 +34,9 @@ func (s *Renderer) Initialize() {
 		panic(err)
 	}
 
-	gosigl.EnableBlend()
-	gosigl.EnableDepthTest()
-	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+	graphics.EnableBlending()
+	graphics.EnableDepthTesting()
+	graphics.EnableBackFaceCulling()
 
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
 }
@@ -174,16 +173,16 @@ func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybo
 	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
 	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
-	//gosigl.EnableDepthTest()
-	//gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
+	//graphics.EnableDepthTesting()
+	//graphics.EnableFrontFaceCulling()
 
 	graphics.BindMesh(&skybox.SkyMeshGpuID)
 	graphics.BindCubemap(skybox.SkyMaterialGpuID)
 	graphics.DrawArray(0, len(skybox.SkyMesh.Vertices()))
-	//
-	//gosigl.EnableBlend()
-	//gosigl.EnableDepthTest()
-	//gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+
+	//graphics.EnableBlending()
+	//graphics.EnableDepthTesting()
+	//graphics.EnableBackFaceCulling()
 }
 
 func (s *Renderer) ReleaseGPUResources() {

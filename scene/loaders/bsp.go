@@ -6,8 +6,11 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
+	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/messages"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -27,10 +30,14 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
 	// Load the static bsp world
 	level, err := valve.LoadBSPWorld(fs, file)
+
 	if err != nil {
 		event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
 		return nil, nil, err
 	}
+	level.SetCamera(graphics3d.NewCamera(
+		mgl32.DegToRad(70),
+		float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())))
 	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateGeometryLoaded))
 
 	// Load staticprops
