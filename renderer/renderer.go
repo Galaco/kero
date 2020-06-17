@@ -6,6 +6,7 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
+	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
@@ -47,12 +48,16 @@ func (s *Renderer) Render() {
 	}
 	s.scene.RecomputeVisibleClusters()
 	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
-	s.startFrame()
-	s.renderBsp(clusters)
-	s.renderDisplacements(s.scene.displacementFaces)
-	s.renderStaticProps(clusters)
+
+	// Draw skybox
 
 	s.renderSkybox(clusters, s.scene.skybox)
+
+	// Draw world
+	s.startFrame(s.scene.camera)
+	s.renderBsp(s.scene.camera, clusters)
+	s.renderDisplacements(s.scene.displacementFaces)
+	s.renderStaticProps(s.scene.camera, clusters)
 }
 
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
@@ -66,9 +71,9 @@ func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 		s.gpuStaticProps)
 }
 
-func (s *Renderer) startFrame() {
+func (s *Renderer) startFrame(camera *graphics3d.Camera) {
 	projection := s.scene.camera.ProjectionMatrix()
-	view := s.scene.camera.ViewMatrix()
+	view := camera.ViewMatrix()
 
 	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
 	s.activeShader.Bind()
@@ -76,8 +81,8 @@ func (s *Renderer) startFrame() {
 	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
 }
 
-func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
-	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.scene.camera.ModelMatrix())
+func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterLeaf) {
+	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
@@ -91,11 +96,20 @@ func (s *Renderer) renderBsp(clusters []*vis.ClusterLeaf) {
 			continue
 		}
 
+		indices := make([]uint32, 0)
 		for _, face := range faces {
-			graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
-			if err := graphics.GpuError(); err != nil {
-				console.PrintString(console.LevelError, err.Error())
-			}
+			indices = append(indices, s.scene.bspMesh.Indices()[face.Offset(): face.Offset()+(face.Length())]...)
+
+			//graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
+			//if err := graphics.GpuError(); err != nil {
+			//	console.PrintString(console.LevelError, err.Error())
+			//}
+		}
+		graphics.UpdateIndexArrayBuffer(indices)
+		graphics.BindTexture(mat.Diffuse)
+		graphics.DrawIndexedArray(len(indices), 0, nil)
+		if err := graphics.GpuError(); err != nil {
+			console.PrintString(console.LevelError, err.Error())
 		}
 	}
 }
@@ -111,8 +125,8 @@ func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
 	}
 }
 
-func (s *Renderer) renderStaticProps(clusters []*vis.ClusterLeaf) {
-	viewPosition := s.scene.camera.Transform().Position
+func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.ClusterLeaf) {
+	viewPosition := camera.Transform().Position
 
 	for _, cluster := range clusters {
 		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +

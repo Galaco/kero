@@ -8,6 +8,7 @@ import (
 	"github.com/galaco/studiomodel/vtx"
 	"github.com/galaco/studiomodel/vvd"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ type virtualFileSystem interface {
 func LoadProp(path string, fs virtualFileSystem) (*graphics.Model, error) {
 	prop, err := loadProp(strings.Split(path, ".mdl")[0], fs)
 	if prop != nil {
-		model, err := modelFromStudioModel(path, prop, fs)
+		model, err := modelFromStudioModel(path, prop)
 		if err != nil {
 			return nil, err
 		}
@@ -84,13 +85,16 @@ func loadProp(filePath string, fs virtualFileSystem) (*studiomodel.StudioModel, 
 	return prop, nil
 }
 
-func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel, fs virtualFileSystem) (*graphics.Model, error) {
+func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel) (*graphics.Model, error) {
+	if filename == "models/props/de_tides/tides_fences_d.mdl" {
+		log.Println(filename)
+	}
 	verts, normals, textureCoordinates, err := VertexDataForModel(studioModel, 0)
 	if err != nil {
 		return nil, err
 	}
 	outModel := graphics.NewModel(filename)
-	mats := materialsForStudioModel(studioModel.Mdl, fs)
+	mats := materialsForStudioModel(studioModel.Mdl)
 	for i := 0; i < len(verts); i++ { //verts is a slice of slices, (ie vertex data per mesh)
 		smMesh := graphics.NewMesh()
 		smMesh.AddVertex(verts[i]...)
@@ -107,7 +111,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel,
 	return outModel, nil
 }
 
-func materialsForStudioModel(mdlData *mdl.Mdl, fs virtualFileSystem) []string {
+func materialsForStudioModel(mdlData *mdl.Mdl) []string {
 	materials := make([]string, 0)
 	for _, dir := range mdlData.TextureDirs {
 		for _, name := range mdlData.TextureNames {

@@ -6,7 +6,7 @@ require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d // indirect
 	github.com/galaco/KeyValues v1.4.1
 	github.com/galaco/bsp v0.2.2
-	github.com/galaco/gosigl v0.1.1
+	github.com/galaco/gosigl v0.2.0
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/studiomodel v0.1.2
 	github.com/galaco/tinygametools v0.1.1

@@ -93,6 +93,11 @@ func UploadMesh(mesh Mesh) GpuMesh {
 	gosigl.CreateVertexAttribute(gpuResource, mesh.UVs(), 2)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Normals(), 3)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Tangents(), 4)
+
+	if len(mesh.Indices()) > 0 {
+		gosigl.SetElementArrayAttribute(gpuResource, mesh.Indices())
+	}
+
 	gosigl.FinishMesh()
 
 	return GpuMesh(gpuResource)
@@ -100,6 +105,14 @@ func UploadMesh(mesh Mesh) GpuMesh {
 
 func DrawArray(offset int, num int) {
 	gosigl.DrawArray(offset, num)
+}
+
+func DrawIndexedArray(num int, offset int, indices []uint32) {
+	gosigl.DrawElements(num, offset, indices)
+}
+
+func UpdateIndexArrayBuffer(indices []uint32) {
+	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices) * 4, gl.Ptr(indices))
 }
 
 func DrawFace(offset int, num int, textureId uint32) {

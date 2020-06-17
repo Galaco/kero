@@ -160,12 +160,15 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.B
 			rootIndex = edge[e1]
 		} else {
 			// Just create a triangle for every edge now
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3)
 			bspMesh.AddVertex(bspStructure.vertexes[rootIndex].X(), bspStructure.vertexes[rootIndex].Y(), bspStructure.vertexes[rootIndex].Z())
 			bspMesh.AddNormal(planeNormal.X(), planeNormal.Y(), planeNormal.Z())
 
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3)
 			bspMesh.AddVertex(bspStructure.vertexes[edge[e1]].X(), bspStructure.vertexes[edge[e1]].Y(), bspStructure.vertexes[edge[e1]].Z())
 			bspMesh.AddNormal(planeNormal.X(), planeNormal.Y(), planeNormal.Z())
 
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3)
 			bspMesh.AddVertex(bspStructure.vertexes[edge[e2]].X(), bspStructure.vertexes[edge[e2]].Y(), bspStructure.vertexes[edge[e2]].Z())
 			bspMesh.AddNormal(planeNormal.X(), planeNormal.Y(), planeNormal.Z())
 
@@ -217,8 +220,10 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *g
 			d := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
 
 			// Split into triangles
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3, (uint32(len(bspMesh.Vertices())) / 3) + 1, (uint32(len(bspMesh.Vertices())) / 3) + 2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), b.X(), b.Y(), b.Z(), c.X(), c.Y(), c.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3, (uint32(len(bspMesh.Vertices())) / 3) + 1, (uint32(len(bspMesh.Vertices())) / 3) + 2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z(), d.X(), d.Y(), d.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
 

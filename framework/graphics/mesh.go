@@ -9,6 +9,7 @@ type Mesh interface {
 	Normals() []float32
 	UVs() []float32
 	Tangents() []float32
+	Indices() []uint32
 }
 
 // BasicMesh
@@ -17,6 +18,7 @@ type BasicMesh struct {
 	normals  []float32
 	uvs      []float32
 	tangents []float32
+	indices  []uint32
 }
 
 // AddVertex
@@ -39,6 +41,11 @@ func (mesh *BasicMesh) AddTangent(tangent ...float32) {
 	mesh.tangents = append(mesh.tangents, tangent...)
 }
 
+// AddIndice
+func (mesh *BasicMesh) AddIndice(indice ...uint32) {
+	mesh.indices = append(mesh.indices, indice...)
+}
+
 // Vertices
 func (mesh *BasicMesh) Vertices() []float32 {
 	return mesh.vertices
@@ -57,6 +64,11 @@ func (mesh *BasicMesh) UVs() []float32 {
 // Tangents
 func (mesh *BasicMesh) Tangents() []float32 {
 	return mesh.tangents
+}
+
+// Indices
+func (mesh *BasicMesh) Indices() []uint32 {
+	return mesh.indices
 }
 
 // GenerateTangents
