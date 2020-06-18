@@ -89,6 +89,11 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
+
+	// SORTING
+	opaqueMaterials := map[*cache.GpuMaterial][]*valve.BspFace{}
+	translucentMaterials := map[*cache.GpuMaterial][]*valve.BspFace{}
+
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.materialCache.Find(clusterFaceMaterial)
 
@@ -96,21 +101,34 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 			continue
 		}
 
-		indices := make([]uint32, 0)
-		for _, face := range faces {
-			indices = append(indices, s.scene.bspMesh.Indices()[face.Offset(): face.Offset()+(face.Length())]...)
+		if mat.Properties.Translucent {
+			translucentMaterials[mat] = faces
+		} else {
+			opaqueMaterials[mat] = faces
+		}
+	}
 
-			//graphics.DrawFace(face.Offset(), face.Length(), mat.Diffuse)
-			//if err := graphics.GpuError(); err != nil {
-			//	console.PrintString(console.LevelError, err.Error())
-			//}
-		}
-		graphics.UpdateIndexArrayBuffer(indices)
-		graphics.BindTexture(mat.Diffuse)
-		graphics.DrawIndexedArray(len(indices), 0, nil)
-		if err := graphics.GpuError(); err != nil {
-			console.PrintString(console.LevelError, err.Error())
-		}
+	for clusterFaceMaterial, faces := range opaqueMaterials {
+		s.RenderBSPMaterial(clusterFaceMaterial, faces)
+	}
+
+	graphics.PushInt32(s.activeShader.GetUniform("alpha"), 1)
+	for clusterFaceMaterial, faces := range translucentMaterials {
+		s.RenderBSPMaterial(clusterFaceMaterial, faces)
+	}
+	graphics.PushInt32(s.activeShader.GetUniform("alpha"), 0)
+}
+
+func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspFace) {
+	indices := make([]uint32, 0)
+	for _, face := range faces {
+	indices = append(indices, s.scene.bspMesh.Indices()[face.Offset(): face.Offset()+(face.Length())]...)
+	}
+	graphics.UpdateIndexArrayBuffer(indices)
+	graphics.BindTexture(mat.Diffuse)
+	graphics.DrawIndexedArray(len(indices), 0, nil)
+	if err := graphics.GpuError(); err != nil {
+	console.PrintString(console.LevelError, err.Error())
 	}
 }
 

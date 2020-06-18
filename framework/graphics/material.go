@@ -14,6 +14,10 @@ type Material struct {
 	BaseTextureName string
 	// Skip
 	Skip bool
+	// Alpha
+	Alpha float32
+	// Translucent
+	Translucent bool
 }
 
 // FilePath returns this materials location in whatever
@@ -42,6 +46,11 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err err
 	props := rawProps.(*vmt.Properties)
 	mat = NewMaterial(filePath)
 	mat.BaseTextureName = props.BaseTexture
+
+	mat.Alpha = props.Alpha
+	if props.Translucent == 1 {
+		mat.Translucent = true
+	}
 
 	if props.CompileSky == 1 || props.CompileNoDraw == 1 {
 		mat.Skip = true

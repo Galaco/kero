@@ -6,6 +6,8 @@ var LightMappedGenericFragment = `
 
 	uniform sampler2D albedoSampler;
 
+	uniform int alpha;
+
 	in vec2 UV;
 
     out vec4 frag_colour;
@@ -18,6 +20,10 @@ var LightMappedGenericFragment = `
     void main() 
 	{
 		vec4 diffuse = GetAlbedo(albedoSampler, UV);
+
+		if (alpha == 0) {
+			diffuse.a = 1;
+		}
 
 		frag_colour = diffuse;
     }
