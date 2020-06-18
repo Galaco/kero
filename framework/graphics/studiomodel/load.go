@@ -89,7 +89,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 	if filename == "models/props/de_tides/tides_fences_d.mdl" {
 		log.Println(filename)
 	}
-	verts, normals, textureCoordinates, err := VertexDataForModel(studioModel, 0)
+	verts, normals, textureCoordinates, indices, err := VertexDataForModel(studioModel, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +100,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 		smMesh.AddVertex(verts[i]...)
 		smMesh.AddNormal(normals[i]...)
 		smMesh.AddUV(textureCoordinates[i]...)
+		smMesh.AddIndice(indices[i]...)
 
 		//@TODO Map ALL materials to mesh data
 		outModel.AddMaterial(mats[0])

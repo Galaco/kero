@@ -8,33 +8,35 @@ import (
 )
 
 // VertexDataForModel loads model vertex data
-func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]float32, [][]float32, [][]float32, error) {
+func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]float32, [][]float32, [][]float32, [][]uint32, error) {
 	vertices := make([][]float32, 0)
 	normals := make([][]float32, 0)
 	textureCoordinates := make([][]float32, 0)
+	indices := make([][]uint32, 0)
 	for _, bodyPart := range studioModel.Vtx.BodyParts {
 		for _, model := range bodyPart.Models {
 			if len(model.LODS) < lodIdx {
-				return nil, nil, nil, errors.New("invalid LOD index requested for model")
+				return nil, nil, nil, nil, errors.New("invalid LOD index requested for model")
 			}
 			for _, mesh := range model.LODS[lodIdx].Meshes {
-				indices := indicesForMesh(&mesh)
-				if len(indices) == 0 {
+				rawIndices := indicesForMesh(&mesh)
+				if len(rawIndices) == 0 {
 					continue
 				}
 
-				v, n, uv, err := vertexDataForMesh(indices, studioModel.Vvd)
+				v, n, uv, i, err := vertexDataForMesh(rawIndices, studioModel.Vvd)
 				if err != nil {
-					return nil, nil, nil, err
+					return nil, nil, nil, nil, err
 				}
 				vertices = append(vertices, v)
 				normals = append(normals, n)
 				textureCoordinates = append(textureCoordinates, uv)
+				indices = append(indices, i)
 			}
 		}
 	}
 
-	return vertices, normals, textureCoordinates, nil
+	return vertices, normals, textureCoordinates, indices, nil
 }
 
 // indicesForMesh get indices for mesh
@@ -63,20 +65,20 @@ func indicesForMesh(mesh *vtx.Mesh) []uint16 {
 	return meshIndices
 }
 
-func vertexDataForMesh(indices []uint16, vvd *vvd.Vvd) ([]float32, []float32, []float32, error) {
+func vertexDataForMesh(indices []uint16, vvd *vvd.Vvd) ([]float32, []float32, []float32, []uint32, error) {
 	verts := make([]float32, 0)
 	normals := make([]float32, 0)
 	textureCoordinates := make([]float32, 0)
+	resultantIndices := make([]uint32, len(indices))
 
-	for _, index := range indices {
-		if int(index) > len(vvd.Vertices) {
-			return nil, nil, nil, errors.New("vertex data bounds out of range")
-		}
-		vvdVert := &vvd.Vertices[index]
-
-		verts = append(verts, vvdVert.Position.X(), vvdVert.Position.Y(), vvdVert.Position.Z())
-		normals = append(normals, vvdVert.Normal.X(), vvdVert.Normal.Y(), vvdVert.Normal.Z())
-		textureCoordinates = append(textureCoordinates, vvdVert.UVs.X(), vvdVert.UVs.Y())
+	for _, i := range vvd.Vertices {
+		verts = append(verts, i.Position.X(), i.Position.Y(), i.Position.Z())
+		normals = append(normals, i.Normal.X(), i.Normal.Y(), i.Normal.Z())
+		textureCoordinates = append(textureCoordinates, i.UVs.X(), i.UVs.Y())
 	}
-	return verts, normals, textureCoordinates, nil
+
+	for idx, i := range indices {
+		resultantIndices[idx] = uint32(i)
+	}
+	return verts, normals, textureCoordinates, resultantIndices, nil
 }

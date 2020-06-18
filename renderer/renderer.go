@@ -143,7 +143,7 @@ func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.
 				for idx := range gpuProp.Id {
 					graphics.BindMesh(gpuProp.Id[idx])
 					graphics.BindTexture(gpuProp.Material[idx].Diffuse)
-					graphics.DrawArray(0, len(prop.Model().Meshes()[idx].Vertices()))
+					graphics.DrawIndexedArray(len(prop.Model().Meshes()[idx].Vertices()), 0, nil)
 				}
 			}
 		}
