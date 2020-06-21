@@ -112,7 +112,7 @@ func DrawIndexedArray(num int, offset int, indices []uint32) {
 }
 
 func UpdateIndexArrayBuffer(indices []uint32) {
-	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices) * 4, gl.Ptr(indices))
+	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices)*4, gl.Ptr(indices))
 }
 
 func DrawFace(offset int, num int, textureId uint32) {
@@ -130,6 +130,10 @@ func PushMat4(uniform int32, count int, transpose bool, mat mgl32.Mat4) {
 
 func PushInt32(uniform int32, value int32) {
 	gl.Uniform1i(uniform, value)
+}
+
+func PushFloat32(uniform int32, value float32) {
+	gl.Uniform1f(uniform, value)
 }
 
 func GpuError() error {

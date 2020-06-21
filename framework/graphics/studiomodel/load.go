@@ -95,7 +95,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 	}
 	outModel := graphics.NewModel(filename)
 	mats := materialsForStudioModel(studioModel.Mdl)
-	for i := 0; i < len(verts); i++ { //verts is a slice of slices, (ie vertex data per mesh)
+	for i := 0; i < len(verts); i++ { //verts is a slice of slices, (ie vertex data per mesh: len(verts) = num_meshes)
 		smMesh := graphics.NewMesh()
 		smMesh.AddVertex(verts[i]...)
 		smMesh.AddNormal(normals[i]...)

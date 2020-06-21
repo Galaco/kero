@@ -101,7 +101,7 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 			continue
 		}
 
-		if mat.Properties.Translucent {
+		if mat.Properties.Translucent || mat.Properties.Alpha > 0 {
 			translucentMaterials[mat] = faces
 		} else {
 			opaqueMaterials[mat] = faces
@@ -112,23 +112,30 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 		s.RenderBSPMaterial(clusterFaceMaterial, faces)
 	}
 
-	graphics.PushInt32(s.activeShader.GetUniform("alpha"), 1)
+	graphics.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 1)
+
 	for clusterFaceMaterial, faces := range translucentMaterials {
+		graphics.PushFloat32(s.activeShader.GetUniform("alpha"), clusterFaceMaterial.Properties.Alpha)
+		if clusterFaceMaterial.Properties.Translucent == true {
+			graphics.PushInt32(s.activeShader.GetUniform("translucent"), 1)
+		} else {
+			graphics.PushInt32(s.activeShader.GetUniform("translucent"), 0)
+		}
 		s.RenderBSPMaterial(clusterFaceMaterial, faces)
 	}
-	graphics.PushInt32(s.activeShader.GetUniform("alpha"), 0)
+	graphics.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
 }
 
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspFace) {
 	indices := make([]uint32, 0)
 	for _, face := range faces {
-	indices = append(indices, s.scene.bspMesh.Indices()[face.Offset(): face.Offset()+(face.Length())]...)
+		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
 	graphics.UpdateIndexArrayBuffer(indices)
 	graphics.BindTexture(mat.Diffuse)
 	graphics.DrawIndexedArray(len(indices), 0, nil)
 	if err := graphics.GpuError(); err != nil {
-	console.PrintString(console.LevelError, err.Error())
+		console.PrintString(console.LevelError, err.Error())
 	}
 }
 
@@ -161,7 +168,7 @@ func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.
 				for idx := range gpuProp.Id {
 					graphics.BindMesh(gpuProp.Id[idx])
 					graphics.BindTexture(gpuProp.Material[idx].Diffuse)
-					graphics.DrawIndexedArray(len(prop.Model().Meshes()[idx].Vertices()), 0, nil)
+					graphics.DrawIndexedArray(len(prop.Model().Meshes()[idx].Indices()), 0, nil)
 				}
 			}
 		}

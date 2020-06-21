@@ -220,10 +220,10 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *g
 			d := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
 
 			// Split into triangles
-			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3, (uint32(len(bspMesh.Vertices())) / 3) + 1, (uint32(len(bspMesh.Vertices())) / 3) + 2)
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), b.X(), b.Y(), b.Z(), c.X(), c.Y(), c.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
-			bspMesh.AddIndice(uint32(len(bspMesh.Vertices())) / 3, (uint32(len(bspMesh.Vertices())) / 3) + 1, (uint32(len(bspMesh.Vertices())) / 3) + 2)
+			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z(), d.X(), d.Y(), d.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
 
@@ -375,7 +375,7 @@ func (bsp *Bsp) Camera() *graphics3d.Camera {
 	return bsp.camera
 }
 
-func (bsp *Bsp) SetCamera(camera *graphics3d.Camera)  {
+func (bsp *Bsp) SetCamera(camera *graphics3d.Camera) {
 	bsp.camera = camera
 }
 

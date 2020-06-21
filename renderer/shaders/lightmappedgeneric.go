@@ -6,7 +6,12 @@ var LightMappedGenericFragment = `
 
 	uniform sampler2D albedoSampler;
 
-	uniform int alpha;
+	// Flag that this material is in some way translucent
+	uniform int hasTranslucentProperty;
+
+	// Translucent variations
+	uniform float alpha;
+	uniform int translucent;
 
 	in vec2 UV;
 
@@ -17,13 +22,31 @@ var LightMappedGenericFragment = `
 		return texture(sampler, uv).rgba;
 	}
 
+
+	// Handle transparency rules here
+	// @TODO review various alpha affecting rules priority
+	vec4 AlphaPass(in vec4 color)
+	{	
+		if (hasTranslucentProperty == 0) {
+			// Ignore material alpha channel
+			color.a = 1;
+			return color;
+		}
+		// The $translucent property just means use texture alpha channel. i.e 0 processing if enabled
+
+		// $alpha property applies a single alpha value across the entire texture 
+		if (alpha != 0) {
+			color.a = alpha;
+		}
+
+		return color;
+	}
+
     void main() 
 	{
 		vec4 diffuse = GetAlbedo(albedoSampler, UV);
 
-		if (alpha == 0) {
-			diffuse.a = 1;
-		}
+		diffuse = AlphaPass(diffuse);
 
 		frag_colour = diffuse;
     }
