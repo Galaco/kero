@@ -46,11 +46,14 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 func generateUniquePropList(propList []string) (uniqueList []string) {
 	list := map[string]bool{}
 	for _, entry := range propList {
-		list[entry] = true
+		if _,ok := list[entry]; !ok {
+			list[entry] = true
+			uniqueList = append(uniqueList, entry)
+		}
 	}
-	for k := range list {
-		uniqueList = append(uniqueList, k)
-	}
+	//for k := range list {
+	//	uniqueList = append(uniqueList, k)
+	//}
 
 	return uniqueList
 }

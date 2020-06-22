@@ -127,7 +127,7 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 }
 
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspFace) {
-	indices := make([]uint32, 0)
+	indices := make([]uint32, 0, 256)
 	for _, face := range faces {
 		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
@@ -176,7 +176,7 @@ func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.
 }
 
 func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
-	renderClusters := make([]*vis.ClusterLeaf, 0)
+	renderClusters := make([]*vis.ClusterLeaf, 0, 64)
 	for idx, cluster := range s.scene.visibleClusterLeafs {
 		if !viewFrustum.IsLeafInFrustum(cluster.Mins, cluster.Maxs) {
 			continue

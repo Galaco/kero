@@ -38,9 +38,10 @@ func (prop *StaticProp) FadeMaxDistance() float32 {
 func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticPropLeafLump, renderable *Model) *StaticProp {
 	prop := StaticProp{
 		model: renderable,
+		leafList: make([]uint16, lumpProp.GetLeafCount()),
 	}
 	for i := uint16(0); i < lumpProp.GetLeafCount(); i++ {
-		prop.leafList = append(prop.leafList, propLeafs.Leaf[lumpProp.GetFirstLeaf()+i])
+		prop.leafList[i] = propLeafs.Leaf[lumpProp.GetFirstLeaf()+i]
 	}
 	prop.Transform.Position = lumpProp.GetOrigin()
 	prop.Transform.Rotation = lumpProp.GetAngles()

@@ -254,21 +254,20 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 }
 
 // TexCoordsForFaceFromTexInfo Generate texturecoordinates for face data
-func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
-	for idx := 0; idx < len(vertexes); idx += 3 {
+func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width int, height int) []float32 {
+	uvs := make([]float32, (len(vertexes) / 3) * 2)
+	for idx := 0; idx < len(vertexes) / 3; idx ++ {
 		//u = tv0,0 * x + tv0,1 * y + tv0,2 * z + tv0,3
-		u := ((tx.TextureVecsTexelsPerWorldUnits[0][0] * vertexes[idx]) +
-			(tx.TextureVecsTexelsPerWorldUnits[0][1] * vertexes[idx+1]) +
-			(tx.TextureVecsTexelsPerWorldUnits[0][2] * vertexes[idx+2]) +
+		uvs[idx * 2] = ((tx.TextureVecsTexelsPerWorldUnits[0][0] * vertexes[(idx * 3)]) +
+			(tx.TextureVecsTexelsPerWorldUnits[0][1] * vertexes[(idx * 3)+1]) +
+			(tx.TextureVecsTexelsPerWorldUnits[0][2] * vertexes[(idx * 3)+2]) +
 			tx.TextureVecsTexelsPerWorldUnits[0][3]) / float32(width)
 
 		//v = tv1,0 * x + tv1,1 * y + tv1,2 * z + tv1,3
-		v := ((tx.TextureVecsTexelsPerWorldUnits[1][0] * vertexes[idx]) +
-			(tx.TextureVecsTexelsPerWorldUnits[1][1] * vertexes[idx+1]) +
-			(tx.TextureVecsTexelsPerWorldUnits[1][2] * vertexes[idx+2]) +
+		uvs[(idx * 2) + 1] = ((tx.TextureVecsTexelsPerWorldUnits[1][0] * vertexes[(idx * 3)]) +
+			(tx.TextureVecsTexelsPerWorldUnits[1][1] * vertexes[(idx * 3)+1]) +
+			(tx.TextureVecsTexelsPerWorldUnits[1][2] * vertexes[(idx * 3)+2]) +
 			tx.TextureVecsTexelsPerWorldUnits[1][3]) / float32(height)
-
-		uvs = append(uvs, u, v)
 	}
 
 	return uvs

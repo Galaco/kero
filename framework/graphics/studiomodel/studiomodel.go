@@ -46,6 +46,7 @@ func indicesForMesh(mesh *vtx.Mesh) []uint32 {
 	}
 	meshIndices := make([]uint32, 0)
 
+	// @TODO Use all strip groups
 	stripGroup := mesh.StripGroups[0]
 
 	for _, strip := range stripGroup.Strips {
