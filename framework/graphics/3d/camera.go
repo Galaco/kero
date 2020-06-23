@@ -23,6 +23,16 @@ type Camera struct {
 	worldUp     mgl32.Vec3
 }
 
+// Fov
+func (camera *Camera) Fov() float32 {
+	return camera.fov
+}
+
+// AspectRatio
+func (camera *Camera) AspectRatio() float32 {
+	return camera.aspectRatio
+}
+
 // Transform Returns this entity's transform component
 func (camera *Camera) Transform() *Transform {
 	return &camera.transform

@@ -50,8 +50,34 @@ func (s *Renderer) Render() {
 	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.camera))
 
 	// Draw skybox
+	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
+	var shouldRenderSkybox bool
+	if s.scene.skybox != nil && s.scene.currentLeaf != nil && s.scene.currentLeaf.Cluster != -1 {
+		for _, c := range clusters {
+			if c.SkyVisible {
+				shouldRenderSkybox = true
+				break
+			}
+		}
+	}
 
-	s.renderSkybox(clusters, s.scene.skybox)
+	if shouldRenderSkybox {
+		s.renderSkybox(s.scene.skybox)
+		if s.scene.skyCamera != nil {
+			origin := s.scene.skyCamera.Transform().Position
+			s.scene.skyCamera.Transform().Rotation = s.scene.camera.Transform().Rotation
+			s.scene.skyCamera.Transform().Position = s.scene.skyCamera.Transform().Position.Add(s.scene.camera.Transform().Position.Mul(1 / s.scene.skyCamera.Transform().Scale.X()))
+			s.scene.skyCamera.Update(0)
+			s.startFrame(s.scene.skyCamera)
+			s.renderBsp(s.scene.skyCamera, s.scene.skyboxClusterLeafs)
+			s.renderDisplacements(s.scene.displacementFaces)
+			s.renderStaticProps(s.scene.skyCamera, s.scene.skyboxClusterLeafs)
+			graphics.ClearDepthBuffer()
+			s.scene.skyCamera.Transform().Position = origin
+		}
+	}
+
+
 
 	// Draw world
 	s.startFrame(s.scene.camera)
@@ -72,7 +98,7 @@ func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 }
 
 func (s *Renderer) startFrame(camera *graphics3d.Camera) {
-	projection := s.scene.camera.ProjectionMatrix()
+	projection := camera.ProjectionMatrix()
 	view := camera.ViewMatrix()
 
 	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
@@ -186,22 +212,7 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.Cl
 	return renderClusters
 }
 
-func (s *Renderer) renderSkybox(clusters []*vis.ClusterLeaf, skybox *scene.Skybox) {
-	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
-	if skybox == nil || s.scene.currentLeaf == nil || s.scene.currentLeaf.Cluster == -1 {
-		return
-	}
-	var isVisible bool
-	for _, c := range clusters {
-		if c.SkyVisible {
-			isVisible = true
-			break
-		}
-	}
-	if !isVisible {
-		return
-	}
-
+func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 	skyboxTransform := skybox.SkyMeshTransform
 	skyboxTransform.Position = s.scene.camera.Transform().Position
 

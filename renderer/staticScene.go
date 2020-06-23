@@ -39,6 +39,9 @@ type StaticScene struct {
 
 	camera             *graphics3d.Camera
 	cameraPrevPosition mgl32.Vec3
+
+	skyboxClusterLeafs []*vis.ClusterLeaf
+	skyCamera 		   *graphics3d.Camera
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
@@ -66,13 +69,13 @@ func (scene *StaticScene) RecomputeVisibleClusters() {
 	scene.currentLeaf = currentLeaf
 	scene.LeafCache = scene.visData.GetPVSCacheForCluster(currentLeaf.Cluster)
 
-	scene.asyncRebuildVisibleWorld(scene.currentLeaf)
+	scene.visibleClusterLeafs = scene.asyncRebuildVisibleWorld(scene.currentLeaf)
 }
 
 // Launches rebuilding the visible world in a separate thread
 // Note: This *could* cause rendering issues if the rebuild is slower than
 // travelling between clusters
-func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
+func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) []*vis.ClusterLeaf {
 	visibleWorld := make([]*vis.ClusterLeaf, 0, 1024)
 
 	var visibleClusterIds []int16
@@ -92,7 +95,7 @@ func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) {
 		}
 	}
 
-	scene.visibleClusterLeafs = visibleWorld
+	return visibleWorld
 }
 
 func NewStaticSceneFromBsp(fs fileSystem,
@@ -157,10 +160,13 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				tex.Height())...)
 		// LightmapCoordsForFaceFromTexInfo
 		//level.Mesh().AddLightmapUV(
-		//	valve.LightmapCoordinatesFromAtlas(idx, ))
+		//	valve.LightmapCoordsForFaceFromTexInfo(
+		//		level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+		//		nil,
+		//		bspFace.TexInfo(),
+		//		tex.Width(),
+		//		tex.Height())...)
 
-		// valve.LightmapCoordsForFaceFromTexInfo()
-		//LightmapSamplesFromFace
 	}
 
 	level.Mesh().GenerateTangents()
@@ -209,15 +215,29 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
 	var worldspawn entity.IEntity
+	var skyCameraEntity entity.IEntity
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
-			break
+			continue
+		}
+		if e.Classname() == "sky_camera" {
+			skyCameraEntity = entities[idx]
+			continue
 		}
 	}
 	skybox := scene.LoadSkybox(fs, worldspawn)
+	var skyCamera *graphics3d.Camera
 
-	return &StaticScene{
+	if skyCameraEntity != nil {
+		skyCamera = graphics3d.NewCamera(level.Camera().Fov(), level.Camera().AspectRatio())
+		skyCamera.Transform().Position = skyCameraEntity.VectorForKey("origin")
+		scale :=  skyCameraEntity.FloatForKey("scale")
+		skyCamera.Transform().Scale = mgl32.Vec3{scale, scale, scale}
+	}
+
+
+	scene := &StaticScene{
 		bspMesh:            level.Mesh(),
 		gpuMesh:            graphics.UploadMesh(level.Mesh()),
 		bspFaces:           remappedFaces,
@@ -229,7 +249,16 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		visData:            visibility,
 		camera:             level.Camera(),
 		cameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
+		skyCamera: 			skyCamera,
 	}
+
+	// Generate Initial visibility data
+	scene.RecomputeVisibleClusters()
+	if skyCamera != nil {
+		scene.skyboxClusterLeafs = scene.asyncRebuildVisibleWorld(scene.visData.FindCurrentLeaf(skyCamera.Transform().Position))
+	}
+
+	return scene
 }
 
 func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf {

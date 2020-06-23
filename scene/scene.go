@@ -74,7 +74,7 @@ func (s *Scene) onKeyRelease(message interface{}) {
 }
 
 func (s *Scene) onMouseMove(message interface{}) {
-	if s.currentLevel == nil || s.currentLevel.Camera() == nil {
+	if s.currentLevel == nil || s.currentLevel.Camera() == nil || !s.listenToInput {
 		return
 	}
 	msg := message.(*messages.MouseMove)

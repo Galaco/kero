@@ -27,6 +27,10 @@ func Clear(mask uint32) {
 	gl.Clear(mask)
 }
 
+func ClearDepthBuffer() {
+	gl.Clear(gl.DEPTH_BUFFER_BIT)
+}
+
 func UploadTexture(texture Texture) uint32 {
 	return uint32(gosigl.CreateTexture2D(
 		gosigl.TextureSlot(0),
