@@ -17,6 +17,7 @@ type BasicMesh struct {
 	vertices []float32
 	normals  []float32
 	uvs      []float32
+	lightmapUVs []float32
 	tangents []float32
 	indices  []uint32
 }
@@ -34,6 +35,11 @@ func (mesh *BasicMesh) AddNormal(normal ...float32) {
 // AddUV
 func (mesh *BasicMesh) AddUV(uv ...float32) {
 	mesh.uvs = append(mesh.uvs, uv...)
+}
+
+// AddLightmapUV
+func (mesh *BasicMesh) AddLightmapUV(uv ...float32) {
+	mesh.lightmapUVs = append(mesh.lightmapUVs, uv...)
 }
 
 // AddTangent
@@ -59,6 +65,11 @@ func (mesh *BasicMesh) Normals() []float32 {
 // UVs
 func (mesh *BasicMesh) UVs() []float32 {
 	return mesh.uvs
+}
+
+// LightmapUVs
+func (mesh *BasicMesh) LightmapUVs() []float32 {
+	return mesh.lightmapUVs
 }
 
 // Tangents

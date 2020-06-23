@@ -14,6 +14,7 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/golang-source-engine/stringtable"
 	"math"
@@ -35,6 +36,7 @@ type bspstructs struct {
 	texInfos  []texinfo.TexInfo
 	dispInfos []dispinfo.DispInfo
 	dispVerts []dispvert.DispVert
+	lightmap   []common.ColorRGBExponent32
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -53,6 +55,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 		texInfos:  file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
 		dispInfos: file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
 		dispVerts: file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
+		lightmap:  file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
 	}
 
 	//MATERIALS
@@ -65,10 +68,11 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 
 	// BSP FACES
 	bspMesh := graphics.NewMesh()
-	//bspObject := model.NewBsp(bspMesh)
 	bspFaces := make([]BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
+
+	lightmapAtlas := GenerateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
 
 	for idx, f := range bspStructure.faces {
 		if f.DispInfo > -1 {
@@ -87,7 +91,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 		}
 	}
 
-	return NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos), nil
+	return NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
 }
 
 // SortUnique builds a unique list of materials in a StringTable
@@ -273,6 +277,39 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 	return uvs
 }
 
+func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas{
+	lightMapAtlas := graphics.NewTextureAtlas(8192, 8192)
+	textures := make([]*graphics.Texture2D, len(faces))
+
+	for idx,f := range faces {
+		textures[idx] = lightmapTextureFromFace(&f, samples)
+		lightMapAtlas.AddRaw(textures[idx].Width(), textures[idx].Height(), textures[idx].Image())
+	}
+
+	lightMapAtlas.Pack()
+
+	return lightMapAtlas
+}
+
+func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) *graphics.Texture2D {
+	sampleSize := int32(unsafe.Sizeof(samples[0]))
+	width := f.LightmapTextureSizeInLuxels[0] + 1
+	height := f.LightmapTextureSizeInLuxels[1] + 1
+	numLuxels :=  width * height
+	firstSampleIdx := f.Lightofs / sampleSize
+
+	raw := make([]uint8, (firstSampleIdx + numLuxels) * 3)
+
+	for idx,sample := range samples[firstSampleIdx:firstSampleIdx + numLuxels] {
+		raw[(idx * 3)] = sample.R
+		raw[(idx * 3) + 1] = sample.G
+		raw[(idx * 3) + 2] = sample.B
+	}
+
+	return graphics.NewTexture("__lightmap__", int(width), int(height), uint32(format.RGB888), raw)
+}
+
+
 // LightmapCoordsForFaceFromTexInfo create lightmap coordinates from TexInfo
 func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
 	//vert.lightCoord[0] = DotProduct (vec, MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[0].AsVector3D()) +
@@ -344,6 +381,8 @@ type Bsp struct {
 	StaticProps          []graphics.StaticProp
 
 	camera *graphics3d.Camera
+
+	lightmapAtlas *graphics.TextureAtlas
 }
 
 // BasicMesh
@@ -382,6 +421,10 @@ func (bsp *Bsp) File() *bsp.Bsp {
 	return bsp.file
 }
 
+func (bsp *Bsp) LightmapAtlas() *graphics.TextureAtlas {
+	return bsp.lightmapAtlas
+}
+
 // NewBsp
 func NewBsp(
 	file *bsp.Bsp,
@@ -389,7 +432,8 @@ func NewBsp(
 	faces []BspFace,
 	dispFaces []int,
 	materialDictionary map[string]*graphics.Material,
-	textureInfos []texinfo.TexInfo) *Bsp {
+	textureInfos []texinfo.TexInfo,
+	lightmapAtlas *graphics.TextureAtlas) *Bsp {
 	return &Bsp{
 		file:               file,
 		mesh:               mesh,
@@ -397,6 +441,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
+		lightmapAtlas:		lightmapAtlas,
 	}
 }
 

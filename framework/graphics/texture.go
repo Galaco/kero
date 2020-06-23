@@ -3,11 +3,17 @@ package graphics
 import (
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
-	"log"
 	"math"
 	"sort"
 	"strings"
 )
+
+type Texture interface {
+	Format() uint32
+	Width() int
+	Height() int
+	Image() []uint8
+}
 
 // Texture2D is a material defined by raw/computed colour data
 type Texture2D struct {
@@ -170,6 +176,29 @@ type TextureAtlas struct {
 	format        uint32
 }
 
+func (atlas *TextureAtlas) AtlasEntry(index int) *AtlasTexture {
+	if index > len(atlas.rectangles) {
+		return nil
+	}
+	return &atlas.rectangles[index]
+}
+
+func (atlas *TextureAtlas) Format() uint32 {
+	return uint32(format.RGB888)
+}
+
+func (atlas *TextureAtlas) Width() int {
+	return atlas.width
+}
+
+func (atlas *TextureAtlas) Height() int {
+	return atlas.height
+}
+
+func (atlas *TextureAtlas) Image() []uint8 {
+	return atlas.colour
+}
+
 func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTexture {
 	atlas.rectangles = append(atlas.rectangles, AtlasTexture{
 		W:      width,
@@ -183,6 +212,8 @@ func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTextu
 }
 
 func (atlas *TextureAtlas) Pack() {
+	// STEP 1: GENERATE PACKED POSITIONS
+
 	// calculate total box area and maximum box width
 	area := 0
 	maxWidth := 0
@@ -223,7 +254,7 @@ func (atlas *TextureAtlas) Pack() {
 			// |_______|       |
 			// |         space |
 			// |_______________|
-			packed = append(packed, AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y)})
+			packed = append(packed, AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour})
 
 			// Insert colour data here to skip some duplication
 
@@ -270,7 +301,28 @@ func (atlas *TextureAtlas) Pack() {
 			break
 		}
 	}
-	log.Println(packed)
+	// log.Println(packed)
+
+
+	// STEP 2: PACK TEXTURES
+	for _,rect := range packed {
+		atlas.writeBytes(&rect)
+	}
+}
+
+func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
+	bytesPerPixel := 3
+	// Skip rows, then indent into the start of the current row
+	start := ((atlas.width * bytesPerPixel) * int(rect.Y)) + (bytesPerPixel * int(rect.X))
+	for rowY := 0; rowY < rect.H; rowY++ {
+		for rowX := 0; rowX < rect.W; rowX++ {
+			atlas.colour[start + (rowX * bytesPerPixel) + 0] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 0]
+			atlas.colour[start + (rowX * bytesPerPixel) + 1] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 1]
+			atlas.colour[start + (rowX * bytesPerPixel) + 2] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 2]
+		}
+
+		start += (atlas.width * bytesPerPixel)
+	}
 }
 
 func NewTextureAtlas(width, height int) *TextureAtlas {

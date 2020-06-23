@@ -62,7 +62,7 @@ func (vis *Vis) cachePVSForCluster(clusterId int16) *Cluster {
 		if !vis.clusterVisible(&clusterList, l.Cluster) {
 			continue
 		}
-		if l.Flags()&leaf.LeafFlagsSky > 0 {
+		if skyVisible == false && l.Flags()&leaf.LeafFlagsSky > 0 {
 			skyVisible = true
 		}
 		leafs = append(leafs, uint16(idx))
@@ -109,14 +109,14 @@ func (vis *Vis) findCurrentLeafIndex(position mgl32.Vec3) int32 {
 
 	//walk the bsp to find the index of the leaf which contains our position
 	for i >= 0 {
-		node := &vis.Nodes[i]
-		plane := vis.Planes[node.PlaneNum]
+		plane := vis.Planes[vis.Nodes[i].PlaneNum]
 
 		//check which side of the plane the position is on so we know which direction to go
 		distance := plane.Normal.X()*position.X() + plane.Normal.Y()*position.Y() + plane.Normal.Z()*position.Z() - plane.Distance
-		i = node.Children[0]
 		if distance < 0 {
-			i = node.Children[1]
+			i = vis.Nodes[i].Children[1]
+		} else {
+			i = vis.Nodes[i].Children[0]
 		}
 	}
 

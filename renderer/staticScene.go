@@ -105,8 +105,11 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
+	texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
+	gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadTexture(texCache.Find(cache.LightmapTexturePath)))
+
 	// load materials
-	var tex *graphics.Texture2D
+	var tex graphics.Texture
 	var err error
 	for _, mat := range level.MaterialDictionary() {
 		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
@@ -132,6 +135,8 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	// finish bsp mesh
 	// Add MATERIALS TO FACES
 	tex = nil
+	//unRemapX := float32(1 / level.LightmapAtlas().Width())
+	//unRemapY := float32(1 / level.LightmapAtlas().Height())
 	for _, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
@@ -151,6 +156,8 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				tex.Width(),
 				tex.Height())...)
 		// LightmapCoordsForFaceFromTexInfo
+		//level.Mesh().AddLightmapUV(
+		//	valve.LightmapCoordinatesFromAtlas(idx, ))
 
 		// valve.LightmapCoordsForFaceFromTexInfo()
 		//LightmapSamplesFromFace
@@ -161,9 +168,6 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	remappedFaces := make([]valve.BspFace, 0, 1024)
 	// Kero isnt interested in tools faces (for now)
 	for idx := range level.Faces() {
-		//if strings.HasPrefix(strings.ToLower(bspFace.Material()), "tools") {
-		//	continue
-		//}
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
 

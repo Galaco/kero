@@ -27,7 +27,7 @@ func Clear(mask uint32) {
 	gl.Clear(mask)
 }
 
-func UploadTexture(texture *Texture2D) uint32 {
+func UploadTexture(texture Texture) uint32 {
 	return uint32(gosigl.CreateTexture2D(
 		gosigl.TextureSlot(0),
 		texture.Width(),
@@ -37,7 +37,7 @@ func UploadTexture(texture *Texture2D) uint32 {
 		false))
 }
 
-func UploadCubemap(textures []*Texture2D) uint32 {
+func UploadCubemap(textures []Texture) uint32 {
 	colour := [6][]byte{
 		textures[0].Image(),
 		textures[1].Image(),
@@ -100,7 +100,7 @@ func UploadMesh(mesh Mesh) GpuMesh {
 
 	gosigl.FinishMesh()
 
-	return GpuMesh(gpuResource)
+	return gpuResource
 }
 
 func DrawArray(offset int, num int) {

@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-const cameraSpeed = float64(320)
+const cameraSpeed = float64(320) * 2
 const sensitivity = float32(0.03)
 
 var minVerticalRotation = mgl32.DegToRad(90)
@@ -103,7 +103,7 @@ func (camera *Camera) ViewMatrix() mgl32.Mat4 {
 // ProjectionMatrix calculates projection matrix.
 // This is unlikely to change throughout program lifetime, but could do
 func (camera *Camera) ProjectionMatrix() mgl32.Mat4 {
-	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.1, 16384)
+	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.2, 16384)
 }
 
 // NewCamera returns a new camera
