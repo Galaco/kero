@@ -303,9 +303,8 @@ func (atlas *TextureAtlas) Pack() {
 	}
 	// log.Println(packed)
 
-
 	// STEP 2: PACK TEXTURES
-	for _,rect := range packed {
+	for _, rect := range packed {
 		atlas.writeBytes(&rect)
 	}
 }
@@ -316,9 +315,9 @@ func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
 	start := ((atlas.width * bytesPerPixel) * int(rect.Y)) + (bytesPerPixel * int(rect.X))
 	for rowY := 0; rowY < rect.H; rowY++ {
 		for rowX := 0; rowX < rect.W; rowX++ {
-			atlas.colour[start + (rowX * bytesPerPixel) + 0] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 0]
-			atlas.colour[start + (rowX * bytesPerPixel) + 1] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 1]
-			atlas.colour[start + (rowX * bytesPerPixel) + 2] = rect.colour[(rowY * bytesPerPixel * rect.W) + (rowX * bytesPerPixel) + 2]
+			atlas.colour[start+(rowX*bytesPerPixel)+0] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+0]
+			atlas.colour[start+(rowX*bytesPerPixel)+1] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+1]
+			atlas.colour[start+(rowX*bytesPerPixel)+2] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+2]
 		}
 
 		start += (atlas.width * bytesPerPixel)

@@ -41,7 +41,7 @@ type StaticScene struct {
 	cameraPrevPosition mgl32.Vec3
 
 	skyboxClusterLeafs []*vis.ClusterLeaf
-	skyCamera 		   *graphics3d.Camera
+	skyCamera          *graphics3d.Camera
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
@@ -232,10 +232,9 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	if skyCameraEntity != nil {
 		skyCamera = graphics3d.NewCamera(level.Camera().Fov(), level.Camera().AspectRatio())
 		skyCamera.Transform().Position = skyCameraEntity.VectorForKey("origin")
-		scale :=  skyCameraEntity.FloatForKey("scale")
+		scale := skyCameraEntity.FloatForKey("scale")
 		skyCamera.Transform().Scale = mgl32.Vec3{scale, scale, scale}
 	}
-
 
 	scene := &StaticScene{
 		bspMesh:            level.Mesh(),
@@ -249,7 +248,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		visData:            visibility,
 		camera:             level.Camera(),
 		cameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
-		skyCamera: 			skyCamera,
+		skyCamera:          skyCamera,
 	}
 
 	// Generate Initial visibility data

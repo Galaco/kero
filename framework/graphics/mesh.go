@@ -14,12 +14,12 @@ type Mesh interface {
 
 // BasicMesh
 type BasicMesh struct {
-	vertices []float32
-	normals  []float32
-	uvs      []float32
+	vertices    []float32
+	normals     []float32
+	uvs         []float32
 	lightmapUVs []float32
-	tangents []float32
-	indices  []uint32
+	tangents    []float32
+	indices     []uint32
 }
 
 // AddVertex

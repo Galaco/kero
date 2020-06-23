@@ -24,7 +24,7 @@ type Gui struct {
 
 func (s *Gui) Initialize() {
 	console.AddOutputPipe(func(level console.LogLevel, message interface{}) {
-		s.menuView.Console.AddMessage(message.(string))
+		s.menuView.Console.AddMessage(level, message.(string))
 	})
 
 	s.uiContext = context.NewContext(window.CurrentWindow())

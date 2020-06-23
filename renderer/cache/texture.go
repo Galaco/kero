@@ -3,7 +3,7 @@ package cache
 import "github.com/galaco/kero/framework/graphics"
 
 const (
-	ErrorTexturePath = "materials/error.vtf"
+	ErrorTexturePath    = "materials/error.vtf"
 	LightmapTexturePath = "__lightmap__"
 )
 

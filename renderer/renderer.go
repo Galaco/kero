@@ -77,8 +77,6 @@ func (s *Renderer) Render() {
 		}
 	}
 
-
-
 	// Draw world
 	s.startFrame(s.scene.camera)
 	s.renderBsp(s.scene.camera, clusters)

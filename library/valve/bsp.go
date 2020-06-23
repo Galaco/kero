@@ -36,7 +36,7 @@ type bspstructs struct {
 	texInfos  []texinfo.TexInfo
 	dispInfos []dispinfo.DispInfo
 	dispVerts []dispvert.DispVert
-	lightmap   []common.ColorRGBExponent32
+	lightmap  []common.ColorRGBExponent32
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -259,29 +259,29 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 
 // TexCoordsForFaceFromTexInfo Generate texturecoordinates for face data
 func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width int, height int) []float32 {
-	uvs := make([]float32, (len(vertexes) / 3) * 2)
-	for idx := 0; idx < len(vertexes) / 3; idx ++ {
+	uvs := make([]float32, (len(vertexes)/3)*2)
+	for idx := 0; idx < len(vertexes)/3; idx++ {
 		//u = tv0,0 * x + tv0,1 * y + tv0,2 * z + tv0,3
-		uvs[idx * 2] = ((tx.TextureVecsTexelsPerWorldUnits[0][0] * vertexes[(idx * 3)]) +
-			(tx.TextureVecsTexelsPerWorldUnits[0][1] * vertexes[(idx * 3)+1]) +
-			(tx.TextureVecsTexelsPerWorldUnits[0][2] * vertexes[(idx * 3)+2]) +
+		uvs[idx*2] = ((tx.TextureVecsTexelsPerWorldUnits[0][0] * vertexes[(idx*3)]) +
+			(tx.TextureVecsTexelsPerWorldUnits[0][1] * vertexes[(idx*3)+1]) +
+			(tx.TextureVecsTexelsPerWorldUnits[0][2] * vertexes[(idx*3)+2]) +
 			tx.TextureVecsTexelsPerWorldUnits[0][3]) / float32(width)
 
 		//v = tv1,0 * x + tv1,1 * y + tv1,2 * z + tv1,3
-		uvs[(idx * 2) + 1] = ((tx.TextureVecsTexelsPerWorldUnits[1][0] * vertexes[(idx * 3)]) +
-			(tx.TextureVecsTexelsPerWorldUnits[1][1] * vertexes[(idx * 3)+1]) +
-			(tx.TextureVecsTexelsPerWorldUnits[1][2] * vertexes[(idx * 3)+2]) +
+		uvs[(idx*2)+1] = ((tx.TextureVecsTexelsPerWorldUnits[1][0] * vertexes[(idx*3)]) +
+			(tx.TextureVecsTexelsPerWorldUnits[1][1] * vertexes[(idx*3)+1]) +
+			(tx.TextureVecsTexelsPerWorldUnits[1][2] * vertexes[(idx*3)+2]) +
 			tx.TextureVecsTexelsPerWorldUnits[1][3]) / float32(height)
 	}
 
 	return uvs
 }
 
-func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas{
+func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
 	lightMapAtlas := graphics.NewTextureAtlas(8192, 8192)
 	textures := make([]*graphics.Texture2D, len(faces))
 
-	for idx,f := range faces {
+	for idx, f := range faces {
 		textures[idx] = lightmapTextureFromFace(&f, samples)
 		lightMapAtlas.AddRaw(textures[idx].Width(), textures[idx].Height(), textures[idx].Image())
 	}
@@ -295,20 +295,19 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 	sampleSize := int32(unsafe.Sizeof(samples[0]))
 	width := f.LightmapTextureSizeInLuxels[0] + 1
 	height := f.LightmapTextureSizeInLuxels[1] + 1
-	numLuxels :=  width * height
+	numLuxels := width * height
 	firstSampleIdx := f.Lightofs / sampleSize
 
-	raw := make([]uint8, (firstSampleIdx + numLuxels) * 3)
+	raw := make([]uint8, (firstSampleIdx+numLuxels)*3)
 
-	for idx,sample := range samples[firstSampleIdx:firstSampleIdx + numLuxels] {
+	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
 		raw[(idx * 3)] = sample.R
-		raw[(idx * 3) + 1] = sample.G
-		raw[(idx * 3) + 2] = sample.B
+		raw[(idx*3)+1] = sample.G
+		raw[(idx*3)+2] = sample.B
 	}
 
 	return graphics.NewTexture("__lightmap__", int(width), int(height), uint32(format.RGB888), raw)
 }
-
 
 // LightmapCoordsForFaceFromTexInfo create lightmap coordinates from TexInfo
 func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
@@ -441,7 +440,7 @@ func NewBsp(
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,
 		textureInfos:       textureInfos,
-		lightmapAtlas:		lightmapAtlas,
+		lightmapAtlas:      lightmapAtlas,
 	}
 }
 
