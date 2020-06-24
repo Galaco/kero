@@ -19,6 +19,8 @@ github.com/galaco/source-tools-common v0.1.0 h1:NHhsoSKL42dfFKnfRI2D/3um0tbNLVP2
 github.com/galaco/source-tools-common v0.1.0/go.mod h1:+TApRVomBN759va2qrv5GaLuCaK2AWxR0tn9oc2U73Q=
 github.com/galaco/studiomodel v0.1.2 h1:y9aPGiL64hP1TEdWn2n3JaeZDFGUMet5dzmXPva15ds=
 github.com/galaco/studiomodel v0.1.2/go.mod h1:8bzTjcsmb1OsLLaf2ES60avF9WfAaZtVGKUw/IXe14c=
+github.com/galaco/studiomodel v0.1.3 h1:WgSebTokH7uKXoEqbxZp2+TW5lzjZeLtx84yHOtN4lw=
+github.com/galaco/studiomodel v0.1.3/go.mod h1:8bzTjcsmb1OsLLaf2ES60avF9WfAaZtVGKUw/IXe14c=
 github.com/galaco/tinygametools v0.1.1 h1:s65gIex1OQpWERPD1FdtZsaMXtf/D3J84eYN1RJE/Z4=
 github.com/galaco/tinygametools v0.1.1/go.mod h1:odt4iPoOUUb0Es074CVcukYLC80qyieSvdOcazcgSH8=
 github.com/galaco/vmf v0.0.0-20180309175744-7a9ccb6e8abb/go.mod h1:+hpnZQBHJ5xrERgGMr6f/KO0ZkxEkrvjqr3RI9aNHes=
