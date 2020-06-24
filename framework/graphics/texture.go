@@ -1,6 +1,8 @@
 package graphics
 
 import (
+	"fmt"
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
 	"math"
@@ -68,7 +70,7 @@ func NewErrorTexture(name string) *Texture2D {
 		name,
 		8,
 		8,
-		uint32(format.RGB888),
+		textureFormatFromVtfFormat(uint32(format.RGB888)),
 		[]uint8{
 			255, 0, 255,
 			255, 0, 255,
@@ -174,6 +176,7 @@ type TextureAtlas struct {
 	width, height int
 	colour        []uint8
 	format        uint32
+	bytesPerPixel int
 }
 
 func (atlas *TextureAtlas) AtlasEntry(index int) *AtlasTexture {
@@ -184,7 +187,7 @@ func (atlas *TextureAtlas) AtlasEntry(index int) *AtlasTexture {
 }
 
 func (atlas *TextureAtlas) Format() uint32 {
-	return uint32(format.RGB888)
+	return atlas.format
 }
 
 func (atlas *TextureAtlas) Width() int {
@@ -218,6 +221,9 @@ func (atlas *TextureAtlas) Pack() {
 	area := 0
 	maxWidth := 0
 
+	maxX := 0
+	maxY := 0
+
 	for _, box := range atlas.rectangles {
 		area += box.W * box.H
 		maxWidth = int(math.Max(float64(maxWidth), float64(box.W)))
@@ -236,12 +242,13 @@ func (atlas *TextureAtlas) Pack() {
 	spaces := []atlasSpace{
 		{x: 0, y: 0, w: int(startWidth), h: 99999999},
 	}
-	packed := make([]AtlasTexture, 0)
+	packed := make([]AtlasTexture, len(atlas.rectangles))
 
-	for _, box := range atlas.rectangles {
+	badCounter := 0
+	for idx, box := range atlas.rectangles {
 		// look through spaces backwards so that we check smaller spaces first
 		for i := len(spaces) - 1; i >= 0; i-- {
-			space := spaces[i]
+			space := &(spaces[i])
 
 			// look for empty spaces that can accommodate the current box
 			if box.W > space.w || box.H > space.h {
@@ -254,8 +261,12 @@ func (atlas *TextureAtlas) Pack() {
 			// |_______|       |
 			// |         space |
 			// |_______________|
-			packed = append(packed, AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour})
-
+			if space.x == 0 && space.y == 0 {
+				badCounter++
+			}
+			packed[idx] = AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour}
+			maxX = int(math.Max(float64(maxX), float64(packed[idx].X + float32(packed[idx].W))))
+			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y + float32(packed[idx].H))))
 			// Insert colour data here to skip some duplication
 
 			if int(box.W) == space.w && int(box.H) == space.h {
@@ -301,26 +312,32 @@ func (atlas *TextureAtlas) Pack() {
 			break
 		}
 	}
-	// log.Println(packed)
+
+	atlas.width = int(math.Pow(2, math.Ceil(math.Log(float64(maxX))/math.Log(2))))
+	atlas.height = int(math.Pow(2, math.Ceil(math.Log(float64(maxY))/math.Log(2))))
+	atlas.colour = make([]uint8, atlas.width*atlas.height*atlas.bytesPerPixel)
 
 	// STEP 2: PACK TEXTURES
 	for _, rect := range packed {
 		atlas.writeBytes(&rect)
 	}
+
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", atlas.width, atlas.height))
 }
 
 func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
-	bytesPerPixel := 3
 	// Skip rows, then indent into the start of the current row
-	start := ((atlas.width * bytesPerPixel) * int(rect.Y)) + (bytesPerPixel * int(rect.X))
+	rowSizeInBytes := atlas.width * atlas.bytesPerPixel
+
+	start := (rowSizeInBytes * int(rect.Y)) + (atlas.bytesPerPixel * int(rect.X)) // Number of rows in + number of bytes across
 	for rowY := 0; rowY < rect.H; rowY++ {
 		for rowX := 0; rowX < rect.W; rowX++ {
-			atlas.colour[start+(rowX*bytesPerPixel)+0] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+0]
-			atlas.colour[start+(rowX*bytesPerPixel)+1] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+1]
-			atlas.colour[start+(rowX*bytesPerPixel)+2] = rect.colour[(rowY*bytesPerPixel*rect.W)+(rowX*bytesPerPixel)+2]
+			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 0] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 0]
+			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 1] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 1]
+			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 2] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 2]
 		}
 
-		start += (atlas.width * bytesPerPixel)
+		start += rowSizeInBytes
 	}
 }
 
@@ -329,8 +346,8 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 		width:      width,
 		height:     height,
 		rectangles: []AtlasTexture{},
-		colour:     make([]uint8, width*height*3),
-		format:     uint32(format.RGB888),
+		format:     textureFormatFromVtfFormat(uint32(format.RGB888)),
+		bytesPerPixel: 3,
 	}
 }
 
