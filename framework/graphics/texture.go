@@ -265,8 +265,8 @@ func (atlas *TextureAtlas) Pack() {
 				badCounter++
 			}
 			packed[idx] = AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour}
-			maxX = int(math.Max(float64(maxX), float64(packed[idx].X + float32(packed[idx].W))))
-			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y + float32(packed[idx].H))))
+			maxX = int(math.Max(float64(maxX), float64(packed[idx].X+float32(packed[idx].W))))
+			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y+float32(packed[idx].H))))
 			// Insert colour data here to skip some duplication
 
 			if int(box.W) == space.w && int(box.H) == space.h {
@@ -332,9 +332,9 @@ func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
 	start := (rowSizeInBytes * int(rect.Y)) + (atlas.bytesPerPixel * int(rect.X)) // Number of rows in + number of bytes across
 	for rowY := 0; rowY < rect.H; rowY++ {
 		for rowX := 0; rowX < rect.W; rowX++ {
-			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 0] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 0]
-			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 1] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 1]
-			atlas.colour[start + (rowX * atlas.bytesPerPixel) + 2] = rect.colour[(rowY * 3 * rect.W) + (rowX * 3) + 2]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+0] = rect.colour[(rowY*3*rect.W)+(rowX*3)+0]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+1] = rect.colour[(rowY*3*rect.W)+(rowX*3)+1]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+2] = rect.colour[(rowY*3*rect.W)+(rowX*3)+2]
 		}
 
 		start += rowSizeInBytes
@@ -343,10 +343,10 @@ func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
 
 func NewTextureAtlas(width, height int) *TextureAtlas {
 	return &TextureAtlas{
-		width:      width,
-		height:     height,
-		rectangles: []AtlasTexture{},
-		format:     textureFormatFromVtfFormat(uint32(format.RGB888)),
+		width:         width,
+		height:        height,
+		rectangles:    []AtlasTexture{},
+		format:        textureFormatFromVtfFormat(uint32(format.RGB888)),
 		bytesPerPixel: 3,
 	}
 }

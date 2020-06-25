@@ -7,12 +7,12 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/renderer/vis"
+	"github.com/galaco/kero/utils/valve"
 	"math"
 )
 
@@ -157,6 +157,7 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspF
 	}
 	graphics.UpdateIndexArrayBuffer(indices)
 	graphics.BindTexture(mat.Diffuse)
+	// graphics.BindTexture(s.gpuItemCache.Find(cache.LightmapTexturePath))
 	graphics.DrawIndexedArray(len(indices), 0, nil)
 	if err := graphics.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())

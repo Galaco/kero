@@ -8,8 +8,8 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/galaco/kero/framework/window"
-	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/messages"
+	"github.com/galaco/kero/utils/valve"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -45,7 +45,7 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity
 	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStaticPropsLoaded))
 
 	// Load entities
-	ents, err := valve.LoadEntdata(fs, file)
+	ents, err := entity.LoadEntdata(fs, file)
 	if err != nil {
 		return nil, nil, err
 	}

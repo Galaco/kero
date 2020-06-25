@@ -1,16 +1,22 @@
-package valve
+package entity
 
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/kero/framework/entity"
-	"github.com/galaco/kero/framework/filesystem"
 	entityLib "github.com/galaco/source-tools-common/entity"
 	"github.com/galaco/vmf"
+	"io"
 	"strings"
 )
 
-func LoadEntdata(fs filesystem.FileSystem, file *bsp.Bsp) ([]entity.IEntity, error) {
+type filesystem interface {
+	// GetFile searches for a file path
+	GetFile(string) (io.Reader, error)
+	// RegisterPakFile adds a bsp pakfile to the filesystem search paths
+	RegisterPakFile(pakFile *lumps.Pakfile)
+}
+
+func LoadEntdata(fs filesystem, file *bsp.Bsp) ([]IEntity, error) {
 	entdata := file.Lump(bsp.LumpEntities).(*lumps.EntData)
 	vmfEntityTree, err := parseEntdata(entdata.GetData())
 	if err != nil {
@@ -30,14 +36,14 @@ func parseEntdata(data string) (vmf.Vmf, error) {
 	return reader.Read()
 }
 
-func fromVmfNodeTree(entityNodes vmf.Node) []entity.IEntity {
+func fromVmfNodeTree(entityNodes vmf.Node) []IEntity {
 	numEntities := len(*entityNodes.GetAllValues())
 
-	entities := make([]entity.IEntity, numEntities)
+	entities := make([]IEntity, numEntities)
 	entitiesList := entityLib.FromVmfNodeTree(entityNodes)
 
 	for i := 0; i < entitiesList.Length(); i++ {
-		entities[i] = entity.NewEntityBaseFromLib(*entitiesList.Get(i))
+		entities[i] = NewEntityBaseFromLib(*entitiesList.Get(i))
 	}
 
 	return entities

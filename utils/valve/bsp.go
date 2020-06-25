@@ -180,7 +180,7 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.B
 		}
 	}
 
-	return NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo])
+	return NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
 }
 
 // generateDisplacementFace Create Primitive from Displacement face
@@ -235,7 +235,7 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *g
 		}
 	}
 
-	return NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo])
+	return NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
 }
 
 // generateDispVert Create a displacement vertex
@@ -278,7 +278,7 @@ func TexCoordsForFaceFromTexInfo(vertexes []float32, tx *texinfo.TexInfo, width 
 }
 
 func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
-	lightMapAtlas := graphics.NewTextureAtlas(8192, 8192)
+	lightMapAtlas := graphics.NewTextureAtlas(0, 0)
 	textures := make([]*graphics.Texture2D, len(faces))
 
 	for idx, f := range faces {
@@ -292,25 +292,25 @@ func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponen
 }
 
 func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) *graphics.Texture2D {
-	sampleSize := int32(unsafe.Sizeof(samples[0]))
 	width := f.LightmapTextureSizeInLuxels[0] + 1
 	height := f.LightmapTextureSizeInLuxels[1] + 1
 	numLuxels := width * height
-	firstSampleIdx := f.Lightofs / sampleSize
+	firstSampleIdx := f.Lightofs / 4 // 4= size of ColorRGBExponent32
 
-	raw := make([]uint8, (firstSampleIdx+numLuxels)*3)
+	raw := make([]uint8, (numLuxels)*3)
 
+	// @TODO This doesnt use the exponent yet
 	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
 		raw[(idx * 3)] = sample.R
 		raw[(idx*3)+1] = sample.G
 		raw[(idx*3)+2] = sample.B
 	}
 
-	return graphics.NewTexture("__lightmap__", int(width), int(height), uint32(format.RGB888), raw)
+	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGB888), raw)
 }
 
 // LightmapCoordsForFaceFromTexInfo create lightmap coordinates from TexInfo
-func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, tx *texinfo.TexInfo, width int, height int) (uvs []float32) {
+func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, tx *texinfo.TexInfo, width int, height int) []float32 {
 	//vert.lightCoord[0] = DotProduct (vec, MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[0].AsVector3D()) +
 	//	MSurf_TexInfo( surfID )->lightmapVecsLuxelsPerWorldUnits[0][3];
 	//vert.lightCoord[0] -= MSurf_LightmapMins( surfID )[0];
@@ -326,31 +326,22 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32, faceInfo *face.Face, t
 	//vert.lightCoord[0] = sOffset + vert.lightCoord[0] * sScale;
 	//vert.lightCoord[1] = tOffset + vert.lightCoord[1] * tScale;
 
-	for idx := 0; idx < len(vertexes); idx += 3 {
-		u := (mgl32.Vec3{vertexes[idx], vertexes[idx+1], vertexes[idx+2]}).Dot(
+	uvs := make([]float32, (len(vertexes)/3)*2)
+
+	for idx := 0; idx < len(vertexes)/3; idx++ {
+		uvs[idx*2] = ((mgl32.Vec3{vertexes[(idx * 3)], vertexes[(idx*3)+1], vertexes[(idx*3)+2]}).Dot(
 			mgl32.Vec3{
 				tx.LightmapVecsLuxelsPerWorldUnits[0][0],
 				tx.LightmapVecsLuxelsPerWorldUnits[0][1],
 				tx.LightmapVecsLuxelsPerWorldUnits[0][2],
-			}) + tx.LightmapVecsLuxelsPerWorldUnits[0][3]
-		v := (mgl32.Vec3{vertexes[idx], vertexes[idx+1], vertexes[idx+2]}).Dot(
+			})+tx.LightmapVecsLuxelsPerWorldUnits[0][3]-float32(faceInfo.LightmapTextureMinsInLuxels[0]))/float32(faceInfo.LightmapTextureSizeInLuxels[0]) + 1
+
+		uvs[(idx*2)+1] = ((mgl32.Vec3{vertexes[(idx * 3)], vertexes[(idx*3)+1], vertexes[(idx*3)+2]}).Dot(
 			mgl32.Vec3{
 				tx.LightmapVecsLuxelsPerWorldUnits[1][0],
 				tx.LightmapVecsLuxelsPerWorldUnits[1][1],
 				tx.LightmapVecsLuxelsPerWorldUnits[1][2],
-			}) + tx.LightmapVecsLuxelsPerWorldUnits[1][3]
-
-		u -= float32(faceInfo.LightmapTextureMinsInLuxels[0]) - .5
-		v -= float32(faceInfo.LightmapTextureMinsInLuxels[1]) - .5
-		u /= float32(faceInfo.LightmapTextureSizeInLuxels[0]) + 1
-		v /= float32(faceInfo.LightmapTextureSizeInLuxels[1]) + 1
-
-		//u *= float32(width) // lightmapRect.width
-		//v *= float32(height) //lightmapRect.height
-		//u += lightmapRect.x
-		//v += lightmapRect.y
-
-		uvs = append(uvs, u, v)
+			})+tx.LightmapVecsLuxelsPerWorldUnits[1][3]-float32(faceInfo.LightmapTextureMinsInLuxels[1]))/float32(faceInfo.LightmapTextureSizeInLuxels[1]) + 1
 	}
 
 	return uvs
@@ -450,6 +441,7 @@ type BspFace struct {
 	length   int
 	material string
 	texInfo  *texinfo.TexInfo
+	bspFace  *face.Face
 }
 
 // Offset
@@ -474,11 +466,16 @@ func (face *BspFace) TexInfo() *texinfo.TexInfo {
 	return face.texInfo
 }
 
+func (face *BspFace) RawFace() *face.Face {
+	return face.bspFace
+}
+
 // NewFace
-func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo) BspFace {
+func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *face.Face) BspFace {
 	return BspFace{
 		offset:  int(offset),
 		length:  int(length),
 		texInfo: texInfo,
+		bspFace: bspFace,
 	}
 }

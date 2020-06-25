@@ -25,7 +25,11 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 
 	// Load Prop data
 	propDictionary := asyncLoadProps(fs, propPaths)
-	console.PrintString(console.LevelInfo, fmt.Sprintf("%d staticprops loaded", len(propDictionary)))
+	console.PrintString(console.LevelSuccess, fmt.Sprintf("%d staticprops loaded", len(propDictionary)))
+
+	if len(propDictionary) != len(propPaths) {
+		console.PrintString(console.LevelError, fmt.Sprintf("%d staticprops could not be loaded", len(propPaths)-len(propDictionary)))
+	}
 
 	//Transform to props to
 	staticPropList := make([]graphics.StaticProp, 0)
@@ -75,6 +79,7 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 		prop, err := studiomodel.LoadProp(path, fs)
 		if err != nil {
 			waitGroup.Done()
+			console.PrintString(console.LevelError, fmt.Sprintf("Error loading prop '%s': %s", path, err.Error()))
 			return
 		}
 		propMapMutex.Lock()

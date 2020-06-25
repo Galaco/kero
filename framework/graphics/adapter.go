@@ -169,6 +169,14 @@ func DisableDepthTesting() {
 	gosigl.DisableDepthTest()
 }
 
+func EnableZBufferWrite() {
+	gl.DepthMask(true)
+}
+
+func DisableZBufferWrite() {
+	gl.DepthMask(false)
+}
+
 func EnableBackFaceCulling() {
 	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
 }

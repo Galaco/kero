@@ -8,7 +8,7 @@ import (
 
 type consoleMessage struct {
 	Color imgui.Vec4
-	Text *gui.Text
+	Text  *gui.Text
 }
 
 func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage {
@@ -31,7 +31,7 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 
 	return consoleMessage{
 		Color: color,
-		Text: gui.NewText(message),
+		Text:  gui.NewText(message),
 	}
 }
 

@@ -2,7 +2,7 @@ package vis
 
 import (
 	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/library/valve"
+	"github.com/galaco/kero/utils/valve"
 	"github.com/go-gl/mathgl/mgl32"
 )
 

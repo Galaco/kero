@@ -7,10 +7,10 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/library/valve"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/vis"
+	"github.com/galaco/kero/utils/valve"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
 	"strings"
@@ -53,6 +53,10 @@ func (scene *StaticScene) RecomputeVisibleClusters() {
 	scene.cameraPrevPosition = scene.camera.Transform().Position
 	// View hasn't moved
 	currentLeaf := scene.visData.FindCurrentLeaf(scene.camera.Transform().Position)
+
+	if scene.currentLeaf == currentLeaf {
+		return
+	}
 
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
 		scene.currentLeaf = currentLeaf
@@ -110,6 +114,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 	texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
 	gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadTexture(texCache.Find(cache.LightmapTexturePath)))
+	// utilities.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
 
 	// load materials
 	var tex graphics.Texture
@@ -159,20 +164,19 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				tex.Width(),
 				tex.Height())...)
 		// LightmapCoordsForFaceFromTexInfo
-		//level.Mesh().AddLightmapUV(
-		//	valve.LightmapCoordsForFaceFromTexInfo(
-		//		level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
-		//		nil,
-		//		bspFace.TexInfo(),
-		//		tex.Width(),
-		//		tex.Height())...)
-
+		level.Mesh().AddLightmapUV(
+			valve.LightmapCoordsForFaceFromTexInfo(
+				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+				bspFace.RawFace(),
+				bspFace.TexInfo(),
+				level.LightmapAtlas().Width(),
+				level.LightmapAtlas().Height())...)
 	}
 
 	level.Mesh().GenerateTangents()
 
 	remappedFaces := make([]valve.BspFace, 0, 1024)
-	// Kero isnt interested in tools faces (for now)
+	// Kero isn't interested in tools faces (for now)
 	for idx := range level.Faces() {
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
@@ -216,6 +220,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 	var worldspawn entity.IEntity
 	var skyCameraEntity entity.IEntity
+	var infoPlayerStart entity.IEntity
 	for idx, e := range entities {
 		if e.Classname() == "worldspawn" {
 			worldspawn = entities[idx]
@@ -223,6 +228,10 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		}
 		if e.Classname() == "sky_camera" {
 			skyCameraEntity = entities[idx]
+			continue
+		}
+		if e.Classname() == "info_player_start" {
+			infoPlayerStart = entities[idx]
 			continue
 		}
 	}
@@ -234,6 +243,10 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		skyCamera.Transform().Position = skyCameraEntity.VectorForKey("origin")
 		scale := skyCameraEntity.FloatForKey("scale")
 		skyCamera.Transform().Scale = mgl32.Vec3{scale, scale, scale}
+	}
+	if infoPlayerStart != nil {
+		level.Camera().Transform().Position = infoPlayerStart.VectorForKey("origin")
+		level.Camera().Transform().Rotation = infoPlayerStart.VectorForKey("angles")
 	}
 
 	scene := &StaticScene{
