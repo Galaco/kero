@@ -382,26 +382,6 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 	}
 
 	return uvs
-
-	/**
-		lpLmpCoord.x:=lpVertex.X*lpTexInfo.Lmp.SX + lpVertex.Y*lpTexInfo.Lmp.SY +
-	    	lpVertex.Z*lpTexInfo.Lmp.SZ + lpTexInfo.Lmp.OffsetS;
-	  	lpLmpCoord.y:=lpVertex.X*lpTexInfo.Lmp.TX + lpVertex.Y*lpTexInfo.Lmp.TY +
-	    	lpVertex.Z*lpTexInfo.Lmp.TZ + lpTexInfo.Lmp.OffsetT;
-
-		// Coorection Ligtmap Coord offset
-	  lpFaceInfo.TexInfo.Lmp.OffsetS:=lpFaceInfo.TexInfo.Lmp.OffsetS - lpFace.LmpMinS;
-	  lpFaceInfo.TexInfo.Lmp.OffsetT:=lpFaceInfo.TexInfo.Lmp.OffsetT - lpFace.LmpMinT;
-	  // Scale Lightmap info By Height and Width;
-	  lpFaceInfo.TexInfo.Lmp.SX:=(lpFaceInfo.TexInfo.Lmp.SX)/(lpFace.LmpWidth + 1);
-	  lpFaceInfo.TexInfo.Lmp.SY:=(lpFaceInfo.TexInfo.Lmp.SY)/(lpFace.LmpWidth + 1);
-	  lpFaceInfo.TexInfo.Lmp.SZ:=(lpFaceInfo.TexInfo.Lmp.SZ)/(lpFace.LmpWidth + 1);
-	  lpFaceInfo.TexInfo.Lmp.OffsetS:=(lpFaceInfo.TexInfo.Lmp.OffsetS)/(lpFace.LmpWidth + 1);
-	  lpFaceInfo.TexInfo.Lmp.TX:=(lpFaceInfo.TexInfo.Lmp.TX)/(lpFace.LmpHeight + 1);
-	  lpFaceInfo.TexInfo.Lmp.TY:=(lpFaceInfo.TexInfo.Lmp.TY)/(lpFace.LmpHeight + 1);
-	  lpFaceInfo.TexInfo.Lmp.TZ:=(lpFaceInfo.TexInfo.Lmp.TZ)/(lpFace.LmpHeight + 1);
-	  lpFaceInfo.TexInfo.Lmp.OffsetT:=(lpFaceInfo.TexInfo.Lmp.OffsetT)/(lpFace.LmpHeight + 1);
-	*/
 }
 
 // Bsp

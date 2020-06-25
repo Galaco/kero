@@ -213,6 +213,7 @@ func (atlas *TextureAtlas) Image() []uint8 {
 
 func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTexture {
 	atlas.rectangles = append(atlas.rectangles, AtlasTexture{
+		id:     len(atlas.rectangles),
 		W:      width,
 		H:      height,
 		X:      0,
@@ -223,7 +224,7 @@ func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTextu
 	return &(atlas.rectangles[len(atlas.rectangles)-1])
 }
 
-func (atlas *TextureAtlas) Pack() {
+func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	// STEP 1: GENERATE PACKED POSITIONS
 
 	// calculate total box area and maximum box width
@@ -273,7 +274,7 @@ func (atlas *TextureAtlas) Pack() {
 			if space.x == 0 && space.y == 0 {
 				badCounter++
 			}
-			packed[idx] = AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour}
+			packed[idx] = AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour, id: box.id}
 			maxX = int(math.Max(float64(maxX), float64(packed[idx].X+float32(packed[idx].W))))
 			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y+float32(packed[idx].H))))
 			// Insert colour data here to skip some duplication
@@ -336,9 +337,17 @@ func (atlas *TextureAtlas) Pack() {
 	}
 
 	atlas.rectangles = nil
+
+	// STEP 3: Restore original order so rectangles can be mapped back to faces
+	sort.Slice(packed, func(i, j int) bool {
+		return packed[i].id < packed[j].id
+	})
+
 	atlas.rectangles = packed
 
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", atlas.width, atlas.height))
+
+	return atlas.rectangles
 }
 
 func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
@@ -368,6 +377,7 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 }
 
 type AtlasTexture struct {
+	id 	 int
 	W, H int
 	X, Y float32
 

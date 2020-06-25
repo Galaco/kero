@@ -166,7 +166,6 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		// LightmapCoordsForFaceFromTexInfo
 		if level.LightmapAtlas() != nil {
 			level.Mesh().AddLightmapUV(
-			// level.Mesh().AddUV(
 				valve.LightmapCoordsForFaceFromTexInfo(
 					level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
 					bspFace.RawFace(),
