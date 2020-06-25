@@ -41,6 +41,32 @@ func UploadTexture(texture Texture) uint32 {
 		false))
 }
 
+func UploadLightmap(texture Texture) uint32 {
+	textureBuffer := uint32(0)
+	gl.GenTextures(1, &textureBuffer)
+	gl.ActiveTexture(0)
+	gl.BindTexture(gl.TEXTURE_2D, textureBuffer)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+
+	gl.TexImage2D(
+		gl.TEXTURE_2D,
+		0,
+		gl.RGBA,
+		int32(texture.Width()),
+		int32(texture.Height()),
+		0,
+		texture.Format(),
+		gl.UNSIGNED_BYTE,
+		gl.Ptr(texture.Image()))
+
+	return textureBuffer
+}
+
 func UploadCubemap(textures []Texture) uint32 {
 	colour := [6][]byte{
 		textures[0].Image(),

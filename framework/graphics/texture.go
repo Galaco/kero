@@ -173,6 +173,7 @@ func readVtf(fs VirtualFileSystem, path string) (*Texture2D, error) {
 type TextureAtlas struct {
 	rectangles []AtlasTexture
 
+	populatedWidth, populatedHeight int
 	width, height int
 	colour        []uint8
 	format        uint32
@@ -196,6 +197,14 @@ func (atlas *TextureAtlas) Width() int {
 
 func (atlas *TextureAtlas) Height() int {
 	return atlas.height
+}
+
+func (atlas *TextureAtlas) PopulatedWidth() int {
+	return atlas.populatedWidth
+}
+
+func (atlas *TextureAtlas) PopulatedHeight() int {
+	return atlas.populatedHeight
 }
 
 func (atlas *TextureAtlas) Image() []uint8 {
@@ -313,14 +322,21 @@ func (atlas *TextureAtlas) Pack() {
 		}
 	}
 
-	atlas.width = int(math.Pow(2, math.Ceil(math.Log(float64(maxX))/math.Log(2))))
-	atlas.height = int(math.Pow(2, math.Ceil(math.Log(float64(maxY))/math.Log(2))))
+	atlas.populatedWidth = maxX
+	atlas.populatedHeight = maxY
+	atlas.width = maxX
+	atlas.height = maxY
+	//atlas.width = int(math.Pow(2, math.Ceil(math.Log(float64(maxX))/math.Log(2))))
+	//atlas.height = int(math.Pow(2, math.Ceil(math.Log(float64(maxY))/math.Log(2))))
 	atlas.colour = make([]uint8, atlas.width*atlas.height*atlas.bytesPerPixel)
 
 	// STEP 2: PACK TEXTURES
 	for _, rect := range packed {
 		atlas.writeBytes(&rect)
 	}
+
+	atlas.rectangles = nil
+	atlas.rectangles = packed
 
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", atlas.width, atlas.height))
 }

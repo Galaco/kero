@@ -113,14 +113,14 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
-	gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadTexture(texCache.Find(cache.LightmapTexturePath)))
-	// utilities.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
+	gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
+	// utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
 
 	// load materials
 	var tex graphics.Texture
 	var err error
 	for _, mat := range level.MaterialDictionary() {
-		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
+		if tex = texCache.Find(mat.BaseTextureName); tex == nil {
 			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
 			if err != nil || tex == nil {
 				console.PrintString(console.LevelWarning, err.Error())
@@ -141,11 +141,10 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	}
 
 	// finish bsp mesh
+
 	// Add MATERIALS TO FACES
 	tex = nil
-	//unRemapX := float32(1 / level.LightmapAtlas().Width())
-	//unRemapY := float32(1 / level.LightmapAtlas().Height())
-	for _, bspFace := range level.Faces() {
+	for idx, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
 			tex = texCache.Find(cache.ErrorTexturePath)
@@ -163,14 +162,21 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				bspFace.TexInfo(),
 				tex.Width(),
 				tex.Height())...)
+
 		// LightmapCoordsForFaceFromTexInfo
-		level.Mesh().AddLightmapUV(
-			valve.LightmapCoordsForFaceFromTexInfo(
-				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
-				bspFace.RawFace(),
-				bspFace.TexInfo(),
-				level.LightmapAtlas().Width(),
-				level.LightmapAtlas().Height())...)
+		if level.LightmapAtlas() != nil {
+			level.Mesh().AddLightmapUV(
+			// level.Mesh().AddUV(
+				valve.LightmapCoordsForFaceFromTexInfo(
+					level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+					bspFace.RawFace(),
+					bspFace.TexInfo(),
+					float32(level.LightmapAtlas().Width()),
+					float32(level.LightmapAtlas().Height()),
+					level.LightmapAtlas().AtlasEntry(idx).X,
+					level.LightmapAtlas().AtlasEntry(idx).Y)...)
+		}
+
 	}
 
 	level.Mesh().GenerateTangents()

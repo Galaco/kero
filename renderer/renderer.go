@@ -156,8 +156,8 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspF
 		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
 	graphics.UpdateIndexArrayBuffer(indices)
-	graphics.BindTexture(mat.Diffuse)
-	// graphics.BindTexture(s.gpuItemCache.Find(cache.LightmapTexturePath))
+	// graphics.BindTexture(mat.Diffuse)
+	graphics.BindTexture(s.gpuItemCache.Find(cache.LightmapTexturePath))
 	graphics.DrawIndexedArray(len(indices), 0, nil)
 	if err := graphics.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())
