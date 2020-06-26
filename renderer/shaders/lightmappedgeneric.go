@@ -5,6 +5,7 @@ var LightMappedGenericFragment = `
     #version 410
 
 	uniform sampler2D albedoSampler;
+	uniform sampler2D lightmapSampler;
 
 	// Flag that this material is in some way translucent
 	uniform int hasTranslucentProperty;
@@ -14,6 +15,7 @@ var LightMappedGenericFragment = `
 	uniform int translucent;
 
 	in vec2 UV;
+	in vec2 LightmapUV;
 
     out vec4 frag_colour;
 
@@ -42,9 +44,21 @@ var LightMappedGenericFragment = `
 		return color;
 	}
 
+	vec4 LightmapPass(in vec4 color)
+	{	
+		if (LightmapUV.x == -1) {
+			return color;
+		}
+
+		vec4 lightmapColor = vec4(texture(lightmapSampler, LightmapUV).rgb, 1.0);
+		
+		return color * lightmapColor;
+	}
+
     void main() 
 	{
 		vec4 diffuse = GetAlbedo(albedoSampler, UV);
+		diffuse = LightmapPass(diffuse);
 
 		diffuse = AlphaPass(diffuse);
 
@@ -64,12 +78,15 @@ var LightMappedGenericVertex = `
 	layout(location = 1) in vec2 vertexUV;
 	layout(location = 2) in vec3 vertexNormal;
 	layout(location = 3) in vec4 vertexTangent;
+	layout(location = 4) in vec2 vertexLightmapUV;
 
 	out vec2 UV;
+	out vec2 LightmapUV;
 
     void main() {
 		gl_Position = projection * view * model * vec4(vertexPosition, 1.0);
 
     	UV = vertexUV;
+    	LightmapUV = vertexLightmapUV;
     }
 ` + "\x00"

@@ -112,9 +112,14 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
 	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
-	texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
-	gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
-	// utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
+	if level.LightmapAtlas() != nil {
+		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
+		gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
+		// utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
+	} else {
+		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
+		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))
+	}
 
 	// load materials
 	var tex graphics.Texture
@@ -165,6 +170,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 		// LightmapCoordsForFaceFromTexInfo
 		if level.LightmapAtlas() != nil {
+			//level.Mesh().AddUV(
 			level.Mesh().AddLightmapUV(
 				valve.LightmapCoordsForFaceFromTexInfo(
 					level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],

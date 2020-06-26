@@ -71,7 +71,10 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
 
-	lightmapAtlas := GenerateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
+	var lightmapAtlas *graphics.TextureAtlas
+	if bspStructure.lightmap != nil {
+		lightmapAtlas = GenerateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
+	}
 
 	for idx, f := range bspStructure.faces {
 		if f.DispInfo > -1 {
@@ -300,9 +303,9 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 
 	// @TODO This doesnt use the exponent yet
 	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
-		raw[(idx * 3)] = sample.R
-		raw[(idx*3)+1] = sample.G
-		raw[(idx*3)+2] = sample.B
+		raw[(idx * 3)] = uint8(math.Min(255, float64(sample.R) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx*3)+1] = uint8(math.Min(255, float64(sample.G) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx*3)+2] = uint8(math.Min(255, float64(sample.B) * math.Pow(2 ,float64(sample.Exponent))))
 	}
 
 	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGB888), raw)

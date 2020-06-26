@@ -110,6 +110,8 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	graphics.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	graphics.BindLightmap(s.gpuItemCache.Find(cache.LightmapTexturePath))
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
@@ -156,8 +158,7 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspF
 		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
 	graphics.UpdateIndexArrayBuffer(indices)
-	// graphics.BindTexture(mat.Diffuse)
-	graphics.BindTexture(s.gpuItemCache.Find(cache.LightmapTexturePath))
+	graphics.BindTexture(mat.Diffuse)
 	graphics.DrawIndexedArray(len(indices), 0, nil)
 	if err := graphics.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())

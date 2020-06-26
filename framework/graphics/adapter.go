@@ -44,11 +44,11 @@ func UploadTexture(texture Texture) uint32 {
 func UploadLightmap(texture Texture) uint32 {
 	textureBuffer := uint32(0)
 	gl.GenTextures(1, &textureBuffer)
-	gl.ActiveTexture(0)
+	gl.ActiveTexture(4)
 	gl.BindTexture(gl.TEXTURE_2D, textureBuffer)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
@@ -90,6 +90,10 @@ func BindTexture(id uint32) {
 	gosigl.BindTexture2D(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }
 
+func BindLightmap(id uint32) {
+	gosigl.BindTexture2D(gosigl.TextureSlot(4), gosigl.TextureBindingId(id))
+}
+
 func BindCubemap(id uint32) {
 	gosigl.BindTextureCubemap(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }
@@ -123,6 +127,15 @@ func UploadMesh(mesh Mesh) GpuMesh {
 	gosigl.CreateVertexAttribute(gpuResource, mesh.UVs(), 2)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Normals(), 3)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Tangents(), 4)
+	if mesh.LightmapUVs() == nil {
+		defaultUVs := make([]float32, len(mesh.UVs()))
+		for i := range defaultUVs {
+			defaultUVs[i] = -1
+		}
+		gosigl.CreateVertexAttribute(gpuResource, defaultUVs, 2)
+	} else {
+		gosigl.CreateVertexAttribute(gpuResource, mesh.LightmapUVs(), 2)
+	}
 
 	if len(mesh.Indices()) > 0 {
 		gosigl.SetElementArrayAttribute(gpuResource, mesh.Indices())

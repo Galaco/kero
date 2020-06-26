@@ -9,6 +9,7 @@ type Mesh interface {
 	Normals() []float32
 	UVs() []float32
 	Tangents() []float32
+	LightmapUVs() []float32
 	Indices() []uint32
 }
 

@@ -17,6 +17,9 @@ func (view *Menu) Render() {
 		gui.NewButton("menu_open_map", "Open map", func() {
 			name, err := dialogs.OpenFile("Valve .bsp files", "bsp")
 			if err != nil {
+				if err.Error() == "Cancelled" {
+					return
+				}
 				dialogs.ErrorMessage(err)
 				return
 			}
