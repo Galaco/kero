@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/vis"
+	"github.com/galaco/kero/utils"
 	"github.com/galaco/kero/utils/valve"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
@@ -115,7 +116,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	if level.LightmapAtlas() != nil {
 		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
 		gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
-		// utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
+		utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
 	} else {
 		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
 		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))
@@ -170,7 +171,6 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 		// LightmapCoordsForFaceFromTexInfo
 		if level.LightmapAtlas() != nil {
-			//level.Mesh().AddUV(
 			level.Mesh().AddLightmapUV(
 				valve.LightmapCoordsForFaceFromTexInfo(
 					level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],

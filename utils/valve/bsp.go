@@ -79,7 +79,7 @@ func LoadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*Bsp, error) {
 	for idx, f := range bspStructure.faces {
 		if f.DispInfo > -1 {
 			// This face is a displacement
-			bspFaces[idx] = generateDisplacementFace(&f, &bspStructure, bspMesh)
+			bspFaces[idx] = generateDisplacementFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
 			dispFaces = append(dispFaces, idx)
 		} else {
 			bspFaces[idx] = generateBspFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
@@ -294,21 +294,25 @@ func GenerateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponen
 }
 
 func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) *graphics.Texture2D {
+	if f.Lightofs == -1 {
+		return graphics.NewTexture("__lightmap_subtex__", 0, 0, uint32(format.RGB888), make([]uint8, 0))
+	}
+
 	width := f.LightmapTextureSizeInLuxels[0] + 1
 	height := f.LightmapTextureSizeInLuxels[1] + 1
 	numLuxels := width * height
-	firstSampleIdx := f.Lightofs / 4 // 4= size of ColorRGBExponent32
+	firstSampleIdx := f.Lightofs / 4 // 4 = size of ColorRGBExponent32
 
-	raw := make([]uint8, (numLuxels)*3)
+	raw := make([]uint8, (numLuxels)*4)
 
-	// @TODO This doesnt use the exponent yet
 	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
-		raw[(idx * 3)] = uint8(math.Min(255, float64(sample.R) * math.Pow(2 ,float64(sample.Exponent))))
-		raw[(idx*3)+1] = uint8(math.Min(255, float64(sample.G) * math.Pow(2 ,float64(sample.Exponent))))
-		raw[(idx*3)+2] = uint8(math.Min(255, float64(sample.B) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx * 4)+1] = uint8(math.Min(255, float64(sample.G) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx * 4)+2] = uint8(math.Min(255, float64(sample.B) * math.Pow(2 ,float64(sample.Exponent))))
+		raw[(idx * 4)+3] = 255
 	}
 
-	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGB888), raw)
+	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
 }
 
 // LightmapCoordsForFaceFromTexInfo create lightmap coordinates from TexInfo

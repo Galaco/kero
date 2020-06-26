@@ -227,6 +227,8 @@ func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTextu
 func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	// STEP 1: GENERATE PACKED POSITIONS
 
+	padding := 0 // total per axis (e.g 2 = 1unit each side)
+
 	// calculate total box area and maximum box width
 	area := 0
 	maxWidth := 0
@@ -235,8 +237,8 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	maxY := 0
 
 	for _, box := range atlas.rectangles {
-		area += box.W * box.H
-		maxWidth = int(math.Max(float64(maxWidth), float64(box.W)))
+		area += (box.W + padding) * (box.H + padding)
+		maxWidth = int(math.Max(float64(maxWidth), float64(box.W + padding)))
 	}
 
 	// sort the boxes for insertion by height, descending
@@ -261,7 +263,7 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 			space := &(spaces[i])
 
 			// look for empty spaces that can accommodate the current box
-			if box.W > space.w || box.H > space.h {
+			if box.W+padding > space.w || box.H+padding > space.h {
 				continue
 			}
 
@@ -274,12 +276,12 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 			if space.x == 0 && space.y == 0 {
 				badCounter++
 			}
-			packed[idx] = AtlasTexture{W: box.W, H: box.H, X: float32(space.x), Y: float32(space.y), colour: box.colour, id: box.id}
+			packed[idx] = AtlasTexture{W: box.W+padding, H: box.H+padding, X: float32(space.x), Y: float32(space.y), colour: box.colour, id: box.id}
 			maxX = int(math.Max(float64(maxX), float64(packed[idx].X+float32(packed[idx].W))))
 			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y+float32(packed[idx].H))))
 			// Insert colour data here to skip some duplication
 
-			if int(box.W) == space.w && int(box.H) == space.h {
+			if int(box.W+padding) == space.w && int(box.H+padding) == space.h {
 				// space matches the box exactly; remove it
 				last := spaces[len(spaces)-1]
 				spaces = spaces[:len(spaces)-1]
@@ -287,22 +289,22 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 				if i < len(spaces) {
 					spaces[i] = last
 				}
-			} else if box.H == space.h {
+			} else if box.H+padding == space.h {
 				// space matches the box height; update it accordingly
 				// |-------|---------------|
 				// |  box  | updated space |
 				// |_______|_______________|
-				space.x += box.W
-				space.w -= box.W
-			} else if box.W == space.w {
+				space.x += box.W + padding
+				space.w -= box.W + padding
+			} else if box.W+padding == space.w {
 				// space matches the box width; update it accordingly
 				// |---------------|
 				// |      box      |
 				// |_______________|
 				// | updated space |
 				// |_______________|
-				space.y += box.H
-				space.h -= box.H
+				space.y += box.H + padding
+				space.h -= box.H + padding
 			} else {
 				// otherwise the box splits the space into two spaces
 				// |-------|-----------|
@@ -311,13 +313,13 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 				// | updated space     |
 				// |___________________|
 				spaces = append(spaces, atlasSpace{
-					x: space.x + box.W,
+					x: space.x + (box.W + padding),
 					y: space.y,
-					w: space.w - box.W,
-					h: box.H,
+					w: space.w - (box.W + padding),
+					h: box.H + padding,
 				})
-				space.y += box.H
-				space.h -= box.H
+				space.y += box.H + padding
+				space.h -= box.H + padding
 			}
 			break
 		}
@@ -333,7 +335,7 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 
 	// STEP 2: PACK TEXTURES
 	for _, rect := range packed {
-		atlas.writeBytes(&rect)
+		atlas.writeBytes(&rect, padding)
 	}
 
 	atlas.rectangles = nil
@@ -350,16 +352,17 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	return atlas.rectangles
 }
 
-func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture) {
-	// Skip rows, then indent into the start of the current row
+func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture, padding int) {
+	// Skip rows, then indent into the baseAtlasOffset of the current row
 	rowSizeInBytes := atlas.width * atlas.bytesPerPixel
 
 	start := (rowSizeInBytes * int(rect.Y)) + (atlas.bytesPerPixel * int(rect.X)) // Number of rows in + number of bytes across
 	for rowY := 0; rowY < rect.H; rowY++ {
 		for rowX := 0; rowX < rect.W; rowX++ {
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+0] = rect.colour[(rowY*3*rect.W)+(rowX*3)+0]
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+1] = rect.colour[(rowY*3*rect.W)+(rowX*3)+1]
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+2] = rect.colour[(rowY*3*rect.W)+(rowX*3)+2]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+0] = rect.colour[(rowY*4*rect.W)+(rowX*4)+0]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+1] = rect.colour[(rowY*4*rect.W)+(rowX*4)+1]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+2] = rect.colour[(rowY*4*rect.W)+(rowX*4)+2]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+3] = 255
 		}
 
 		start += rowSizeInBytes
@@ -371,8 +374,8 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 		width:         width,
 		height:        height,
 		rectangles:    []AtlasTexture{},
-		format:        textureFormatFromVtfFormat(uint32(format.RGB888)),
-		bytesPerPixel: 3,
+		format:        textureFormatFromVtfFormat(uint32(format.RGBA8888)),
+		bytesPerPixel: 4,
 	}
 }
 

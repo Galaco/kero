@@ -50,8 +50,8 @@ func UploadLightmap(texture Texture) uint32 {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 	gl.TexImage2D(
 		gl.TEXTURE_2D,
@@ -184,12 +184,6 @@ func GpuError() error {
 		return fmt.Errorf("gl error. Code: %d", glError)
 	}
 	return nil
-}
-
-func SetSkyboxFace() {
-	gl.CullFace(gl.FRONT)
-	gl.DepthFunc(gl.LEQUAL)
-	gl.DepthMask(false)
 }
 
 func EnableBlending() {

@@ -56,7 +56,7 @@ func (kero *Kero) Start() {
 		kero.ui.Render()
 
 		window.CurrentWindow().SwapBuffers()
-		graphics.ClearColor(0, 0, 0, 1)
+		graphics.ClearColor(0.25, 0.25, 0.25, 1)
 		graphics.ClearAll()
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
