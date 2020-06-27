@@ -15,7 +15,7 @@ Source Engine game installation, and it *should* just work!
 
 
 <p align="center">
-  <img width="600" height="338" src="https://raw.githubusercontent.com/Galaco/kero/dev/.github/readme/de_dust2.gif">
+  <img width="100%" height="auto" src="https://raw.githubusercontent.com/Galaco/kero/dev/.github/readme/de_dust2.gif">
 </p>
 
 ## Building
