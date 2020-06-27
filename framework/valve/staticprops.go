@@ -55,9 +55,6 @@ func generateUniquePropList(propList []string) (uniqueList []string) {
 			uniqueList = append(uniqueList, entry)
 		}
 	}
-	//for k := range list {
-	//	uniqueList = append(uniqueList, k)
-	//}
 
 	return uniqueList
 }

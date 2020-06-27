@@ -1,18 +1,20 @@
 package renderer
 
 import (
+	"errors"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/renderer/vis"
-	"github.com/galaco/kero/utils/valve"
+	"github.com/galaco/kero/utils"
 	"math"
 )
 
@@ -40,6 +42,7 @@ func (s *Renderer) Initialize() {
 	graphics.EnableBackFaceCulling()
 
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
+	s.bindConVars()
 }
 
 func (s *Renderer) Render() {
@@ -237,6 +240,21 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 
 func (s *Renderer) ReleaseGPUResources() {
 
+}
+
+func (s *Renderer) bindConVars() {
+	console.AddCommand("r_dumplightmap", func (options string) error {
+		if s == nil {
+			return nil
+		}
+
+		if ok := s.textureCache.Find(cache.LightmapTexturePath); ok != nil {
+			utils.DumpLightmap(options, ok)
+			return nil
+		}
+
+		return errors.New("r_dumplightmap: no lightmap in memory")
+	})
 }
 
 func NewRenderer() *Renderer {

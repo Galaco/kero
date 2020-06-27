@@ -33,6 +33,8 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 	return nil, err
 }
 
+// Init initializses the master filesystem used by Kero. In theory other filesystems can be used too; but the master fs
+// is designed to be loaded with the same configuration and behaviour as the original Source Engine.
 func Init(gameDir string) (FileSystem, error) {
 	stream, err := os.Open(gameDir + "/gameinfo.txt")
 	if err != nil {
@@ -63,6 +65,7 @@ func Init(gameDir string) (FileSystem, error) {
 	return fs, nil
 }
 
+// Get returns the master filesystem singleton
 func Get() FileSystem {
 	return masterFilesystem
 }

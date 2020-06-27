@@ -16,6 +16,7 @@ type filesystem interface {
 	RegisterPakFile(pakFile *lumps.Pakfile)
 }
 
+// LoadEntdata extracts entity data from the bsp
 func LoadEntdata(fs filesystem, file *bsp.Bsp) ([]IEntity, error) {
 	entdata := file.Lump(bsp.LumpEntities).(*lumps.EntData)
 	vmfEntityTree, err := parseEntdata(entdata.GetData())

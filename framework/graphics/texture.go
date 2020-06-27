@@ -174,10 +174,10 @@ type TextureAtlas struct {
 	rectangles []AtlasTexture
 
 	populatedWidth, populatedHeight int
-	width, height int
-	colour        []uint8
-	format        uint32
-	bytesPerPixel int
+	width, height                   int
+	colour                          []uint8
+	format                          uint32
+	bytesPerPixel                   int
 }
 
 func (atlas *TextureAtlas) AtlasEntry(index int) *AtlasTexture {
@@ -238,7 +238,7 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 
 	for _, box := range atlas.rectangles {
 		area += (box.W + padding) * (box.H + padding)
-		maxWidth = int(math.Max(float64(maxWidth), float64(box.W + padding)))
+		maxWidth = int(math.Max(float64(maxWidth), float64(box.W+padding)))
 	}
 
 	// sort the boxes for insertion by height, descending
@@ -276,7 +276,7 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 			if space.x == 0 && space.y == 0 {
 				badCounter++
 			}
-			packed[idx] = AtlasTexture{W: box.W+padding, H: box.H+padding, X: float32(space.x), Y: float32(space.y), colour: box.colour, id: box.id}
+			packed[idx] = AtlasTexture{W: box.W + padding, H: box.H + padding, X: float32(space.x), Y: float32(space.y), colour: box.colour, id: box.id}
 			maxX = int(math.Max(float64(maxX), float64(packed[idx].X+float32(packed[idx].W))))
 			maxY = int(math.Max(float64(maxY), float64(packed[idx].Y+float32(packed[idx].H))))
 			// Insert colour data here to skip some duplication
@@ -380,7 +380,7 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 }
 
 type AtlasTexture struct {
-	id 	 int
+	id   int
 	W, H int
 	X, Y float32
 

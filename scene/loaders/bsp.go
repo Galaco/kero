@@ -7,9 +7,9 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/utils/valve"
 	"github.com/go-gl/mathgl/mgl32"
 )
 

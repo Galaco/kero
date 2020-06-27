@@ -306,10 +306,10 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 	raw := make([]uint8, (numLuxels)*4)
 
 	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
-		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R) * math.Pow(2 ,float64(sample.Exponent))))
-		raw[(idx * 4)+1] = uint8(math.Min(255, float64(sample.G) * math.Pow(2 ,float64(sample.Exponent))))
-		raw[(idx * 4)+2] = uint8(math.Min(255, float64(sample.B) * math.Pow(2 ,float64(sample.Exponent))))
-		raw[(idx * 4)+3] = 255
+		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R)*math.Pow(2, float64(sample.Exponent))))
+		raw[(idx*4)+1] = uint8(math.Min(255, float64(sample.G)*math.Pow(2, float64(sample.Exponent))))
+		raw[(idx*4)+2] = uint8(math.Min(255, float64(sample.B)*math.Pow(2, float64(sample.Exponent))))
+		raw[(idx*4)+3] = 255
 	}
 
 	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
@@ -344,48 +344,46 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 	sOffset := lightmapOffsetX * sScale
 	sScale = float32(faceInfo.LightmapTextureSizeInLuxels[0]) * sScale
 
-
 	tScale := 1 / lightmapHeight
 	tOffset := lightmapOffsetY * tScale
 	tScale = float32(faceInfo.LightmapTextureSizeInLuxels[1]) * tScale
 
 	// 0x00000001 = SURFDRAW_NOLIGHT
-	if tx.Flags & 0x00000001 != 0 {
+	if tx.Flags&0x00000001 != 0 {
 		for idx := 0; idx < len(vertexes)/3; idx++ {
-			uvs[(idx * 2) + 0] = 0.5
-			uvs[(idx * 2) + 1] = 0.5
+			uvs[(idx*2)+0] = 0.5
+			uvs[(idx*2)+1] = 0.5
 		}
 		return uvs
 	}
 
 	if faceInfo.LightmapTextureSizeInLuxels[0] == 0 {
 		for idx := 0; idx < len(vertexes)/3; idx++ {
-			uvs[(idx * 2) + 0] = sOffset
-			uvs[(idx * 2) + 1] = tOffset
+			uvs[(idx*2)+0] = sOffset
+			uvs[(idx*2)+1] = tOffset
 		}
 		return uvs
 	}
 
 	for idx := 0; idx < len(vertexes)/3; idx++ {
-		uvs[(idx * 2) + 0] =
-			(mgl32.Vec3{vertexes[(idx * 3) + 0], vertexes[(idx * 3) + 1], vertexes[(idx * 3) + 2]}).Dot(
-			mgl32.Vec3{tx.LightmapVecsLuxelsPerWorldUnits[0][0], tx.LightmapVecsLuxelsPerWorldUnits[0][1],tx.LightmapVecsLuxelsPerWorldUnits[0][2]}) +
+		uvs[(idx*2)+0] =
+			(mgl32.Vec3{vertexes[(idx*3)+0], vertexes[(idx*3)+1], vertexes[(idx*3)+2]}).Dot(
+				mgl32.Vec3{tx.LightmapVecsLuxelsPerWorldUnits[0][0], tx.LightmapVecsLuxelsPerWorldUnits[0][1], tx.LightmapVecsLuxelsPerWorldUnits[0][2]}) +
 				tx.LightmapVecsLuxelsPerWorldUnits[0][3]
-		uvs[(idx * 2) + 0] -= float32(faceInfo.LightmapTextureMinsInLuxels[0])
-		uvs[(idx * 2) + 0] += 0.5
-		uvs[(idx * 2) + 0] /= float32(faceInfo.LightmapTextureSizeInLuxels[0])
+		uvs[(idx*2)+0] -= float32(faceInfo.LightmapTextureMinsInLuxels[0])
+		uvs[(idx*2)+0] += 0.5
+		uvs[(idx*2)+0] /= float32(faceInfo.LightmapTextureSizeInLuxels[0])
 
-		uvs[(idx * 2) + 1] =
-			(mgl32.Vec3{vertexes[(idx * 3) + 0], vertexes[(idx * 3) + 1], vertexes[(idx * 3) + 2]}).Dot(
-				mgl32.Vec3{tx.LightmapVecsLuxelsPerWorldUnits[1][0], tx.LightmapVecsLuxelsPerWorldUnits[1][1],tx.LightmapVecsLuxelsPerWorldUnits[1][2]}) +
+		uvs[(idx*2)+1] =
+			(mgl32.Vec3{vertexes[(idx*3)+0], vertexes[(idx*3)+1], vertexes[(idx*3)+2]}).Dot(
+				mgl32.Vec3{tx.LightmapVecsLuxelsPerWorldUnits[1][0], tx.LightmapVecsLuxelsPerWorldUnits[1][1], tx.LightmapVecsLuxelsPerWorldUnits[1][2]}) +
 				tx.LightmapVecsLuxelsPerWorldUnits[1][3]
-		uvs[(idx * 2) + 1] -= float32(faceInfo.LightmapTextureMinsInLuxels[1])
-		uvs[(idx * 2) + 1] += 0.5
-		uvs[(idx * 2) + 1] /= float32(faceInfo.LightmapTextureSizeInLuxels[1])
+		uvs[(idx*2)+1] -= float32(faceInfo.LightmapTextureMinsInLuxels[1])
+		uvs[(idx*2)+1] += 0.5
+		uvs[(idx*2)+1] /= float32(faceInfo.LightmapTextureSizeInLuxels[1])
 
-
-		uvs[(idx * 2) + 0] = sOffset + uvs[(idx * 2) + 0] * sScale
-		uvs[(idx * 2) + 1] = tOffset + uvs[(idx * 2) + 1] * tScale
+		uvs[(idx*2)+0] = sOffset + uvs[(idx*2)+0]*sScale
+		uvs[(idx*2)+1] = tOffset + uvs[(idx*2)+1]*tScale
 	}
 
 	return uvs

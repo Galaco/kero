@@ -12,4 +12,5 @@ type Dispatchable interface {
 	Type() Type
 }
 
+// Receiveable is a callback function interface
 type Receiveable func(interface{})

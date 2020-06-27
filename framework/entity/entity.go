@@ -31,26 +31,27 @@ type IEntity interface {
 	FloatForKeyWithDefault(key string, defaultValue float32) float32
 	// Properties returns a linked list of all entity key-values
 	Properties() *entity.EPair
-
-	Render()
 }
 
 // Entity is a common base that most entities can be based upon
 type Entity struct {
 	entity.Entity
+	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
 	Transform graphics3d.Transform
-	Class     string
-	Name      string
+	// Class contains the entity's classname (e.g. func_movelinear)
+	class     string
+	// Name contains the entity's targetname
+	name      string
 }
 
 // Classname returns the entity classname
 func (e *Entity) Classname() string {
-	return e.Class
+	return e.class
 }
 
 // Targetname returns the entity targername
 func (e *Entity) Targetname() string {
-	return e.Name
+	return e.name
 }
 
 // Origin returns the entity position in the world
@@ -73,10 +74,6 @@ func (e *Entity) Think(dt float64) {
 
 }
 
-func (e *Entity) Render() {
-
-}
-
 // NewEntityBaseFromLib returns a new entity
 func NewEntityBaseFromLib(e entity.Entity) *Entity {
 	return &Entity{
@@ -85,8 +82,8 @@ func NewEntityBaseFromLib(e entity.Entity) *Entity {
 			Position: e.VectorForKey("origin"),
 			Rotation: e.VectorForKey("angles"),
 		},
-		Class: e.ValueForKey("classname"),
-		Name:  e.ValueForKey("targetname"),
+		class: e.ValueForKey("classname"),
+		name:  e.ValueForKey("targetname"),
 	}
 }
 
@@ -94,7 +91,7 @@ func NewEntityBaseFromLib(e entity.Entity) *Entity {
 func NewEntityBase(classname, targetname string, transform graphics3d.Transform) *Entity {
 	return &Entity{
 		Transform: transform,
-		Class:     classname,
-		Name:      targetname,
+		class:     classname,
+		name:      targetname,
 	}
 }

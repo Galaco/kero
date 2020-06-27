@@ -38,11 +38,11 @@ func (transform *Transform) TransformationMatrix() mgl32.Mat4 {
 		translation := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z())
 
 		// rotate
-		// IMPORTANT. Source engine has Y and Z axis switched
+		// IMPORTANT. Source engine has X and Z axis switched
 		rotation := mgl32.Ident4()
 		rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{1, 0, 0}, mgl32.DegToRad(transform.Rotation.X()))
-		rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{0, 1, 0}, mgl32.DegToRad(transform.Rotation.Z()))
 		rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{0, 0, 1}, mgl32.DegToRad(transform.Rotation.Y()))
+		rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{0, 1, 0}, mgl32.DegToRad(transform.Rotation.Z()))
 
 		//@TODO ROTATIONS
 

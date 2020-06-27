@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/inkyblackness/imgui-go/v2"
+	"log"
 )
 
 type consoleMessage struct {
@@ -37,6 +38,20 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 
 type Console struct {
 	messages []consoleMessage
+
+	commandInput string
+}
+
+func (view *Console) commandInputCallback(data imgui.InputTextCallbackData) int32 {
+	log.Println(data.EventKey())
+	if data.EventKey() == imgui.KeyEnter {
+		console.PrintString(console.LevelInfo, view.commandInput)
+	}
+	if data.EventFlag() & imgui.InputTextFlagsEnterReturnsTrue != 0 {
+		console.PrintString(console.LevelInfo, view.commandInput)
+	}
+
+	return 0
 }
 
 func (view *Console) Render() {
@@ -45,6 +60,14 @@ func (view *Console) Render() {
 			imgui.PushStyleColor(imgui.StyleColorText, s.Color)
 			s.Text.Render()
 			imgui.PopStyleColor()
+		}
+
+		if imgui.InputTextV("CommandInput", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, view.commandInputCallback) {
+			err := console.ExecuteCommand(view.commandInput)
+			if err != nil {
+				console.PrintString(console.LevelError, err.Error())
+			}
+			view.commandInput = ""
 		}
 
 		gui.EndPanel()

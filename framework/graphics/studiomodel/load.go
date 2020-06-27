@@ -105,6 +105,7 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 		//@TODO Map ALL materials to mesh data
 		outModel.AddMaterial(mats[0])
 
+		// @TODO Tangents already exist in props. Use those instead
 		smMesh.GenerateTangents()
 		outModel.AddMesh(smMesh)
 	}

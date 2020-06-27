@@ -65,6 +65,20 @@ func (frustum *Frustum) IsCuboidInFrustum(mins, maxs mgl32.Vec3) bool {
 	return true
 }
 
+func (frustum *Frustum) PointInFrustum( x, y, z float32 ) bool {
+	// Go through all the sides of the frustum
+	for i := 0; i < 6; i++ {
+		// Calculate the plane equation and check if the point is behind a side of the frustum
+		if frustum.planes[i][planeNormalX] * x + frustum.planes[i][planeNormalY] * y + frustum.planes[i][planeNormalZ] * z + frustum.planes[i][planeToOrigin] <= 0 {
+			// The point was behind a side, so it ISN'T in the frustum
+			return false
+		}
+	}
+
+	// The point was inside of the frustum (In front of ALL the sides of the frustum)
+	return true
+}
+
 func (frustum *Frustum) extractPlanes(modelView mgl32.Mat4, proj mgl32.Mat4) {
 	clip := mgl32.Mat4{}
 

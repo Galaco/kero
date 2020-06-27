@@ -29,6 +29,8 @@ const (
 	LevelSuccess = LogLevel(5)
 )
 
+// AddOutputPipe allows for adding additional callbacks for any engine logs
+// This will add the provided callback, and will not replace any existing ones.
 func AddOutputPipe(cb func(LogLevel, interface{})) {
 	singleton.mut.Lock()
 	singleton.pipes = append(singleton.pipes, cb)
