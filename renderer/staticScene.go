@@ -11,7 +11,6 @@ import (
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/vis"
-	"github.com/galaco/kero/utils"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
 	"strings"
@@ -116,7 +115,6 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	if level.LightmapAtlas() != nil {
 		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
 		gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
-		utils.DumpLightmap("lightmap", texCache.Find(cache.LightmapTexturePath))
 	} else {
 		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
 		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))

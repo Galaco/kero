@@ -7,8 +7,15 @@
 
 > Kero is a Source Engine game engine implementation written in Go.
 
+## Current Features
+
+Kero is mostly a BSP renderer for now. It features BSP rendering, with Static Prop support, as well as VisData visibility 
+culling. BSP geometry lightmaps are also supported, as well as skybox rendering. Build Kero, run it by pointing it to a
+Source Engine game installation, and it *should* just work!
+
+
 <p align="center">
-  <img width="640" height="480" src="https://raw.githubusercontent.com/Galaco/kero/dev/.github/readme/de_dust2.gif">
+  <img width="600" height="338" src="https://raw.githubusercontent.com/Galaco/kero/dev/.github/readme/de_dust2.gif">
 </p>
 
 ## Building
