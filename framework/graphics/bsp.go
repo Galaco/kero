@@ -1,10 +1,9 @@
-package valve
+package graphics
 
 import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/primitives/face"
 	"github.com/galaco/bsp/primitives/texinfo"
-	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -107,23 +106,23 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 type Bsp struct {
 	file *bsp.Bsp
 
-	mesh      *graphics.BasicMesh
+	mesh      *BasicMesh
 	faces     []BspFace
 	dispFaces []int
 
-	materialDictionary map[string]*graphics.Material
+	materialDictionary map[string]*Material
 	textureInfos       []texinfo.TexInfo
 
-	StaticPropDictionary map[string]*graphics.Model
-	StaticProps          []graphics.StaticProp
+	StaticPropDictionary map[string]*Model
+	StaticProps          []StaticProp
 
 	camera *graphics3d.Camera
 
-	lightmapAtlas *graphics.TextureAtlas
+	lightmapAtlas *TextureAtlas
 }
 
 // BasicMesh
-func (bsp *Bsp) Mesh() *graphics.BasicMesh {
+func (bsp *Bsp) Mesh() *BasicMesh {
 	return bsp.mesh
 }
 
@@ -138,7 +137,7 @@ func (bsp *Bsp) DispFaces() []int {
 }
 
 // MaterialDictionary
-func (bsp *Bsp) MaterialDictionary() map[string]*graphics.Material {
+func (bsp *Bsp) MaterialDictionary() map[string]*Material {
 	return bsp.materialDictionary
 }
 
@@ -158,19 +157,19 @@ func (bsp *Bsp) File() *bsp.Bsp {
 	return bsp.file
 }
 
-func (bsp *Bsp) LightmapAtlas() *graphics.TextureAtlas {
+func (bsp *Bsp) LightmapAtlas() *TextureAtlas {
 	return bsp.lightmapAtlas
 }
 
 // NewBsp
 func NewBsp(
 	file *bsp.Bsp,
-	mesh *graphics.BasicMesh,
+	mesh *BasicMesh,
 	faces []BspFace,
 	dispFaces []int,
-	materialDictionary map[string]*graphics.Material,
+	materialDictionary map[string]*Material,
 	textureInfos []texinfo.TexInfo,
-	lightmapAtlas *graphics.TextureAtlas) *Bsp {
+	lightmapAtlas *TextureAtlas) *Bsp {
 	return &Bsp{
 		file:               file,
 		mesh:               mesh,

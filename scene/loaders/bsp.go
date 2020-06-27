@@ -16,7 +16,6 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/vtf/format"
@@ -33,7 +32,7 @@ import (
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBspMap(fs filesystem.FileSystem, filename string) (*valve.Bsp, []entity.IEntity, error) {
+func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []entity.IEntity, error) {
 	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStarted))
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
@@ -86,7 +85,7 @@ type bspstructs struct {
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*valve.Bsp, error) {
+func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error) {
 	bspStructure := bspstructs{
 		faces:     file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
 		planes:    file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
@@ -109,7 +108,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*valve.Bsp, error) {
 
 	// BSP FACES
 	bspMesh := graphics.NewMesh()
-	bspFaces := make([]valve.BspFace, len(bspStructure.faces))
+	bspFaces := make([]graphics.BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
 
@@ -135,7 +134,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*valve.Bsp, error) {
 		}
 	}
 
-	return valve.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
+	return graphics.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
 }
 
 // SortUnique builds a unique list of materials in a StringTable
@@ -186,7 +185,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 }
 
 // generateBspFace Create primitives from face data in the bsp
-func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) valve.BspFace {
+func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) graphics.BspFace {
 	offset := int32(len(bspMesh.Vertices())) / 3
 	length := int32(0)
 
@@ -224,13 +223,13 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.B
 		}
 	}
 
-	return valve.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
+	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
 }
 
 // generateDisplacementFace Create Primitive from Displacement face
 // This is based on:
 // https://github.com/Metapyziks/VBspViewer/blob/master/Assets/VBspViewer/Scripts/Importing/VBsp/VBspFile.cs
-func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) valve.BspFace {
+func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) graphics.BspFace {
 	corners := make([]mgl32.Vec3, 4)
 	normal := bspStructure.planes[f.Planenum].Normal
 
@@ -279,7 +278,7 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *g
 		}
 	}
 
-	return valve.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
+	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
 }
 
 // generateDispVert Create a displacement vertex

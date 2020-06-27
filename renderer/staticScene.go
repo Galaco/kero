@@ -7,7 +7,6 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/vis"
@@ -22,8 +21,8 @@ type fileSystem interface {
 
 type StaticScene struct {
 	bspMesh           *graphics.BasicMesh
-	bspFaces          []valve.BspFace
-	displacementFaces []*valve.BspFace
+	bspFaces          []graphics.BspFace
+	displacementFaces []*graphics.BspFace
 	skybox            *scene.Skybox
 
 	gpuMesh     graphics.GpuMesh
@@ -103,7 +102,7 @@ func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) []*vi
 }
 
 func NewStaticSceneFromBsp(fs fileSystem,
-	level *valve.Bsp,
+	level *graphics.Bsp,
 	entities []entity.IEntity,
 	materialCache *cache.Material,
 	texCache *cache.Texture,
@@ -139,7 +138,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	}
 
 	// generate displacement faces
-	dispFaces := make([]*valve.BspFace, 0, 1024)
+	dispFaces := make([]*graphics.BspFace, 0, 1024)
 	for _, i := range level.DispFaces() {
 		dispFaces = append(dispFaces, &level.Faces()[i])
 	}
@@ -161,7 +160,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		}
 		// Generate texture coordinates
 		level.Mesh().AddUV(
-			valve.TexCoordsForFaceFromTexInfo(
+			graphics.TexCoordsForFaceFromTexInfo(
 				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
 				bspFace.TexInfo(),
 				tex.Width(),
@@ -170,7 +169,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		// LightmapCoordsForFaceFromTexInfo
 		if level.LightmapAtlas() != nil {
 			level.Mesh().AddLightmapUV(
-				valve.LightmapCoordsForFaceFromTexInfo(
+				graphics.LightmapCoordsForFaceFromTexInfo(
 					level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
 					bspFace.RawFace(),
 					bspFace.TexInfo(),
@@ -184,7 +183,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 	level.Mesh().GenerateTangents()
 
-	remappedFaces := make([]valve.BspFace, 0, 1024)
+	remappedFaces := make([]graphics.BspFace, 0, 1024)
 	// Kero isn't interested in tools faces (for now)
 	for idx := range level.Faces() {
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
@@ -282,7 +281,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	return scene
 }
 
-func generateClusterLeafs(level *valve.Bsp, visData *vis.Vis) []vis.ClusterLeaf {
+func generateClusterLeafs(level *graphics.Bsp, visData *vis.Vis) []vis.ClusterLeaf {
 	bspClusters := make([]vis.ClusterLeaf, visData.VisibilityLump.NumClusters)
 	//defaultCluster := vis.ClusterLeaf{
 	//	Id: 32767,

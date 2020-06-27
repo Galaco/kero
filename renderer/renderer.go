@@ -8,7 +8,6 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	graphics3d "github.com/galaco/kero/framework/graphics/3d"
-	"github.com/galaco/kero/framework/valve"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
@@ -90,7 +89,7 @@ func (s *Renderer) Render() {
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 	s.scene = NewStaticSceneFromBsp(
 		filesystem.Get(),
-		message.(*messages.LoadingLevelParsed).Level().(*valve.Bsp),
+		message.(*messages.LoadingLevelParsed).Level().(*graphics.Bsp),
 		message.(*messages.LoadingLevelParsed).Entities().([]entity.IEntity),
 		s.materialCache,
 		s.textureCache,
@@ -120,8 +119,8 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
 
 	// SORTING
-	opaqueMaterials := map[*cache.GpuMaterial][]*valve.BspFace{}
-	translucentMaterials := map[*cache.GpuMaterial][]*valve.BspFace{}
+	opaqueMaterials := map[*cache.GpuMaterial][]*graphics.BspFace{}
+	translucentMaterials := map[*cache.GpuMaterial][]*graphics.BspFace{}
 
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.materialCache.Find(clusterFaceMaterial)
@@ -155,7 +154,7 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 	graphics.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
 }
 
-func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspFace) {
+func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
 	indices := make([]uint32, 0, 256)
 	for _, face := range faces {
 		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
@@ -168,7 +167,7 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*valve.BspF
 	}
 }
 
-func (s *Renderer) renderDisplacements(displacements []*valve.BspFace) {
+func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	var mat *cache.GpuMaterial
 	for _, displacement := range displacements {
 		mat = s.materialCache.Find(displacement.Material())

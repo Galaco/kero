@@ -7,6 +7,11 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+const (
+	ShaderTypeVertex = gosigl.VertexShader
+	ShaderTypeFragment= gosigl.FragmentShader
+)
+
 func Init() error {
 	return gl.Init()
 }
