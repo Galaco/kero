@@ -56,19 +56,23 @@ func (view *Console) commandInputCallback(data imgui.InputTextCallbackData) int3
 
 func (view *Console) Render() {
 	if gui.StartPanel("Console") {
+		imgui.BeginChildV("ConsoleMessages", imgui.Vec2{-1, -24}, false, 0)
 		for _, s := range view.messages {
 			imgui.PushStyleColor(imgui.StyleColorText, s.Color)
 			s.Text.Render()
 			imgui.PopStyleColor()
 		}
+		imgui.EndChild()
 
-		if imgui.InputTextV("CommandInput", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, view.commandInputCallback) {
+		imgui.PushItemWidth(-1)
+		if imgui.InputTextV("", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, view.commandInputCallback) {
 			err := console.ExecuteCommand(view.commandInput)
 			if err != nil {
 				console.PrintString(console.LevelError, err.Error())
 			}
 			view.commandInput = ""
 		}
+		imgui.PopItemWidth()
 
 		gui.EndPanel()
 	}
