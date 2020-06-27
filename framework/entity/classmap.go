@@ -15,13 +15,13 @@ var classMap entityClassMapper
 // problem better if they existed, and the plan was to avoid actual reflection
 // where possible.
 type entityClassMapper struct {
-	entityMap map[string]Entity
+	entityMap map[string]IEntity
 	mut       sync.Mutex
 }
 
-// find creates a new Entity of the specified
+// find creates a new IEntity of the specified
 // Classname.
-func (classMap *entityClassMapper) find(classname string) Entity {
+func (classMap *entityClassMapper) find(classname string) IEntity {
 	classMap.mut.Lock()
 	defer classMap.mut.Unlock()
 	if classMap.entityMap[classname] != nil {
@@ -33,9 +33,9 @@ func (classMap *entityClassMapper) find(classname string) Entity {
 // RegisterClass adds any type that implements a classname to
 // a saved mapping. From then on, new instances of that classname
 // can be created from just knowing the classname at runtime.
-func RegisterClass(entity Entity) {
+func RegisterClass(entity IEntity) {
 	if classMap.entityMap == nil {
-		classMap.entityMap = map[string]Entity{}
+		classMap.entityMap = map[string]IEntity{}
 	}
 
 	classMap.mut.Lock()
@@ -43,8 +43,8 @@ func RegisterClass(entity Entity) {
 	classMap.mut.Unlock()
 }
 
-// New creates a new Entity of the specified
+// New creates a new IEntity of the specified
 // Classname.
-func New(classname string) Entity {
+func New(classname string) IEntity {
 	return classMap.find(classname)
 }

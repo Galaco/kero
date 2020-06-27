@@ -8,75 +8,71 @@ import (
 )
 
 // VertexDataForModel loads model vertex data
-func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]float32, [][]float32, [][]float32, error) {
+func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]float32, [][]float32, [][]float32, [][]uint32, error) {
 	vertices := make([][]float32, 0)
 	normals := make([][]float32, 0)
 	textureCoordinates := make([][]float32, 0)
+	indices := make([][]uint32, 0)
 	for _, bodyPart := range studioModel.Vtx.BodyParts {
 		for _, model := range bodyPart.Models {
-			if len(model.LODS) < lodIdx {
-				return nil, nil, nil, errors.New("invalid LOD index requested for model")
+			if lodIdx > len(model.LODS) {
+				return nil, nil, nil, nil, errors.New("invalid LOD index requested for model")
 			}
 			for _, mesh := range model.LODS[lodIdx].Meshes {
-				indices := indicesForMesh(&mesh)
-				if len(indices) == 0 {
-					continue
+				i := indicesForMesh(&mesh)
+				if len(i) == 0 {
+					return nil, nil, nil, nil, errors.New("invalid studiomodel mesh: 0 indices. ignoring")
 				}
 
-				v, n, uv, err := vertexDataForMesh(indices, studioModel.Vvd)
+				v, n, uv, err := vertexDataForMesh(studioModel.Vvd)
 				if err != nil {
-					return nil, nil, nil, err
+					return nil, nil, nil, nil, err
 				}
 				vertices = append(vertices, v)
 				normals = append(normals, n)
 				textureCoordinates = append(textureCoordinates, uv)
+				indices = append(indices, i)
 			}
 		}
 	}
 
-	return vertices, normals, textureCoordinates, nil
+	return vertices, normals, textureCoordinates, indices, nil
 }
 
 // indicesForMesh get indices for mesh
-func indicesForMesh(mesh *vtx.Mesh) []uint16 {
+func indicesForMesh(mesh *vtx.Mesh) []uint32 {
 	if len(mesh.StripGroups) > 1 {
-		return make([]uint16, 0)
+		return make([]uint32, 0)
 	}
-	//	indexMap := make([]uint16, 0)
-	meshIndices := make([]uint16, 0)
+	meshIndices := make([]uint32, 0)
 
+	// @TODO Use all strip groups
 	stripGroup := mesh.StripGroups[0]
-
-	//for i := 0; i < len(stripGroup.Vertexes); i++ {
-	//	indexMap = append(indexMap, stripGroup.Vertexes[i].OriginalMeshVertexID)
-	//}
 
 	for _, strip := range stripGroup.Strips {
 		for j := int32(0); j < strip.NumIndices; j++ {
 			index := stripGroup.Indices[strip.IndexOffset+j]
 			vert := stripGroup.Vertexes[index]
 
-			meshIndices = append(meshIndices, uint16(strip.VertOffset)+vert.OriginalMeshVertexID)
+			//meshIndices = append(meshIndices, uint32(index))
+
+			meshIndices = append(meshIndices, uint32(strip.VertOffset)+uint32(vert.OriginalMeshVertexID))
 		}
 	}
 
 	return meshIndices
 }
 
-func vertexDataForMesh(indices []uint16, vvd *vvd.Vvd) ([]float32, []float32, []float32, error) {
-	verts := make([]float32, 0)
-	normals := make([]float32, 0)
-	textureCoordinates := make([]float32, 0)
+func vertexDataForMesh(vvd *vvd.Vvd) ([]float32, []float32, []float32, error) {
+	vertices := make([]float32, 0, len(vvd.Vertices)*3)
+	normals := make([]float32, 0, len(vvd.Vertices)*3)
+	uvs := make([]float32, 0, len(vvd.Vertices)*2)
 
-	for _, index := range indices {
-		if int(index) > len(vvd.Vertices) {
-			return nil, nil, nil, errors.New("vertex data bounds out of range")
-		}
-		vvdVert := &vvd.Vertices[index]
-
-		verts = append(verts, vvdVert.Position.X(), vvdVert.Position.Y(), vvdVert.Position.Z())
-		normals = append(normals, vvdVert.Normal.X(), vvdVert.Normal.Y(), vvdVert.Normal.Z())
-		textureCoordinates = append(textureCoordinates, vvdVert.UVs.X(), vvdVert.UVs.Y())
+	for _, vertex := range vvd.Vertices {
+		vertices = append(vertices, vertex.Position.X(), vertex.Position.Y(), vertex.Position.Z())
+		normals = append(normals, vertex.Normal.X(), vertex.Normal.Y(), vertex.Normal.Z())
+		uvs = append(uvs, vertex.UVs.X(), vertex.UVs.Y())
 	}
-	return verts, normals, textureCoordinates, nil
+
+	return vertices, normals, uvs, nil
 }

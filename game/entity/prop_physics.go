@@ -6,7 +6,7 @@ import (
 
 // PropPhysics
 type PropPhysics struct {
-	entity.EntityBase
+	entity.Entity
 	PropRenderableBase
 }
 

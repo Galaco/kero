@@ -15,9 +15,9 @@ jobs:
           key: go-mod-v4-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
-#      - run:
-#          name: Lint
-#          command: golangci-lint run --deadline=2m
+      #      - run:
+      #          name: Lint
+      #          command: golangci-lint run --deadline=2m
       - run:
           name: Test
           command: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...

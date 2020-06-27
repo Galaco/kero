@@ -1,44 +1,69 @@
 package event
 
-var eventBus Dispatcher
+// IDispatcher
+type IDispatcher interface {
+	Initialize()
+	DispatchLegacy(message Dispatchable)
+	Dispatch(name Type, value interface{})
+	AddListener(s Receiveable)
+	CancelPending()
+}
+
+var masterDispatcher Dispatcher
+
+func Get() *Dispatcher {
+	if masterDispatcher.listeners == nil {
+		masterDispatcher.Initialize()
+	}
+	return &masterDispatcher
+}
 
 // Dispatcher manages game events
 type Dispatcher struct {
 	messages    []Dispatchable
 	newMessages []Dispatchable
-	systems     []receiveable
+	listeners   map[Type][]Receiveable
 }
 
-// ProcessMessages loops through all stored messages and dispatches
-// them to listeners
-func ProcessMessages() {
-	for _, m := range eventBus.messages {
-		for _, s := range eventBus.systems {
-			s.ProcessMessage(m)
-			if len(eventBus.messages) < 2 {
-				eventBus.messages = make([]Dispatchable, 0)
-			} else {
-				eventBus.messages = eventBus.messages[1:]
-			}
+// DispatchLegacy queues a message to be sent to listeners
+func (eventBus *Dispatcher) DispatchLegacy(message Dispatchable) {
+	if _, ok := eventBus.listeners[message.Type()]; ok {
+		for _, cb := range eventBus.listeners[message.Type()] {
+			cb(message)
 		}
 	}
-
-	eventBus.messages = eventBus.newMessages
-	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
-// Dispatch queues a message to be sent to listeners
-func Dispatch(message Dispatchable) {
-	eventBus.newMessages = append(eventBus.newMessages, message)
+// Dispatch sends a message to all listeners of the specified Type
+func (eventBus *Dispatcher) Dispatch(name Type, message interface{}) {
+	if _, ok := eventBus.listeners[name]; ok {
+		for _, cb := range eventBus.listeners[name] {
+			cb(message)
+		}
+	}
 }
 
-// ClearQueue wipes the current queue.
+// CancelPending wipes the current queue.
 // This should be used with care.
-func ClearQueue() {
+func (eventBus *Dispatcher) CancelPending() {
 	eventBus.newMessages = make([]Dispatchable, 0)
 }
 
 // AddListener adds a listener for events.
-func AddListener(s receiveable) {
-	eventBus.systems = append(eventBus.systems, s)
+func (eventBus *Dispatcher) AddListener(message Type, s Receiveable) {
+	if _, ok := eventBus.listeners[message]; ok {
+		eventBus.listeners[message] = append(eventBus.listeners[message], s)
+	} else {
+		eventBus.listeners[message] = []Receiveable{s}
+	}
+}
+
+func (eventBus *Dispatcher) Initialize() {
+	eventBus.listeners = map[Type][]Receiveable{}
+}
+
+func NewDispatcher() *Dispatcher {
+	return &Dispatcher{
+		listeners: map[Type][]Receiveable{},
+	}
 }

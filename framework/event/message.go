@@ -12,6 +12,5 @@ type Dispatchable interface {
 	Type() Type
 }
 
-type receiveable interface {
-	ProcessMessage(Dispatchable)
-}
+// Receiveable is a callback function interface
+type Receiveable func(interface{})

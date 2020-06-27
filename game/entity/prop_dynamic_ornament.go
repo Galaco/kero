@@ -6,7 +6,7 @@ import (
 
 // PropDynamicOrnament
 type PropDynamicOrnament struct {
-	entity.EntityBase
+	entity.Entity
 	PropRenderableBase
 }
 

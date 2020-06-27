@@ -7,6 +7,11 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+const (
+	ShaderTypeVertex = gosigl.VertexShader
+	ShaderTypeFragment= gosigl.FragmentShader
+)
+
 func Init() error {
 	return gl.Init()
 }
@@ -27,18 +32,75 @@ func Clear(mask uint32) {
 	gl.Clear(mask)
 }
 
-func UploadTexture(texture *Texture) uint32 {
+func ClearDepthBuffer() {
+	gl.Clear(gl.DEPTH_BUFFER_BIT)
+}
+
+func UploadTexture(texture Texture) uint32 {
 	return uint32(gosigl.CreateTexture2D(
 		gosigl.TextureSlot(0),
 		texture.Width(),
 		texture.Height(),
-		texture.colour,
+		texture.Image(),
 		gosigl.PixelFormat(texture.Format()),
 		false))
 }
 
+func UploadLightmap(texture Texture) uint32 {
+	textureBuffer := uint32(0)
+	gl.GenTextures(1, &textureBuffer)
+	gl.ActiveTexture(4)
+	gl.BindTexture(gl.TEXTURE_2D, textureBuffer)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.TexImage2D(
+		gl.TEXTURE_2D,
+		0,
+		gl.RGBA,
+		int32(texture.Width()),
+		int32(texture.Height()),
+		0,
+		texture.Format(),
+		gl.UNSIGNED_BYTE,
+		gl.Ptr(texture.Image()))
+
+	return textureBuffer
+}
+
+func UploadCubemap(textures []Texture) uint32 {
+	colour := [6][]byte{
+		textures[0].Image(),
+		textures[1].Image(),
+		textures[2].Image(),
+		textures[3].Image(),
+		textures[4].Image(),
+		textures[5].Image(),
+	}
+
+	return uint32(gosigl.CreateTextureCubemap(
+		gosigl.TextureSlot(0),
+		textures[0].Width(),
+		textures[0].Height(),
+		colour,
+		gosigl.PixelFormat(textures[0].Format()),
+		true))
+}
+
 func BindTexture(id uint32) {
 	gosigl.BindTexture2D(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
+}
+
+func BindLightmap(id uint32) {
+	gosigl.BindTexture2D(gosigl.TextureSlot(4), gosigl.TextureBindingId(id))
+}
+
+func BindCubemap(id uint32) {
+	gosigl.BindTextureCubemap(gosigl.TextureSlot(0), gosigl.TextureBindingId(id))
 }
 
 // textureFormatFromVtfFormat swap vtf format to openGL format
@@ -65,18 +127,40 @@ func textureFormatFromVtfFormat(vtfFormat uint32) uint32 {
 
 type GpuMesh *gosigl.VertexObject
 
-func UploadMesh(mesh *Mesh) GpuMesh {
+func UploadMesh(mesh Mesh) GpuMesh {
 	gpuResource := gosigl.NewMesh(mesh.Vertices())
 	gosigl.CreateVertexAttribute(gpuResource, mesh.UVs(), 2)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Normals(), 3)
 	gosigl.CreateVertexAttribute(gpuResource, mesh.Tangents(), 4)
+	if mesh.LightmapUVs() == nil {
+		defaultUVs := make([]float32, len(mesh.UVs()))
+		for i := range defaultUVs {
+			defaultUVs[i] = -1
+		}
+		gosigl.CreateVertexAttribute(gpuResource, defaultUVs, 2)
+	} else {
+		gosigl.CreateVertexAttribute(gpuResource, mesh.LightmapUVs(), 2)
+	}
+
+	if len(mesh.Indices()) > 0 {
+		gosigl.SetElementArrayAttribute(gpuResource, mesh.Indices())
+	}
+
 	gosigl.FinishMesh()
 
-	return GpuMesh(gpuResource)
+	return gpuResource
 }
 
 func DrawArray(offset int, num int) {
 	gosigl.DrawArray(offset, num)
+}
+
+func DrawIndexedArray(num int, offset int, indices []uint32) {
+	gosigl.DrawElements(num, offset, indices)
+}
+
+func UpdateIndexArrayBuffer(indices []uint32) {
+	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices)*4, gl.Ptr(indices))
 }
 
 func DrawFace(offset int, num int, textureId uint32) {
@@ -96,9 +180,45 @@ func PushInt32(uniform int32, value int32) {
 	gl.Uniform1i(uniform, value)
 }
 
+func PushFloat32(uniform int32, value float32) {
+	gl.Uniform1f(uniform, value)
+}
+
 func GpuError() error {
 	if glError := gl.GetError(); glError != gl.NO_ERROR {
 		return fmt.Errorf("gl error. Code: %d", glError)
 	}
 	return nil
+}
+
+func EnableBlending() {
+	gosigl.EnableBlend()
+}
+
+func DisableBlending() {
+	gosigl.DisableBlend()
+}
+
+func EnableDepthTesting() {
+	gosigl.EnableDepthTest()
+}
+
+func DisableDepthTesting() {
+	gosigl.DisableDepthTest()
+}
+
+func EnableZBufferWrite() {
+	gl.DepthMask(true)
+}
+
+func DisableZBufferWrite() {
+	gl.DepthMask(false)
+}
+
+func EnableBackFaceCulling() {
+	gosigl.EnableCullFace(gosigl.Back, gosigl.WindingClockwise)
+}
+
+func EnableFrontFaceCulling() {
+	gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
 }

@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-const cameraSpeed = float64(320)
+const cameraSpeed = float64(320) * 2
 const sensitivity = float32(0.03)
 
 var minVerticalRotation = mgl32.DegToRad(90)
@@ -21,6 +21,16 @@ type Camera struct {
 	right       mgl32.Vec3
 	direction   mgl32.Vec3
 	worldUp     mgl32.Vec3
+}
+
+// Fov
+func (camera *Camera) Fov() float32 {
+	return camera.fov
+}
+
+// AspectRatio
+func (camera *Camera) AspectRatio() float32 {
+	return camera.aspectRatio
 }
 
 // Transform Returns this entity's transform component
@@ -50,9 +60,9 @@ func (camera *Camera) Right(dt float64) {
 
 // Rotate
 func (camera *Camera) Rotate(x, y, z float32) {
-	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + float32(x*sensitivity)
-	camera.Transform().Rotation[1] = camera.Transform().Rotation[1] + float32(y*sensitivity)
-	camera.Transform().Rotation[2] = camera.Transform().Rotation[2] + float32(z*sensitivity)
+	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + (x * sensitivity)
+	camera.Transform().Rotation[1] = camera.Transform().Rotation[1] + (y * sensitivity)
+	camera.Transform().Rotation[2] = camera.Transform().Rotation[2] + (z * sensitivity)
 
 	// Lock vertical rotation
 	if camera.Transform().Rotation[2] > maxVerticalRotation {
@@ -103,7 +113,7 @@ func (camera *Camera) ViewMatrix() mgl32.Mat4 {
 // ProjectionMatrix calculates projection matrix.
 // This is unlikely to change throughout program lifetime, but could do
 func (camera *Camera) ProjectionMatrix() mgl32.Mat4 {
-	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.1, 16384)
+	return mgl32.Perspective(camera.fov, camera.aspectRatio, 0.2, 16384)
 }
 
 // NewCamera returns a new camera

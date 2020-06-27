@@ -1,3 +1,8 @@
 /.idea/
-config.json
 imgui.ini
+Build
+
+
+# Misc
+depgraph.png
+.DS_Store

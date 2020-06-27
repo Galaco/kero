@@ -6,7 +6,7 @@ import (
 
 // PropRagdoll
 type PropRagdoll struct {
-	entity.EntityBase
+	entity.Entity
 	PropRenderableBase
 }
 

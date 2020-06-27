@@ -5,54 +5,58 @@ import (
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
-	"github.com/galaco/kero/systems"
-	"github.com/galaco/kero/systems/console"
-	"github.com/galaco/kero/systems/gui"
-	"github.com/galaco/kero/systems/input"
-	"github.com/galaco/kero/systems/renderer"
-	"github.com/galaco/kero/systems/scene"
+	"github.com/galaco/kero/gui"
+	"github.com/galaco/kero/messages"
+	"github.com/galaco/kero/middleware"
+	"github.com/galaco/kero/renderer"
+	"github.com/galaco/kero/scene"
 	"time"
 )
 
-// Kero
+// Kero provides a game loop
 type Kero struct {
 	isRunning bool
 
-	context systems.Context
-	systems []System
+	scene *scene.Scene
+
+	input    *middleware.Input
+	renderer *renderer.Renderer
+	ui       *gui.Gui
 }
 
+// RegisterGameDefinitions sets up provided game-specific configuration
 func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 	def.RegisterEntityClasses()
 }
 
-// RunGameLoop
+// Start runs the game loop
 func (kero *Kero) Start() {
-	kero.systems = []System{
-		console.NewConsole(),
-		input.NewInput(),
-		scene.NewScene(),
-		renderer.NewRenderer(),
-		gui.NewGui(),
-	}
+	kero.input = middleware.InitializeInput()
+	kero.renderer = renderer.NewRenderer()
+	kero.ui = gui.NewGui()
+	kero.scene = scene.NewScene()
 
 	kero.isRunning = true
 
-	kero.initialize()
+	kero.scene.Initialize()
+
+	kero.renderer.Initialize()
+	kero.ui.Initialize()
+
+	event.Get().AddListener(messages.TypeEngineQuit, kero.onQuit)
 
 	dt := 0.0
 	startingTime := time.Now().UTC()
-	for kero.isRunning {
-		event.ProcessMessages()
+	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
+		kero.input.Poll()
 
-		kero.context.Client.Update(dt)
+		kero.scene.Update(dt)
 
-		for _, s := range kero.systems {
-			s.Update(dt)
-		}
+		kero.renderer.Render()
+		kero.ui.Render()
 
 		window.CurrentWindow().SwapBuffers()
-		graphics.ClearColor(0, 0, 0, 1)
+		graphics.ClearColor(0.25, 0.25, 0.25, 1)
 		graphics.ClearAll()
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
@@ -62,27 +66,17 @@ func (kero *Kero) Start() {
 	kero.exit()
 }
 
-func (kero *Kero) initialize() {
-	for i := range kero.systems {
-		kero.systems[i].Register(&kero.context)
-		event.AddListener(kero.systems[i])
-	}
+func (kero *Kero) onQuit(e interface{}) {
+	window.CurrentWindow().Close()
 }
 
 func (kero *Kero) exit() {
-
+	kero.renderer.ReleaseGPUResources()
 }
 
-// NewKero
-func NewKero(ctx systems.Context) *Kero {
+// NewKero returns a new Kero instance
+func NewKero() *Kero {
 	return &Kero{
-		context:   ctx,
 		isRunning: false,
 	}
-}
-
-type System interface {
-	Register(ctx *systems.Context)
-	Update(dt float64)
-	ProcessMessage(message event.Dispatchable)
 }

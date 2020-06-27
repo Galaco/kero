@@ -2,7 +2,7 @@ package context
 
 import (
 	"github.com/galaco/tinygametools"
-	"github.com/inkyblackness/imgui-go"
+	"github.com/inkyblackness/imgui-go/v2"
 )
 
 type ContextBindable interface {
