@@ -1,6 +1,9 @@
 package console
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type Command func(options string) error
 
@@ -25,12 +28,15 @@ func ExecuteCommand(input string) error {
 		if _,ok := commandListSingleton.commands[input]; !ok {
 			return nil
 		}
+		PrintString(LevelInfo, fmt.Sprintf("> %s", input))
 		return commandListSingleton.commands[input]("")
 	}
 
 	if _,ok := commandListSingleton.commands[parts[0]]; !ok {
 		return nil
 	}
+
+	PrintString(LevelInfo, fmt.Sprintf("> %s", input))
 
 	return commandListSingleton.commands[parts[0]](parts[1])
 }

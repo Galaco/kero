@@ -27,6 +27,10 @@ type Renderer struct {
 	activeShader *graphics.Shader
 
 	scene *StaticScene
+
+	flags struct {
+		renderLightmapsAsAlbedo int32
+	}
 }
 
 func (s *Renderer) Initialize() {
@@ -109,6 +113,7 @@ func (s *Renderer) startFrame(camera *graphics3d.Camera) {
 
 func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterLeaf) {
 	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
+	graphics.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), s.flags.renderLightmapsAsAlbedo)
 
 	graphics.BindMesh(&s.scene.gpuMesh)
 	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
@@ -242,7 +247,7 @@ func (s *Renderer) ReleaseGPUResources() {
 }
 
 func (s *Renderer) bindConVars() {
-	console.AddCommand("r_dumplightmap", func (options string) error {
+	console.AddCommand("kero_dumplightmap", func (options string) error {
 		if s == nil {
 			return nil
 		}
@@ -252,7 +257,24 @@ func (s *Renderer) bindConVars() {
 			return nil
 		}
 
-		return errors.New("r_dumplightmap: no lightmap in memory")
+		return errors.New("kero_dumplightmap: no lightmap in memory")
+	})
+	console.AddCommand("kero_drawlightmaps", func (options string) error {
+		if s == nil {
+			return nil
+		}
+
+		if ok := s.textureCache.Find(cache.LightmapTexturePath); ok == nil{
+			return errors.New("kero_drawlightmaps: no lightmap in memory")
+		}
+
+		if options == "1" {
+			s.flags.renderLightmapsAsAlbedo = 1
+		} else {
+			s.flags.renderLightmapsAsAlbedo = 0
+		}
+
+		return nil
 	})
 }
 
