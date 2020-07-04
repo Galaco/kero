@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	ShaderTypeVertex = gosigl.VertexShader
-	ShaderTypeFragment= gosigl.FragmentShader
+	ShaderTypeVertex   = gosigl.VertexShader
+	ShaderTypeFragment = gosigl.FragmentShader
 )
 
 func Init() error {

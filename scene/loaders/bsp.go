@@ -335,4 +335,3 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 
 	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
 }
-

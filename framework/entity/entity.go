@@ -39,9 +39,9 @@ type Entity struct {
 	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
 	Transform graphics3d.Transform
 	// Class contains the entity's classname (e.g. func_movelinear)
-	class     string
+	class string
 	// Name contains the entity's targetname
-	name      string
+	name string
 }
 
 // Classname returns the entity classname
