@@ -6,7 +6,8 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/vis"
@@ -20,12 +21,12 @@ type fileSystem interface {
 }
 
 type StaticScene struct {
-	bspMesh           *graphics.BasicMesh
+	bspMesh           *mesh.BasicMesh
 	bspFaces          []graphics.BspFace
 	displacementFaces []*graphics.BspFace
 	skybox            *scene.Skybox
 
-	gpuMesh     graphics.GpuMesh
+	gpuMesh     adapter.GpuMesh
 	staticProps []graphics.StaticProp
 	entities    []entity.IEntity
 
@@ -36,11 +37,11 @@ type StaticScene struct {
 	visibleClusterLeafs []*vis.ClusterLeaf
 	currentLeaf         *leaf.Leaf
 
-	camera             *graphics3d.Camera
+	camera             *graphics.Camera
 	cameraPrevPosition mgl32.Vec3
 
 	skyboxClusterLeafs []*vis.ClusterLeaf
-	skyCamera          *graphics3d.Camera
+	skyCamera          *graphics.Camera
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
@@ -108,12 +109,10 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	texCache *cache.Texture,
 	gpuItemCache *cache.GpuItem,
 	gpuStaticProps map[string]*cache.GpuProp) *StaticScene {
-	texCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
-	gpuItemCache.Add(cache.ErrorTexturePath, graphics.UploadTexture(texCache.Find(cache.ErrorTexturePath)))
 
 	if level.LightmapAtlas() != nil {
 		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
-		gpuItemCache.Add(cache.LightmapTexturePath, graphics.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
+		gpuItemCache.Add(cache.LightmapTexturePath, adapter.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
 	} else {
 		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
 		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))
@@ -131,7 +130,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
 				texCache.Add(mat.BaseTextureName, tex)
-				gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
 			}
 		}
 		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
@@ -193,8 +192,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	for _, prop := range level.StaticPropDictionary {
 		gpuStaticProps[prop.Id] = cache.NewGpuProp()
 		for _, m := range prop.Meshes() {
-			gpuMesh := graphics.UploadMesh(m)
-			gpuStaticProps[prop.Id].AddMesh(&gpuMesh)
+			gpuStaticProps[prop.Id].AddMesh(adapter.UploadMesh(m))
 		}
 		for _, materialPath := range prop.Materials() {
 			if _, ok := level.MaterialDictionary()[materialPath]; ok {
@@ -214,7 +212,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
-					gpuItemCache.Add(mat.BaseTextureName, graphics.UploadTexture(tex))
+					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
 				}
 			}
 			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
@@ -243,11 +241,17 @@ func NewStaticSceneFromBsp(fs fileSystem,
 			continue
 		}
 	}
-	skybox := scene.LoadSkybox(fs, worldspawn)
-	var skyCamera *graphics3d.Camera
+	skyboxOrigin := mgl32.Vec3{}
+	skyName := ""
+	if worldspawn != nil {
+		skyboxOrigin = worldspawn.VectorForKey("origin")
+		skyName = worldspawn.ValueForKey("skyname")
+	}
+	skybox := scene.LoadSkybox(fs, skyName, skyboxOrigin)
+	var skyCamera *graphics.Camera
 
 	if skyCameraEntity != nil {
-		skyCamera = graphics3d.NewCamera(level.Camera().Fov(), level.Camera().AspectRatio())
+		skyCamera = graphics.NewCamera(level.Camera().Fov(), level.Camera().AspectRatio())
 		skyCamera.Transform().Position = skyCameraEntity.VectorForKey("origin")
 		scale := skyCameraEntity.FloatForKey("scale")
 		skyCamera.Transform().Scale = mgl32.Vec3{scale, scale, scale}
@@ -259,7 +263,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 
 	scene := &StaticScene{
 		bspMesh:            level.Mesh(),
-		gpuMesh:            graphics.UploadMesh(level.Mesh()),
+		gpuMesh:            adapter.UploadMesh(level.Mesh()),
 		bspFaces:           remappedFaces,
 		displacementFaces:  dispFaces,
 		skybox:             skybox,
@@ -305,6 +309,7 @@ func generateClusterLeafs(level *graphics.Bsp, visData *vis.Vis) []vis.ClusterLe
 				float32(bspLeaf.Maxs[2]),
 			}
 			bspClusters[bspLeaf.Cluster].Origin = bspClusters[bspLeaf.Cluster].Mins.Add(bspClusters[bspLeaf.Cluster].Maxs.Sub(bspClusters[bspLeaf.Cluster].Mins))
+			bspClusters[bspLeaf.Cluster].DebugMesh = mesh.NewCuboidFromMinMaxs(bspClusters[bspLeaf.Cluster].Mins, bspClusters[bspLeaf.Cluster].Maxs)
 
 			if bspLeaf.Flags()&leaf.LeafFlagsSky > 0 {
 				bspClusters[bspLeaf.Cluster].SkyVisible = true

@@ -6,7 +6,7 @@ import (
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
 	"log"
@@ -59,5 +59,5 @@ func initFramework() error {
 	win.SetActive()
 	input.SetBoundWindow(win)
 	win.Handle().Handle().Focus()
-	return graphics.Init()
+	return adapter.Init()
 }

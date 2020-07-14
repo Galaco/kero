@@ -57,25 +57,3 @@ func NewLoadingLevelParsed(level interface{}, entities interface{}) *LoadingLeve
 		entities: entities,
 	}
 }
-
-// LoadingLevelProgress
-type LoadingLevelProgress struct {
-	state int
-}
-
-// Type
-func (msg *LoadingLevelProgress) Type() event.Type {
-	return TypeLoadingLevelProgress
-}
-
-// State
-func (msg *LoadingLevelProgress) State() int {
-	return msg.state
-}
-
-// LoadingLevelProgress
-func NewLoadingLevelProgress(state int) *LoadingLevelProgress {
-	return &LoadingLevelProgress{
-		state: state,
-	}
-}

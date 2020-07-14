@@ -1,4 +1,4 @@
-package graphics
+package mesh
 
 import (
 	"reflect"

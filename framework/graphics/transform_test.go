@@ -1,4 +1,4 @@
-package graphics3d
+package graphics
 
 import "testing"
 

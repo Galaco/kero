@@ -3,6 +3,7 @@ package graphics
 import (
 	"fmt"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
 	"math"
@@ -10,12 +11,7 @@ import (
 	"strings"
 )
 
-type Texture interface {
-	Format() uint32
-	Width() int
-	Height() int
-	Image() []uint8
-}
+type Texture adapter.Texture
 
 // Texture2D is a material defined by raw/computed colour data
 type Texture2D struct {
@@ -59,7 +55,7 @@ func NewTexture(filePath string, width, height int, format uint32, colour []uint
 		filePath: filePath,
 		width:    width,
 		height:   height,
-		format:   textureFormatFromVtfFormat(format),
+		format:   adapter.TextureFormatFromVtfFormat(format),
 		colour:   colour,
 	}
 }
@@ -70,7 +66,7 @@ func NewErrorTexture(name string) *Texture2D {
 		name,
 		8,
 		8,
-		textureFormatFromVtfFormat(uint32(format.RGB888)),
+		adapter.TextureFormatFromVtfFormat(uint32(format.RGB888)),
 		[]uint8{
 			255, 0, 255,
 			255, 0, 255,
@@ -374,7 +370,7 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 		width:         width,
 		height:        height,
 		rectangles:    []AtlasTexture{},
-		format:        textureFormatFromVtfFormat(uint32(format.RGBA8888)),
+		format:        adapter.TextureFormatFromVtfFormat(uint32(format.RGBA8888)),
 		bytesPerPixel: 4,
 	}
 }

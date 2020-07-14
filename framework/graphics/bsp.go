@@ -4,7 +4,7 @@ import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/primitives/face"
 	"github.com/galaco/bsp/primitives/texinfo"
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	mesh2 "github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -106,23 +106,23 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 type Bsp struct {
 	file *bsp.Bsp
 
-	mesh      *BasicMesh
+	mesh      *mesh2.BasicMesh
 	faces     []BspFace
 	dispFaces []int
 
 	materialDictionary map[string]*Material
 	textureInfos       []texinfo.TexInfo
 
-	StaticPropDictionary map[string]*Model
+	StaticPropDictionary map[string]*mesh2.Model
 	StaticProps          []StaticProp
 
-	camera *graphics3d.Camera
+	camera *Camera
 
 	lightmapAtlas *TextureAtlas
 }
 
 // BasicMesh
-func (bsp *Bsp) Mesh() *BasicMesh {
+func (bsp *Bsp) Mesh() *mesh2.BasicMesh {
 	return bsp.mesh
 }
 
@@ -145,11 +145,11 @@ func (bsp *Bsp) TexInfos() []texinfo.TexInfo {
 	return bsp.textureInfos
 }
 
-func (bsp *Bsp) Camera() *graphics3d.Camera {
+func (bsp *Bsp) Camera() *Camera {
 	return bsp.camera
 }
 
-func (bsp *Bsp) SetCamera(camera *graphics3d.Camera) {
+func (bsp *Bsp) SetCamera(camera *Camera) {
 	bsp.camera = camera
 }
 
@@ -164,7 +164,7 @@ func (bsp *Bsp) LightmapAtlas() *TextureAtlas {
 // NewBsp
 func NewBsp(
 	file *bsp.Bsp,
-	mesh *BasicMesh,
+	mesh *mesh2.BasicMesh,
 	faces []BspFace,
 	dispFaces []int,
 	materialDictionary map[string]*Material,

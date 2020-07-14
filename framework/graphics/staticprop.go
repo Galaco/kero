@@ -2,22 +2,22 @@ package graphics
 
 import (
 	"github.com/galaco/bsp/primitives/game"
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/mesh"
 )
 
 // StaticProp is a somewhat specialised model
 // that implements a few core entity features (largely because
 // it is basically a renderable entity that cannot do anything or be reference)
 type StaticProp struct {
-	Transform       graphics3d.Transform
+	Transform       Transform
 	leafList        []uint16
-	model           *Model
+	model           *mesh.Model
 	fadeMinDistance float32
 	fadeMaxDistance float32
 }
 
 // Model returns props model
-func (prop *StaticProp) Model() *Model {
+func (prop *StaticProp) Model() *mesh.Model {
 	return prop.model
 }
 
@@ -35,7 +35,7 @@ func (prop *StaticProp) FadeMaxDistance() float32 {
 }
 
 // NewStaticProp returns new StaticProp
-func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticPropLeafLump, renderable *Model) *StaticProp {
+func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticPropLeafLump, renderable *mesh.Model) *StaticProp {
 	prop := StaticProp{
 		model:    renderable,
 		leafList: make([]uint16, lumpProp.GetLeafCount()),

@@ -6,12 +6,13 @@ import (
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/framework/graphics/studiomodel"
+	"github.com/galaco/kero/framework/graphics/mesh"
+	"github.com/galaco/kero/framework/graphics/mesh/studiomodel"
 	"strings"
 	"sync"
 )
 
-func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*graphics.Model, []graphics.StaticProp) {
+func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*mesh.Model, []graphics.StaticProp) {
 	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
 	propLump := gameLump.GetStaticPropLump()
 
@@ -59,8 +60,8 @@ func generateUniquePropList(propList []string) (uniqueList []string) {
 	return uniqueList
 }
 
-func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[string]*graphics.Model {
-	propMap := map[string]*graphics.Model{}
+func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[string]*mesh.Model {
+	propMap := map[string]*mesh.Model{}
 	var propMapMutex sync.Mutex
 	waitGroup := sync.WaitGroup{}
 

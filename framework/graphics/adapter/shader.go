@@ -1,4 +1,4 @@
-package graphics
+package adapter
 
 import "github.com/galaco/gosigl"
 

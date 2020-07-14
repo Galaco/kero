@@ -1,17 +1,11 @@
-package graphics
+package mesh
 
 import (
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-type Mesh interface {
-	Vertices() []float32
-	Normals() []float32
-	UVs() []float32
-	Tangents() []float32
-	LightmapUVs() []float32
-	Indices() []uint32
-}
+type Mesh adapter.Mesh
 
 // BasicMesh
 type BasicMesh struct {

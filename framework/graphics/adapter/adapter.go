@@ -1,4 +1,4 @@
-package graphics
+package adapter
 
 import (
 	"fmt"
@@ -11,6 +11,22 @@ const (
 	ShaderTypeVertex   = gosigl.VertexShader
 	ShaderTypeFragment = gosigl.FragmentShader
 )
+
+type Texture interface {
+	Format() uint32
+	Width() int
+	Height() int
+	Image() []uint8
+}
+
+type Mesh interface {
+	Vertices() []float32
+	Normals() []float32
+	UVs() []float32
+	Tangents() []float32
+	LightmapUVs() []float32
+	Indices() []uint32
+}
 
 func Init() error {
 	return gl.Init()
@@ -104,7 +120,7 @@ func BindCubemap(id uint32) {
 }
 
 // textureFormatFromVtfFormat swap vtf format to openGL format
-func textureFormatFromVtfFormat(vtfFormat uint32) uint32 {
+func TextureFormatFromVtfFormat(vtfFormat uint32) uint32 {
 	switch vtfFormat {
 	case 0:
 		return gl.RGBA

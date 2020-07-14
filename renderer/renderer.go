@@ -7,7 +7,7 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
@@ -24,12 +24,13 @@ type Renderer struct {
 	gpuStaticProps map[string]*cache.GpuProp
 
 	gpuItemCache *cache.GpuItem
-	activeShader *graphics.Shader
+	activeShader *adapter.Shader
 
 	scene *StaticScene
 
 	flags struct {
-		renderLightmapsAsAlbedo int32
+		renderLightmapsAsAlbedo   int32
+		renderDebugLeafWireframes int32
 	}
 }
 
@@ -40,9 +41,12 @@ func (s *Renderer) Initialize() {
 		panic(err)
 	}
 
-	graphics.EnableBlending()
-	graphics.EnableDepthTesting()
-	graphics.EnableBackFaceCulling()
+	s.textureCache.Add(cache.ErrorTexturePath, graphics.NewErrorTexture(cache.ErrorTexturePath))
+	s.gpuItemCache.Add(cache.ErrorTexturePath, adapter.UploadTexture(s.textureCache.Find(cache.ErrorTexturePath)))
+
+	adapter.EnableBlending()
+	adapter.EnableDepthTesting()
+	adapter.EnableBackFaceCulling()
 
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
 	s.bindConVars()
@@ -78,7 +82,7 @@ func (s *Renderer) Render() {
 			s.renderBsp(s.scene.skyCamera, s.scene.skyboxClusterLeafs)
 			s.renderDisplacements(s.scene.displacementFaces)
 			s.renderStaticProps(s.scene.skyCamera, s.scene.skyboxClusterLeafs)
-			graphics.ClearDepthBuffer()
+			adapter.ClearDepthBuffer()
 			s.scene.skyCamera.Transform().Position = origin
 		}
 	}
@@ -101,24 +105,24 @@ func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 		s.gpuStaticProps)
 }
 
-func (s *Renderer) startFrame(camera *graphics3d.Camera) {
+func (s *Renderer) startFrame(camera *graphics.Camera) {
 	projection := camera.ProjectionMatrix()
 	view := camera.ViewMatrix()
 
 	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
 	s.activeShader.Bind()
-	graphics.PushMat4(s.activeShader.GetUniform("projection"), 1, false, projection)
-	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, projection)
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
 }
 
-func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterLeaf) {
-	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
-	graphics.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), s.flags.renderLightmapsAsAlbedo)
+func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
+	adapter.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), s.flags.renderLightmapsAsAlbedo)
 
-	graphics.BindMesh(&s.scene.gpuMesh)
-	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	graphics.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
-	graphics.BindLightmap(s.gpuItemCache.Find(cache.LightmapTexturePath))
+	adapter.BindMesh(&s.scene.gpuMesh)
+	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	adapter.BindLightmap(s.gpuItemCache.Find(cache.LightmapTexturePath))
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
@@ -145,18 +149,18 @@ func (s *Renderer) renderBsp(camera *graphics3d.Camera, clusters []*vis.ClusterL
 		s.RenderBSPMaterial(clusterFaceMaterial, faces)
 	}
 
-	graphics.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 1)
+	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 1)
 
 	for clusterFaceMaterial, faces := range translucentMaterials {
-		graphics.PushFloat32(s.activeShader.GetUniform("alpha"), clusterFaceMaterial.Properties.Alpha)
+		adapter.PushFloat32(s.activeShader.GetUniform("alpha"), clusterFaceMaterial.Properties.Alpha)
 		if clusterFaceMaterial.Properties.Translucent == true {
-			graphics.PushInt32(s.activeShader.GetUniform("translucent"), 1)
+			adapter.PushInt32(s.activeShader.GetUniform("translucent"), 1)
 		} else {
-			graphics.PushInt32(s.activeShader.GetUniform("translucent"), 0)
+			adapter.PushInt32(s.activeShader.GetUniform("translucent"), 0)
 		}
 		s.RenderBSPMaterial(clusterFaceMaterial, faces)
 	}
-	graphics.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
+	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
 }
 
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
@@ -164,10 +168,10 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.B
 	for _, face := range faces {
 		indices = append(indices, s.scene.bspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
-	graphics.UpdateIndexArrayBuffer(indices)
-	graphics.BindTexture(mat.Diffuse)
-	graphics.DrawIndexedArray(len(indices), 0, nil)
-	if err := graphics.GpuError(); err != nil {
+	adapter.UpdateIndexArrayBuffer(indices)
+	adapter.BindTexture(mat.Diffuse)
+	adapter.DrawIndexedArray(len(indices), 0, nil)
+	if err := adapter.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())
 	}
 }
@@ -176,14 +180,14 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	var mat *cache.GpuMaterial
 	for _, displacement := range displacements {
 		mat = s.materialCache.Find(displacement.Material())
-		graphics.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
-		if err := graphics.GpuError(); err != nil {
+		adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
+		if err := adapter.GpuError(); err != nil {
 			console.PrintString(console.LevelError, err.Error())
 		}
 	}
 }
 
-func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.ClusterLeaf) {
+func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
 	viewPosition := camera.Transform().Position
 
 	for _, cluster := range clusters {
@@ -196,12 +200,12 @@ func (s *Renderer) renderStaticProps(camera *graphics3d.Camera, clusters []*vis.
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
-			graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
+			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
 			if gpuProp, ok := s.gpuStaticProps[prop.Model().Id]; ok {
 				for idx := range gpuProp.Id {
-					graphics.BindMesh(gpuProp.Id[idx])
-					graphics.BindTexture(gpuProp.Material[idx].Diffuse)
-					graphics.DrawIndexedArray(len(prop.Model().Meshes()[idx].Indices()), 0, nil)
+					adapter.BindMesh(&gpuProp.Id[idx])
+					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+					adapter.DrawIndexedArray(len(prop.Model().Meshes()[idx].Indices()), 0, nil)
 				}
 			}
 		}
@@ -225,21 +229,14 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 
 	s.activeShader = s.shaderCache.Find("Skybox")
 	s.activeShader.Bind()
-	graphics.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	graphics.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
-	graphics.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
-	graphics.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
+	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.camera.ViewMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
-	//graphics.EnableDepthTesting()
-	//graphics.EnableFrontFaceCulling()
-
-	graphics.BindMesh(&skybox.SkyMeshGpuID)
-	graphics.BindCubemap(skybox.SkyMaterialGpuID)
-	graphics.DrawArray(0, len(skybox.SkyMesh.Vertices()))
-
-	//graphics.EnableBlending()
-	//graphics.EnableDepthTesting()
-	//graphics.EnableBackFaceCulling()
+	adapter.BindMesh(&skybox.SkyMeshGpuID)
+	adapter.BindCubemap(skybox.SkyMaterialGpuID)
+	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices()))
 }
 
 func (s *Renderer) ReleaseGPUResources() {
@@ -263,17 +260,25 @@ func (s *Renderer) bindConVars() {
 		if s == nil {
 			return nil
 		}
-
 		if ok := s.textureCache.Find(cache.LightmapTexturePath); ok == nil {
 			return errors.New("kero_drawlightmaps: no lightmap in memory")
 		}
-
 		if options == "1" {
 			s.flags.renderLightmapsAsAlbedo = 1
 		} else {
 			s.flags.renderLightmapsAsAlbedo = 0
 		}
-
+		return nil
+	})
+	console.AddCommand("kero_drawleafwireframes", "Renders visible leaf wireframes", "", func(options string) error {
+		if s == nil {
+			return nil
+		}
+		if options == "1" {
+			s.flags.renderDebugLeafWireframes = 1
+		} else {
+			s.flags.renderDebugLeafWireframes = 0
+		}
 		return nil
 	})
 }

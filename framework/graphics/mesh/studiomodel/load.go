@@ -1,7 +1,7 @@
 package studiomodel
 
 import (
-	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/studiomodel"
 	"github.com/galaco/studiomodel/mdl"
 	"github.com/galaco/studiomodel/phy"
@@ -21,7 +21,7 @@ type virtualFileSystem interface {
 // some corruption.
 
 // LoadProp loads a single prop/model of known filepath
-func LoadProp(path string, fs virtualFileSystem) (*graphics.Model, error) {
+func LoadProp(path string, fs virtualFileSystem) (*mesh.Model, error) {
 	prop, err := loadProp(strings.Split(path, ".mdl")[0], fs)
 	if prop != nil {
 		model, err := modelFromStudioModel(path, prop)
@@ -85,7 +85,7 @@ func loadProp(filePath string, fs virtualFileSystem) (*studiomodel.StudioModel, 
 	return prop, nil
 }
 
-func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel) (*graphics.Model, error) {
+func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel) (*mesh.Model, error) {
 	if filename == "models/props/de_tides/tides_fences_d.mdl" {
 		log.Println(filename)
 	}
@@ -93,10 +93,10 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 	if err != nil {
 		return nil, err
 	}
-	outModel := graphics.NewModel(filename)
+	outModel := mesh.NewModel(filename)
 	mats := materialsForStudioModel(studioModel.Mdl)
 	for i := 0; i < len(verts); i++ { //verts is a slice of slices, (ie vertex data per mesh: len(verts) = num_meshes)
-		smMesh := graphics.NewMesh()
+		smMesh := mesh.NewMesh()
 		smMesh.AddVertex(verts[i]...)
 		smMesh.AddNormal(normals[i]...)
 		smMesh.AddUV(textureCoordinates[i]...)

@@ -2,6 +2,7 @@ package vis
 
 import (
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -13,9 +14,10 @@ type ClusterLeaf struct {
 	Mins, Maxs  mgl32.Vec3
 	Origin      mgl32.Vec3
 	SkyVisible  bool
+	DebugMesh   mesh.Mesh
 }
 
-// groupClusterFacesByMaterial groups all faces in a collections of
+// GroupClusterFacesByMaterial groups all faces in a collections of
 // clusters by material
 func GroupClusterFacesByMaterial(clusters []*ClusterLeaf) map[string][]*graphics.BspFace {
 	clusterFaceMap := map[string][]*graphics.BspFace{}

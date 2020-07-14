@@ -23,7 +23,7 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			event.Get().DispatchLegacy(messages.NewChangeLevel(name))
+			event.Get().Dispatch(messages.TypeChangeLevel, name)
 		}).Draw()
 		gui.NewButton("menu_quit", "Quit", func() {
 			event.Get().Dispatch(messages.TypeEngineQuit, nil)
