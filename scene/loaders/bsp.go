@@ -134,6 +134,10 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		}
 	}
 
+	if lightmapAtlas != nil {
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", lightmapAtlas.Width(), lightmapAtlas.Height()))
+	}
+
 	return graphics.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
 }
 
@@ -166,7 +170,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 	asyncLoadMaterial := func(filePath string) {
 		mat, err := graphics.LoadMaterial(fs, filePath)
 		if err != nil {
-			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
+			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", filePath, err.Error()))
 			mat = graphics.NewMaterial(filePath)
 		}
 		dictMutex.Lock()

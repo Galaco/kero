@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"github.com/galaco/kero/framework/console"
 	"github.com/golang-source-engine/vmt"
 )
 
@@ -35,7 +34,6 @@ func NewMaterial(filePath string) *Material {
 func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			console.PrintString(console.LevelError, e.(error).Error())
 			err = e.(error)
 		}
 	}()

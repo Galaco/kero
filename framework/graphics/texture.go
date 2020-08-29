@@ -1,8 +1,6 @@
 package graphics
 
 import (
-	"fmt"
-	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
@@ -342,8 +340,6 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	})
 
 	atlas.rectangles = packed
-
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", atlas.width, atlas.height))
 
 	return atlas.rectangles
 }

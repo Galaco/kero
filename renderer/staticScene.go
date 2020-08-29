@@ -209,6 +209,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 			}
 			mat, err := graphics.LoadMaterial(fs, materialPath)
 			if err != nil {
+				console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
 				mat = graphics.NewMaterial(materialPath)
 				mat.BaseTextureName = cache.ErrorTexturePath
 			}
@@ -285,7 +286,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	}
 
 	// Generate Initial visibility data
-	scene.RecomputeVisibleClusters()
+	scene.asyncRebuildVisibleWorld(nil)
 	if skyCamera != nil {
 		scene.skyboxClusterLeafs = scene.asyncRebuildVisibleWorld(scene.visData.FindCurrentLeaf(skyCamera.Transform().Position))
 	}

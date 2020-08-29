@@ -23,7 +23,7 @@ type FileSystem interface {
 var masterFilesystem FileSystem
 
 // InitializeFromGameInfoDefinitions Reads game resource data paths
-// from gameinfo.txt
+// from GameInfo.txt
 // All games should ship with a gameinfo.txt, but it isn't actually mandatory.
 func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyValue) (FileSystem, error) {
 	lfs, err := filesystemLib.CreateFilesystemFromGameInfoDefinitions(basePath, gameInfo, true)
@@ -33,7 +33,7 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 	return nil, err
 }
 
-// Init initializses the master filesystem used by Kero. In theory other filesystems can be used too; but the master fs
+// Init initialises the master filesystem used by Kero. In theory other filesystems can be used too; but the master fs
 // is designed to be loaded with the same configuration and behaviour as the original Source Engine.
 func Init(gameDir string) (FileSystem, error) {
 	stream, err := os.Open(gameDir + "/gameinfo.txt")
