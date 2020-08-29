@@ -7,8 +7,7 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"github.com/galaco/kero/framework/graphics/mesh/studiomodel"
-	"strings"
+	"github.com/galaco/kero/framework/graphics/studiomodel"
 	"sync"
 )
 
@@ -71,9 +70,6 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 				console.PrintString(console.LevelError, e.(error).Error())
 			}
 		}()
-		if !strings.HasSuffix(path, ".mdl") {
-			path += ".mdl"
-		}
 		prop, err := studiomodel.LoadProp(path, fs)
 		if err != nil {
 			waitGroup.Done()

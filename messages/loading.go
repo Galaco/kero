@@ -6,9 +6,9 @@ import (
 
 const (
 	// TypeLoadingLevelParsed
-	TypeLoadingLevelParsed = event.Type("LoadingLevelParsed")
+	TypeLoadingLevelParsed = event.Type("ui:LoadingLevelParsed")
 	// TypeLoadingLevelProgress
-	TypeLoadingLevelProgress = event.Type("LoadingLevelProgress")
+	TypeLoadingLevelProgress = event.Type("ui:LoadingLevelProgress")
 )
 
 const (

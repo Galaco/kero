@@ -6,5 +6,5 @@ import (
 
 const (
 	// TypeChangeLevel
-	TypeChangeLevel = event.Type("ChangeLevel")
+	TypeChangeLevel = event.Type("ui:RequestChangeLevel")
 )

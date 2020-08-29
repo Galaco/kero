@@ -6,9 +6,9 @@ import (
 
 const (
 	// TypeKeyPress
-	TypeKeyPress = event.Type("KeyPress")
+	TypeKeyPress = event.Type("input:KeyPress")
 	// TypeKeyRelease
-	TypeKeyRelease = event.Type("KeyRelease")
+	TypeKeyRelease = event.Type("input:KeyRelease")
 	// TypeMouseMove  =
-	TypeMouseMove = event.Type("MouseMove")
+	TypeMouseMove = event.Type("input:MouseMove")
 )
