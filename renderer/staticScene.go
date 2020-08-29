@@ -123,14 +123,22 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	var err error
 	for _, mat := range level.MaterialDictionary() {
 		if tex = texCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
-			if err != nil || tex == nil {
-				console.PrintString(console.LevelWarning, err.Error())
+			if mat.BaseTextureName == "" {
+				console.PrintString(console.LevelWarning, fmt.Sprintf("%s has no $BaseTexture", mat.FilePath()))
 				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
 				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
 			} else {
-				texCache.Add(mat.BaseTextureName, tex)
-				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+				tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
+				if err != nil || tex == nil {
+					if err != nil {
+						console.PrintString(console.LevelWarning, err.Error())
+					}
+					texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
+					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
+				} else {
+					texCache.Add(mat.BaseTextureName, tex)
+					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+				}
 			}
 		}
 		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
