@@ -65,7 +65,7 @@ func UploadTexture(texture Texture) uint32 {
 func UploadLightmap(texture Texture) uint32 {
 	textureBuffer := uint32(0)
 	gl.GenTextures(1, &textureBuffer)
-	gl.ActiveTexture(4)
+	gl.ActiveTexture(gl.TEXTURE4)
 	gl.BindTexture(gl.TEXTURE_2D, textureBuffer)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
