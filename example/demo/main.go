@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/filesystem"
@@ -38,11 +37,10 @@ func main() {
 
 	// Game config
 	game := NewGameDefinition()
-	_, err := filesystem.Init(*gameDirectoryPtr + "/" + game.ContentDirectory())
+	_, err := filesystem.Init(*gameDirectoryPtr)
 	if err != nil {
 		panic(err)
 	}
-	window.CurrentWindow().Handle().Handle().SetTitle(fmt.Sprintf("Kero: %s", game.ContentDirectory()))
 
 	// Start
 	keroImpl := kero.NewKero()
