@@ -13,14 +13,14 @@ require (
 	github.com/galaco/vmf v1.0.0
 	github.com/galaco/vtf v1.2.0
 	github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200625191551-73d3c3675aa3
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2
 	github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a
 	github.com/golang-source-engine/filesystem v0.1.2
 	github.com/golang-source-engine/stringtable v0.1.0
 	github.com/golang-source-engine/vmt v0.1.2
 	github.com/gotk3/gotk3 v0.4.0 // indirect
-	github.com/inkyblackness/imgui-go/v2 v2.4.1
+	github.com/inkyblackness/imgui-go/v2 v2.5.0
 	github.com/pkg/profile v1.5.0
 	github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190
-	golang.org/x/image v0.0.0-20200609002522-3f4726a040e8 // indirect
+	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect
 )
