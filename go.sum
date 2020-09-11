@@ -69,6 +69,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/skelterjohn/go.wde v0.0.0-20180104102407-a0324cbf3ffe/go.mod h1:zXxNsJHeUYIqpg890APBNEn9GoCbA4Cdnvuv3mx4fBk=
 github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190 h1:unOhcX2BMB09ByGiIvJds5p68ztCJlWGH8pLRxdz+Mg=
 github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190/go.mod h1:QSrNdZLZB8VoFPGlZ2vDuA2oNaVdhld3g0PZLc7soX8=
+github.com/sqweek/dialog v0.0.0-20200911184034-8a3d98e8211d h1:Chay1rwJnXxI27H+pzu7P81BKf647un9GOoRPTdXN18=
+github.com/sqweek/dialog v0.0.0-20200911184034-8a3d98e8211d/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=

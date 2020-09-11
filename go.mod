@@ -21,6 +21,6 @@ require (
 	github.com/gotk3/gotk3 v0.4.0 // indirect
 	github.com/inkyblackness/imgui-go/v2 v2.5.0
 	github.com/pkg/profile v1.5.0
-	github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190
+	github.com/sqweek/dialog v0.0.0-20200911184034-8a3d98e8211d
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect
 )
