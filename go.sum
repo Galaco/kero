@@ -44,6 +44,8 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2/go.mod h1:tQ2
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a h1:yoAEv7yeWqfL/l9A/J5QOndXIJCldv+uuQB1DSNQbS0=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
+github.com/go-gl/mathgl v1.0.0 h1:t9DznWJlXxxjeeKLIdovCOVJQk/GzDEL7h/h+Ro2B68=
+github.com/go-gl/mathgl v1.0.0/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/golang-source-engine/filesystem v0.1.2 h1:6e+E71FSrohJlcbTNmOh1cVnPDP04/V4Gkfno/5VdGI=
 github.com/golang-source-engine/filesystem v0.1.2/go.mod h1:HKc/2NsiY0wj9uRSM6s5AQIt/8J9T7qx2nITY8JBKEU=
 github.com/golang-source-engine/stringtable v0.1.0 h1:jMGCA6rfByrSH5Q64I+MXg6oF6tjwO5gHP5+lhkNRt0=
