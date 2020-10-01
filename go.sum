@@ -44,6 +44,8 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2/go.mod h1:tQ2
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a h1:yoAEv7yeWqfL/l9A/J5QOndXIJCldv+uuQB1DSNQbS0=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
+github.com/go-gl/mathgl v1.0.0 h1:t9DznWJlXxxjeeKLIdovCOVJQk/GzDEL7h/h+Ro2B68=
+github.com/go-gl/mathgl v1.0.0/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/golang-source-engine/filesystem v0.1.2 h1:6e+E71FSrohJlcbTNmOh1cVnPDP04/V4Gkfno/5VdGI=
 github.com/golang-source-engine/filesystem v0.1.2/go.mod h1:HKc/2NsiY0wj9uRSM6s5AQIt/8J9T7qx2nITY8JBKEU=
 github.com/golang-source-engine/stringtable v0.1.0 h1:jMGCA6rfByrSH5Q64I+MXg6oF6tjwO5gHP5+lhkNRt0=
@@ -52,6 +54,7 @@ github.com/golang-source-engine/vmt v0.1.2 h1:T/xZw4tAnqmwQ/Na7iMQkoMYVidA/YnwcC
 github.com/golang-source-engine/vmt v0.1.2/go.mod h1:devs1P7sA/Spthvxw8+wzuEsN3Ibadbia6n3SQQfdW8=
 github.com/gotk3/gotk3 v0.4.0 h1:TIuhyQitGeRTxOQIV3AJlYtEWWJpC74JHwAIsxlH8MU=
 github.com/gotk3/gotk3 v0.4.0/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
+github.com/gotk3/gotk3 v0.5.0/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
 github.com/inkyblackness/imgui-go v1.12.0 h1:uaxSM5SbbqCTGEx5ig7B2J78hM3g3az4f5NC6b4J7lY=
 github.com/inkyblackness/imgui-go v1.12.0/go.mod h1:S9wTWrw/HfxYPbOnqsbck9A6mxHRauv+Sy+bz5+BQwc=
 github.com/inkyblackness/imgui-go/v2 v2.4.0 h1:Trb694GPM+ImDgJaOoEXNWk0ofvI1R05JFGTB6PLFH4=
@@ -69,6 +72,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/skelterjohn/go.wde v0.0.0-20180104102407-a0324cbf3ffe/go.mod h1:zXxNsJHeUYIqpg890APBNEn9GoCbA4Cdnvuv3mx4fBk=
 github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190 h1:unOhcX2BMB09ByGiIvJds5p68ztCJlWGH8pLRxdz+Mg=
 github.com/sqweek/dialog v0.0.0-20200601143742-43ea34326190/go.mod h1:QSrNdZLZB8VoFPGlZ2vDuA2oNaVdhld3g0PZLc7soX8=
+github.com/sqweek/dialog v0.0.0-20200911184034-8a3d98e8211d h1:Chay1rwJnXxI27H+pzu7P81BKf647un9GOoRPTdXN18=
+github.com/sqweek/dialog v0.0.0-20200911184034-8a3d98e8211d/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
@@ -79,4 +84,6 @@ golang.org/x/image v0.0.0-20200609002522-3f4726a040e8 h1:c33/sRasKxMl6r30uyDkOgy
 golang.org/x/image v0.0.0-20200609002522-3f4726a040e8/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/image v0.0.0-20200801110659-972c09e46d76 h1:U7GPaoQyQmX+CBRWXKrvRzWTbd+slqeSh8uARsIyhAw=
 golang.org/x/image v0.0.0-20200801110659-972c09e46d76/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
+golang.org/x/image v0.0.0-20200927104501-e162460cd6b5 h1:QelT11PB4FXiDEXucrfNckHoFxwt8USGY1ajP1ZF5lM=
+golang.org/x/image v0.0.0-20200927104501-e162460cd6b5/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
