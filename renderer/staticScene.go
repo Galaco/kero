@@ -113,6 +113,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	if level.LightmapAtlas() != nil {
 		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
 		gpuItemCache.Add(cache.LightmapTexturePath, adapter.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
+		texCache.Find(cache.LightmapTexturePath).Release()
 	} else {
 		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
 		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))
@@ -138,6 +139,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
 					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+					adapter.ReleaseTextureResource(tex)
 				}
 			}
 		}
@@ -222,6 +224,7 @@ func NewStaticSceneFromBsp(fs fileSystem,
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
 					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+					adapter.ReleaseTextureResource(tex)
 				}
 			}
 			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))

@@ -306,11 +306,11 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 
 func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
 	lightMapAtlas := graphics.NewTextureAtlas(0, 0)
-	textures := make([]*graphics.Texture2D, len(faces))
 
-	for idx, f := range faces {
-		textures[idx] = lightmapTextureFromFace(&f, samples)
-		lightMapAtlas.AddRaw(textures[idx].Width(), textures[idx].Height(), textures[idx].Image())
+	var tex *graphics.Texture2D
+	for _,f := range faces {
+		tex = lightmapTextureFromFace(&f, samples)
+		lightMapAtlas.AddRaw(tex.Width(), tex.Height(), tex.Image())
 	}
 
 	lightMapAtlas.Pack()

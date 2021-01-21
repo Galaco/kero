@@ -17,6 +17,7 @@ type Texture interface {
 	Width() int
 	Height() int
 	Image() []uint8
+	Release()
 }
 
 type Mesh interface {
@@ -60,6 +61,10 @@ func UploadTexture(texture Texture) uint32 {
 		texture.Image(),
 		gosigl.PixelFormat(texture.Format()),
 		false))
+}
+
+func ReleaseTextureResource(texture Texture) {
+	texture.Release()
 }
 
 func UploadLightmap(texture Texture) uint32 {

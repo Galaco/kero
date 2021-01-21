@@ -170,6 +170,8 @@ func (mesh *BasicMesh) GenerateTangents() {
 		//tangents[i] = (glm::dot( glm::cross(n,t1), t2 ) < 0.0f) ? -1.0f : 1.0f;
 	}
 
+	tan1Accum = nil
+	tan2Accum = nil
 	//tan1Accum.clear();
 	//tan2Accum.clear();
 

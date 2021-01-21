@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/debug"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
@@ -29,6 +30,7 @@ func main() {
 	console.AddOutputPipe(func(level console.LogLevel, data interface{}) {
 		log.Println(data)
 	})
+	debug.StartProfiler()
 
 	// Framework
 	if err := initFramework(); err != nil {

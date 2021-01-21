@@ -40,6 +40,11 @@ func (texture *Texture2D) Image() []uint8 {
 	return texture.colour
 }
 
+// Free color data from memory
+func (texture *Texture2D) Release()  {
+	texture.colour = nil
+}
+
 // LoadTexture
 func LoadTexture(fs VirtualFileSystem, filePath string) (*Texture2D, error) {
 	if !strings.HasSuffix(filePath, ExtensionVtf) {
@@ -203,6 +208,13 @@ func (atlas *TextureAtlas) PopulatedHeight() int {
 
 func (atlas *TextureAtlas) Image() []uint8 {
 	return atlas.colour
+}
+// Free color data from memory
+func (texture *TextureAtlas) Release()  {
+	texture.colour = nil
+	for idx := range texture.rectangles {
+		texture.rectangles[idx].Release()
+	}
 }
 
 func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTexture {
@@ -377,6 +389,10 @@ type AtlasTexture struct {
 	X, Y float32
 
 	colour []uint8
+}
+
+func (atlasTexture *AtlasTexture) Release() {
+	atlasTexture.colour = nil
 }
 
 type atlasSpace struct {
