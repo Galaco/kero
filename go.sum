@@ -63,6 +63,9 @@ github.com/inkyblackness/imgui-go/v2 v2.4.1 h1:yD6m1xqTNl/HF0M4ceN1HNhUKRrk+SU7n
 github.com/inkyblackness/imgui-go/v2 v2.4.1/go.mod h1:cwQKd6U2onyuT5qwSC3DKCRsUE1SQ58TSVVpLoW/pDs=
 github.com/inkyblackness/imgui-go/v2 v2.5.0 h1:kz7oO/di/TmxHKgh5So+RyOgWMtK4jLfGKrpRKi/JQM=
 github.com/inkyblackness/imgui-go/v2 v2.5.0/go.mod h1:cwQKd6U2onyuT5qwSC3DKCRsUE1SQ58TSVVpLoW/pDs=
+github.com/inkyblackness/imgui-go/v2 v2.7.0 h1:nP5WDlfO3hiyR4nqB0k/JoSxzmCw9K5peAGvVXg+WNk=
+github.com/inkyblackness/imgui-go/v2 v2.7.0/go.mod h1:cwQKd6U2onyuT5qwSC3DKCRsUE1SQ58TSVVpLoW/pDs=
+github.com/inkyblackness/imgui-go/v4 v4.1.0/go.mod h1:g8SAGtOYUP7rYaOB2AsVKCEHmPMDmJKgt4z6d+flhb0=
 github.com/mattn/go-gtk v0.0.0-20180216084204-5a311a1830ab/go.mod h1:PwzwfeB5syFHXORC3MtPylVcjIoTDT/9cvkKpEndGVI=
 github.com/mattn/go-pointer v0.0.0-20171114154726-1d30dc4b6f28/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pkg/profile v1.5.0 h1:042Buzk+NhDI+DeSAA62RwJL8VAuZUMQZUjCsRz1Mug=

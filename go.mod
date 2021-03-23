@@ -23,7 +23,8 @@ require (
 	github.com/golang-source-engine/stringtable v0.1.0
 	github.com/golang-source-engine/vmt v0.1.2
 	github.com/gotk3/gotk3 v0.5.0 // indirect
-	github.com/inkyblackness/imgui-go/v2 v2.5.0
+	github.com/inkyblackness/imgui-go/v2 v2.7.0
+	github.com/inkyblackness/imgui-go/v4 v4.1.0
 	github.com/mattn/go-gtk v0.0.0-20180216084204-5a311a1830ab // indirect
 	github.com/mattn/go-pointer v0.0.0-20171114154726-1d30dc4b6f28 // indirect
 	github.com/pkg/profile v1.5.0
