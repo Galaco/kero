@@ -1,4 +1,4 @@
-package graphics
+package mesh
 
 type Model struct {
 	Id        string

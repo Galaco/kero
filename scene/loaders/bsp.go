@@ -15,12 +15,12 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
+	"github.com/galaco/stringtable"
 	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/golang-source-engine/stringtable"
 	"math"
 	"strings"
 	"sync"
@@ -33,36 +33,39 @@ import (
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []entity.IEntity, error) {
-	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStarted))
+	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStarted)
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
-		event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
+		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
 		return nil, nil, err
 	}
-	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateBSPParsed))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", filename))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
+
+	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateBSPParsed)
 	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
 	// Load the static bsp world
 	level, err := loadBSPWorld(fs, file)
 
 	if err != nil {
-		event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateError))
+		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
 		return nil, nil, err
 	}
-	level.SetCamera(graphics3d.NewCamera(
-		mgl32.DegToRad(70),
+	level.SetCamera(graphics.NewCamera(
+		mgl32.DegToRad(90),
 		float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())))
-	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateGeometryLoaded))
+	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateGeometryLoaded)
 
 	// Load staticprops
 	level.StaticPropDictionary, level.StaticProps = LoadStaticProps(fs, file)
-	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateStaticPropsLoaded))
+	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStaticPropsLoaded)
 
 	// Load entities
 	ents, err := entity.LoadEntdata(fs, file)
 	if err != nil {
 		return nil, nil, err
 	}
-	event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateEntitiesLoaded))
+	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateEntitiesLoaded)
 
 	return level, ents, err
 }
@@ -107,7 +110,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	materialDictionary := buildMaterialDictionary(fs, materials)
 
 	// BSP FACES
-	bspMesh := graphics.NewMesh()
+	bspMesh := mesh.NewMesh()
 	bspFaces := make([]graphics.BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
@@ -132,6 +135,10 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		} else {
 			bspFaces[idx].SetMaterial(strings.ToLower(faceVmt))
 		}
+	}
+
+	if lightmapAtlas != nil {
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", lightmapAtlas.Width(), lightmapAtlas.Height()))
 	}
 
 	return graphics.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
@@ -166,7 +173,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 	asyncLoadMaterial := func(filePath string) {
 		mat, err := graphics.LoadMaterial(fs, filePath)
 		if err != nil {
-			console.PrintString(console.LevelError, fmt.Sprintf("%s", err))
+			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", filePath, err.Error()))
 			mat = graphics.NewMaterial(filePath)
 		}
 		dictMutex.Lock()
@@ -185,7 +192,7 @@ func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dict
 }
 
 // generateBspFace Create primitives from face data in the bsp
-func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) graphics.BspFace {
+func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *mesh.BasicMesh) graphics.BspFace {
 	offset := int32(len(bspMesh.Vertices())) / 3
 	length := int32(0)
 
@@ -229,7 +236,7 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.B
 // generateDisplacementFace Create Primitive from Displacement face
 // This is based on:
 // https://github.com/Metapyziks/VBspViewer/blob/master/Assets/VBspViewer/Scripts/Importing/VBsp/VBspFile.cs
-func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *graphics.BasicMesh) graphics.BspFace {
+func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *mesh.BasicMesh) graphics.BspFace {
 	corners := make([]mgl32.Vec3, 4)
 	normal := bspStructure.planes[f.Planenum].Normal
 
@@ -302,11 +309,11 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 
 func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
 	lightMapAtlas := graphics.NewTextureAtlas(0, 0)
-	textures := make([]*graphics.Texture2D, len(faces))
 
-	for idx, f := range faces {
-		textures[idx] = lightmapTextureFromFace(&f, samples)
-		lightMapAtlas.AddRaw(textures[idx].Width(), textures[idx].Height(), textures[idx].Image())
+	var tex *graphics.Texture2D
+	for _,f := range faces {
+		tex = lightmapTextureFromFace(&f, samples)
+		lightMapAtlas.AddRaw(tex.Width(), tex.Height(), tex.Image())
 	}
 
 	lightMapAtlas.Pack()
@@ -335,4 +342,3 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 
 	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
 }
-

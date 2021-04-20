@@ -1,7 +1,7 @@
 package entity
 
 import (
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/source-tools-common/entity"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -37,11 +37,11 @@ type IEntity interface {
 type Entity struct {
 	entity.Entity
 	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
-	Transform graphics3d.Transform
+	Transform graphics.Transform
 	// Class contains the entity's classname (e.g. func_movelinear)
-	class     string
+	class string
 	// Name contains the entity's targetname
-	name      string
+	name string
 }
 
 // Classname returns the entity classname
@@ -78,7 +78,7 @@ func (e *Entity) Think(dt float64) {
 func NewEntityBaseFromLib(e entity.Entity) *Entity {
 	return &Entity{
 		Entity: e,
-		Transform: graphics3d.Transform{
+		Transform: graphics.Transform{
 			Position: e.VectorForKey("origin"),
 			Rotation: e.VectorForKey("angles"),
 		},
@@ -88,7 +88,7 @@ func NewEntityBaseFromLib(e entity.Entity) *Entity {
 }
 
 // NewEntityBase returns a new base entity
-func NewEntityBase(classname, targetname string, transform graphics3d.Transform) *Entity {
+func NewEntityBase(classname, targetname string, transform graphics.Transform) *Entity {
 	return &Entity{
 		Transform: transform,
 		class:     classname,

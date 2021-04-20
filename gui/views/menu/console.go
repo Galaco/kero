@@ -3,7 +3,7 @@ package menu
 import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/gui"
-	"github.com/inkyblackness/imgui-go/v2"
+	"github.com/inkyblackness/imgui-go/v4"
 	"log"
 )
 
@@ -47,7 +47,7 @@ func (view *Console) commandInputCallback(data imgui.InputTextCallbackData) int3
 	if data.EventKey() == imgui.KeyEnter {
 		console.PrintString(console.LevelInfo, view.commandInput)
 	}
-	if data.EventFlag() & imgui.InputTextFlagsEnterReturnsTrue != 0 {
+	if data.EventFlag()&imgui.InputTextFlagsEnterReturnsTrue != 0 {
 		console.PrintString(console.LevelInfo, view.commandInput)
 	}
 
@@ -56,7 +56,7 @@ func (view *Console) commandInputCallback(data imgui.InputTextCallbackData) int3
 
 func (view *Console) Render() {
 	if gui.StartPanel("Console") {
-		imgui.BeginChildV("ConsoleMessages", imgui.Vec2{-1, -24}, false, 0)
+		imgui.BeginChildV("ConsoleMessages", imgui.Vec2{X: -1, Y: -24}, false, 0)
 		for _, s := range view.messages {
 			imgui.PushStyleColor(imgui.StyleColorText, s.Color)
 			s.Text.Render()

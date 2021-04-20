@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/debug"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
 	"log"
@@ -30,6 +30,7 @@ func main() {
 	console.AddOutputPipe(func(level console.LogLevel, data interface{}) {
 		log.Println(data)
 	})
+	debug.StartProfiler()
 
 	// Framework
 	if err := initFramework(); err != nil {
@@ -38,11 +39,10 @@ func main() {
 
 	// Game config
 	game := NewGameDefinition()
-	_, err := filesystem.Init(*gameDirectoryPtr + "/" + game.ContentDirectory())
+	_, err := filesystem.Init(*gameDirectoryPtr)
 	if err != nil {
 		panic(err)
 	}
-	window.CurrentWindow().Handle().Handle().SetTitle(fmt.Sprintf("Kero: %s", game.ContentDirectory()))
 
 	// Start
 	keroImpl := kero.NewKero()
@@ -59,5 +59,5 @@ func initFramework() error {
 	win.SetActive()
 	input.SetBoundWindow(win)
 	win.Handle().Handle().Focus()
-	return graphics.Init()
+	return adapter.Init()
 }

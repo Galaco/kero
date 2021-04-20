@@ -1,17 +1,11 @@
-package graphics
+package mesh
 
 import (
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-type Mesh interface {
-	Vertices() []float32
-	Normals() []float32
-	UVs() []float32
-	Tangents() []float32
-	LightmapUVs() []float32
-	Indices() []uint32
-}
+type Mesh adapter.Mesh
 
 // BasicMesh
 type BasicMesh struct {
@@ -176,6 +170,8 @@ func (mesh *BasicMesh) GenerateTangents() {
 		//tangents[i] = (glm::dot( glm::cross(n,t1), t2 ) < 0.0f) ? -1.0f : 1.0f;
 	}
 
+	tan1Accum = nil
+	tan2Accum = nil
 	//tan1Accum.clear();
 	//tan2Accum.clear();
 

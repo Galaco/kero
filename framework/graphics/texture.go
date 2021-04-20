@@ -1,8 +1,7 @@
 package graphics
 
 import (
-	"fmt"
-	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/vtf"
 	"github.com/galaco/vtf/format"
 	"math"
@@ -10,12 +9,7 @@ import (
 	"strings"
 )
 
-type Texture interface {
-	Format() uint32
-	Width() int
-	Height() int
-	Image() []uint8
-}
+type Texture adapter.Texture
 
 // Texture2D is a material defined by raw/computed colour data
 type Texture2D struct {
@@ -46,6 +40,11 @@ func (texture *Texture2D) Image() []uint8 {
 	return texture.colour
 }
 
+// Free color data from memory
+func (texture *Texture2D) Release()  {
+	texture.colour = nil
+}
+
 // LoadTexture
 func LoadTexture(fs VirtualFileSystem, filePath string) (*Texture2D, error) {
 	if !strings.HasSuffix(filePath, ExtensionVtf) {
@@ -59,7 +58,7 @@ func NewTexture(filePath string, width, height int, format uint32, colour []uint
 		filePath: filePath,
 		width:    width,
 		height:   height,
-		format:   textureFormatFromVtfFormat(format),
+		format:   adapter.TextureFormatFromVtfFormat(format),
 		colour:   colour,
 	}
 }
@@ -70,7 +69,7 @@ func NewErrorTexture(name string) *Texture2D {
 		name,
 		8,
 		8,
-		textureFormatFromVtfFormat(uint32(format.RGB888)),
+		adapter.TextureFormatFromVtfFormat(uint32(format.RGB888)),
 		[]uint8{
 			255, 0, 255,
 			255, 0, 255,
@@ -210,6 +209,13 @@ func (atlas *TextureAtlas) PopulatedHeight() int {
 func (atlas *TextureAtlas) Image() []uint8 {
 	return atlas.colour
 }
+// Free color data from memory
+func (texture *TextureAtlas) Release()  {
+	texture.colour = nil
+	for idx := range texture.rectangles {
+		texture.rectangles[idx].Release()
+	}
+}
 
 func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTexture {
 	atlas.rectangles = append(atlas.rectangles, AtlasTexture{
@@ -347,8 +353,6 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 
 	atlas.rectangles = packed
 
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", atlas.width, atlas.height))
-
 	return atlas.rectangles
 }
 
@@ -374,7 +378,7 @@ func NewTextureAtlas(width, height int) *TextureAtlas {
 		width:         width,
 		height:        height,
 		rectangles:    []AtlasTexture{},
-		format:        textureFormatFromVtfFormat(uint32(format.RGBA8888)),
+		format:        adapter.TextureFormatFromVtfFormat(uint32(format.RGBA8888)),
 		bytesPerPixel: 4,
 	}
 }
@@ -385,6 +389,10 @@ type AtlasTexture struct {
 	X, Y float32
 
 	colour []uint8
+}
+
+func (atlasTexture *AtlasTexture) Release() {
+	atlasTexture.colour = nil
 }
 
 type atlasSpace struct {

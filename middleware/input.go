@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/messages"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 var inputMiddleware *Input
@@ -21,7 +22,7 @@ func (s *Input) Poll() {
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {
 	switch action {
 	case input.KeyPress:
-		s.DispatchLegacy(messages.NewKeyPress(key))
+		s.Dispatch(messages.TypeKeyPress, key)
 		if key == input.KeyEscape {
 			s.shouldLockMouse = !s.shouldLockMouse
 			if s.shouldLockMouse {
@@ -31,12 +32,12 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 			}
 		}
 	case input.KeyRelease:
-		s.DispatchLegacy(messages.NewKeyRelease(key))
+		s.Dispatch(messages.TypeKeyRelease, key)
 	}
 }
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
-	s.DispatchLegacy(messages.NewMouseMove(x, y))
+	s.Dispatch(messages.TypeMouseMove, mgl32.Vec2{float32(x), float32(y)})
 }
 
 func InitializeInput() *Input {

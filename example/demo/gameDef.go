@@ -11,12 +11,6 @@ type cstrike struct {
 	client client
 }
 
-// ContentDirectory returns the game content directory relative to the game
-// root directory
-func (def *cstrike) ContentDirectory() string {
-	return "cstrike"
-}
-
 // RegisterEntityClasses loads all Game entity classes into the engine.
 func (def *cstrike) RegisterEntityClasses() {
 	loader.RegisterClass(&common.InfoPlayerStart{})

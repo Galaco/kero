@@ -34,17 +34,17 @@ func (s *Gui) Initialize() {
 }
 
 func (s *Gui) onKeyRelease(message interface{}) {
-	key := message.(*messages.KeyRelease).Key()
+	key := message.(input.Key)
 	if key == input.KeyEscape {
 		s.shouldDisplayMenu = !s.shouldDisplayMenu
 	}
 }
 
 func (s *Gui) onLoadingLevelProgress(message interface{}) {
-	msg := message.(*messages.LoadingLevelProgress)
-	s.loadingView.UpdateProgress(msg.State())
-	if msg.State() == messages.LoadingProgressStateError ||
-		msg.State() == messages.LoadingProgressStateFinished {
+	stage := message.(int)
+	s.loadingView.UpdateProgress(stage)
+	if stage == messages.LoadingProgressStateError ||
+		stage == messages.LoadingProgressStateFinished {
 		s.shouldDisplayLoadingScreen = false
 	} else {
 		s.shouldDisplayLoadingScreen = true

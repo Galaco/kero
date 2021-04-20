@@ -14,14 +14,21 @@ var LightMappedGenericFragment = `
 	uniform float alpha;
 	uniform int translucent;
 
+	// Debug Options
+	uniform int renderLightmapsAsAlbedo;
+
 	in vec2 UV;
 	in vec2 LightmapUV;
 
     out vec4 frag_colour;
 
-	vec4 GetAlbedo(in sampler2D sampler, in vec2 uv) 
+	vec4 AlbedoPass() 
 	{
-		return texture(sampler, uv).rgba;
+		if (renderLightmapsAsAlbedo == 1) {
+			return texture(lightmapSampler, LightmapUV).rgba;
+		}
+
+		return texture(albedoSampler, UV).rgba;
 	}
 
 
@@ -46,6 +53,9 @@ var LightMappedGenericFragment = `
 
 	vec4 LightmapPass(in vec4 color)
 	{	
+		if (renderLightmapsAsAlbedo == 1) {
+			return color;
+		}
 		if (LightmapUV.x == -1) {
 			return color;
 		}
@@ -57,7 +67,7 @@ var LightMappedGenericFragment = `
 
     void main() 
 	{
-		vec4 diffuse = GetAlbedo(albedoSampler, UV);
+		vec4 diffuse = AlbedoPass();
 		diffuse = LightmapPass(diffuse);
 
 		diffuse = AlphaPass(diffuse);

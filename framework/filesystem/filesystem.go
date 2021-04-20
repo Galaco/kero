@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/galaco/KeyValues"
 	"github.com/galaco/bsp/lumps"
+	filesystemLib "github.com/galaco/filesystem"
 	"github.com/galaco/kero/framework/console"
-	filesystemLib "github.com/golang-source-engine/filesystem"
 	"io"
 	"os"
 	"strings"
@@ -20,22 +20,41 @@ type FileSystem interface {
 	RegisterPakFile(pakFile *lumps.Pakfile)
 }
 
+var gameInstallBasePath string
 var masterFilesystem FileSystem
+var masterGameInfo keyvalues.KeyValue
 
 // InitializeFromGameInfoDefinitions Reads game resource data paths
-// from gameinfo.txt
+// from GameInfo.txt
 // All games should ship with a gameinfo.txt, but it isn't actually mandatory.
 func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyValue) (FileSystem, error) {
 	lfs, err := filesystemLib.CreateFilesystemFromGameInfoDefinitions(basePath, gameInfo, true)
-	if lfs != nil {
-		return lfs, err
+	if lfs == nil {
+		return nil, err
 	}
-	return nil, err
+	fsNode, _ := gameInfo.Find("FileSystem")
+	if fsNode != nil {
+		console.PrintString(console.LevelSuccess,"**************************")
+		console.PrintString(console.LevelSuccess, "Game identified from gameInfo.txt")
+		gameNameNode,err := gameInfo.Find("game")
+		if err == nil && gameNameNode != nil {
+			gameName,_ := gameNameNode.AsString()
+			console.PrintString(console.LevelSuccess, fmt.Sprintf("Game name: %s", gameName))
+		}
+		steamAppIdNode,_ := fsNode.Find("SteamAppId")
+		if err == nil && steamAppIdNode != nil {
+			steamAppId,_ := steamAppIdNode.AsInt()
+			console.PrintString(console.LevelSuccess, fmt.Sprintf("Steam AppId: %d", steamAppId))
+		}
+		console.PrintString(console.LevelSuccess,"**************************")
+	}
+	return lfs, err
 }
 
-// Init initializses the master filesystem used by Kero. In theory other filesystems can be used too; but the master fs
+// Init initialises the master filesystem used by Kero. In theory other filesystems can be used too; but the master fs
 // is designed to be loaded with the same configuration and behaviour as the original Source Engine.
 func Init(gameDir string) (FileSystem, error) {
+	gameInstallBasePath = gameDir
 	stream, err := os.Open(gameDir + "/gameinfo.txt")
 	if err != nil {
 		return nil, err
@@ -55,6 +74,7 @@ func Init(gameDir string) (FileSystem, error) {
 			}
 		}
 	}
+	masterGameInfo = gameInfo
 
 	// The reasonable assumption is there will only be 1 filesystem; the first initialized is considered the master fs,
 	// and can be accessed via Get().
@@ -65,7 +85,15 @@ func Init(gameDir string) (FileSystem, error) {
 	return fs, nil
 }
 
+func GameBasePath() string {
+	return gameInstallBasePath
+}
+
 // Get returns the master filesystem singleton
 func Get() FileSystem {
 	return masterFilesystem
+}
+
+func GameInfo() *keyvalues.KeyValue {
+	return &masterGameInfo
 }

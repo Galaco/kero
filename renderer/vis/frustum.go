@@ -1,7 +1,7 @@
 package vis
 
 import (
-	graphics3d "github.com/galaco/kero/framework/graphics/3d"
+	"github.com/galaco/kero/framework/graphics"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
@@ -31,45 +31,46 @@ func (frustum *Frustum) IsLeafInFrustum(mins, maxs mgl32.Vec3) bool {
 }
 
 // IsCuboidInFrustum
+// NOTE: This fails for leafs where all points sit outside the frustum but the contents is actually inside it
 func (frustum *Frustum) IsCuboidInFrustum(mins, maxs mgl32.Vec3) bool {
-	for i := 0; i < 6; i++ {
-		if frustum.planes[i][planeNormalX]*mins.X()+frustum.planes[i][planeNormalY]*mins.Y()+frustum.planes[i][planeNormalZ]*mins.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*maxs.X()+frustum.planes[i][planeNormalY]*mins.Y()+frustum.planes[i][planeNormalZ]*mins.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*mins.X()+frustum.planes[i][planeNormalY]*maxs.Y()+frustum.planes[i][planeNormalZ]*mins.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*maxs.X()+frustum.planes[i][planeNormalY]*maxs.Y()+frustum.planes[i][planeNormalZ]*mins.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*mins.X()+frustum.planes[i][planeNormalY]*mins.Y()+frustum.planes[i][planeNormalZ]*maxs.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*maxs.X()+frustum.planes[i][planeNormalY]*mins.Y()+frustum.planes[i][planeNormalZ]*maxs.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*mins.X()+frustum.planes[i][planeNormalY]*maxs.Y()+frustum.planes[i][planeNormalZ]*maxs.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-		if frustum.planes[i][planeNormalX]*maxs.X()+frustum.planes[i][planeNormalY]*maxs.Y()+frustum.planes[i][planeNormalZ]*maxs.Z()+frustum.planes[i][planeToOrigin] > 0 {
-			continue
-		}
-
-		// If we get here, it isn't in the frustum
-		return false
+	center := maxs.Sub(mins)
+	if frustum.IsPointInFrustum(center[0], center[1], center[2]) {
+		return true
 	}
 
-	return true
+	if frustum.IsPointInFrustum(mins[0], mins[1], mins[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(maxs[0], mins[1], mins[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(mins[0], maxs[1], mins[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(maxs[0], maxs[1], mins[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(mins[0], mins[1], maxs[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(maxs[0], mins[1], maxs[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(mins[0], maxs[1], maxs[2]) {
+		return true
+	}
+	if frustum.IsPointInFrustum(maxs[0], maxs[1], maxs[2]) {
+		return true
+	}
+
+	return false
 }
 
-func (frustum *Frustum) PointInFrustum( x, y, z float32 ) bool {
+func (frustum *Frustum) IsPointInFrustum(x, y, z float32) bool {
 	// Go through all the sides of the frustum
 	for i := 0; i < 6; i++ {
 		// Calculate the plane equation and check if the point is behind a side of the frustum
-		if frustum.planes[i][planeNormalX] * x + frustum.planes[i][planeNormalY] * y + frustum.planes[i][planeNormalZ] * z + frustum.planes[i][planeToOrigin] <= 0 {
+		if frustum.planes[i][planeNormalX]*x+frustum.planes[i][planeNormalY]*y+frustum.planes[i][planeNormalZ]*z+frustum.planes[i][planeToOrigin] <= 0 {
 			// The point was behind a side, so it ISN'T in the frustum
 			return false
 		}
@@ -180,9 +181,9 @@ func (frustum *Frustum) normalizePlane(side int) {
 }
 
 // FrustumFromCamera
-func FrustumFromCamera(camera *graphics3d.Camera) *Frustum {
+func FrustumFromCamera(camera *graphics.Camera) *Frustum {
 	f := &Frustum{}
-	f.extractPlanes(camera.ViewMatrix().Mul4(camera.ModelMatrix()), camera.ProjectionMatrix())
+	f.extractPlanes(camera.ModelMatrix().Mul4(camera.ViewMatrix()), camera.ProjectionMatrix())
 
 	return f
 }

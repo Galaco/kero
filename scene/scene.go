@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
 	loader "github.com/galaco/kero/scene/loaders"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type Scene struct {
@@ -51,8 +52,13 @@ func (s *Scene) Update(dt float64) {
 }
 
 func (s *Scene) onChangeLevel(message interface{}) {
-	func(msg *messages.ChangeLevel) {
-		level, ents, err := loader.LoadBspMap(filesystem.Get(), msg.LevelName())
+	if s.currentLevel != nil {
+		// Cleanup
+
+	}
+
+	func(mapName string) {
+		level, ents, err := loader.LoadBspMap(filesystem.Get(), mapName)
 		if err != nil {
 			console.PrintString(console.LevelError, err.Error())
 			return
@@ -62,12 +68,12 @@ func (s *Scene) onChangeLevel(message interface{}) {
 		event.Get().CancelPending()
 		s.currentLevel = level
 		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(level, ents))
-		event.Get().DispatchLegacy(messages.NewLoadingLevelProgress(messages.LoadingProgressStateFinished))
-	}(message.(*messages.ChangeLevel))
+		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateFinished)
+	}(message.(string))
 }
 
 func (s *Scene) onKeyRelease(message interface{}) {
-	key := message.(*messages.KeyRelease).Key()
+	key := message.(input.Key)
 	if key == input.KeyEscape {
 		s.listenToInput = !s.listenToInput
 	}
@@ -77,8 +83,8 @@ func (s *Scene) onMouseMove(message interface{}) {
 	if s.currentLevel == nil || s.currentLevel.Camera() == nil || !s.listenToInput {
 		return
 	}
-	msg := message.(*messages.MouseMove)
-	s.currentLevel.Camera().Rotate(float32(msg.X), 0, float32(msg.Y))
+	msg := message.(mgl32.Vec2)
+	s.currentLevel.Camera().Rotate(msg[0], 0, msg[1])
 }
 
 func NewScene() *Scene {

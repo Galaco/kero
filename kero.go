@@ -2,7 +2,6 @@ package kero
 
 import (
 	"github.com/galaco/kero/framework/event"
-	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
 	"github.com/galaco/kero/gui"
@@ -45,6 +44,12 @@ func (kero *Kero) Start() {
 
 	event.Get().AddListener(messages.TypeEngineQuit, kero.onQuit)
 
+	kero.mainLoop()
+
+	kero.exit()
+}
+
+func (kero *Kero) mainLoop() {
 	dt := 0.0
 	startingTime := time.Now().UTC()
 	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
@@ -56,14 +61,11 @@ func (kero *Kero) Start() {
 		kero.ui.Render()
 
 		window.CurrentWindow().SwapBuffers()
-		graphics.ClearColor(0.25, 0.25, 0.25, 1)
-		graphics.ClearAll()
+		kero.renderer.FinishFrame()
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
 		startingTime = time.Now().UTC()
 	}
-
-	kero.exit()
 }
 
 func (kero *Kero) onQuit(e interface{}) {

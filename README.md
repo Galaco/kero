@@ -23,14 +23,16 @@ To build the project on Windows, Mac OS or Linux, all you need to do is run (ass
 installed) in the directory `samples/demo`:
 `go build .`
 
-The demo targets Counterstrike: Source. To target a different game, you will need to modify `ContentDirectory()` in
-`samples/demo/gameDef.go`.
+The demo targets Counterstrike: Source entities. To target a different game, you will need to update `samples/demo/gameDef.go`.
 
 ## Running
 First, you will need to have a source engine game installed, unless you are loading a map that has all its content
 bspzipped.
 
-* Run the built executable with this flag: `-game="<GameDir>"`, where `<GameDir>` is the root directory of the game.
+* Run the built executable with this flag: `-game="<GameDir>/<ContentDir>"`, where `<GameDir>` is the root directory 
+of the game, and `<ContentDir>` is the sub-folder where the game content is located (e.g. `cstrike`, `hl2`, `csgo` etc).
+For example, a default Counterstrike: Source installation would be specified like this: 
+`-game="C:\Program Files (x86)\Steam\Steamapps\common\Counterstrike Source\cstrike"`
 
 
 ## Contributing
