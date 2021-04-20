@@ -1,7 +1,7 @@
 package graphics
 
 import (
-	"github.com/golang-source-engine/vmt"
+	"github.com/galaco/vmt"
 )
 
 // Material

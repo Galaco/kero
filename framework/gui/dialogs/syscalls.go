@@ -5,8 +5,8 @@ import (
 )
 
 // OpenFile
-func OpenFile(filterDescription, extension string) (string, error) {
-	return dialog.File().Filter(filterDescription, extension).Load()
+func OpenFile(title, startDir, filterDescription, extension string) (string, error) {
+	return dialog.File().Title(title).Filter(filterDescription, extension).SetStartDir(startDir).Load()
 }
 
 // ErrorMessage

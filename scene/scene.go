@@ -52,6 +52,11 @@ func (s *Scene) Update(dt float64) {
 }
 
 func (s *Scene) onChangeLevel(message interface{}) {
+	if s.currentLevel != nil {
+		// Cleanup
+
+	}
+
 	func(mapName string) {
 		level, ents, err := loader.LoadBspMap(filesystem.Get(), mapName)
 		if err != nil {

@@ -94,6 +94,11 @@ func (s *Renderer) Render() {
 	s.renderStaticProps(s.scene.camera, clusters)
 }
 
+func (s *Renderer) FinishFrame() {
+	adapter.ClearColor(0.25, 0.25, 0.25, 1)
+	adapter.ClearAll()
+}
+
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 	s.scene = NewStaticSceneFromBsp(
 		filesystem.Get(),

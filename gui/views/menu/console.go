@@ -3,7 +3,7 @@ package menu
 import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/gui"
-	"github.com/inkyblackness/imgui-go/v2"
+	"github.com/inkyblackness/imgui-go/v4"
 	"log"
 )
 

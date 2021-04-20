@@ -18,9 +18,9 @@ import (
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
+	"github.com/galaco/stringtable"
 	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/golang-source-engine/stringtable"
 	"math"
 	"strings"
 	"sync"
@@ -39,6 +39,9 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []ent
 		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
 		return nil, nil, err
 	}
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", filename))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
+
 	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateBSPParsed)
 	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
 	// Load the static bsp world

@@ -2,6 +2,7 @@ package views
 
 import (
 	"github.com/galaco/kero/framework/event"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/dialogs"
 	"github.com/galaco/kero/gui/views/menu"
@@ -15,7 +16,7 @@ type Menu struct {
 func (view *Menu) Render() {
 	if gui.StartPanel("Menu") {
 		gui.NewButton("menu_open_map", "Open map", func() {
-			name, err := dialogs.OpenFile("Valve .bsp files", "bsp")
+			name, err := dialogs.OpenFile("Select BSP", filesystem.GameBasePath(), "Valve .bsp files", "bsp")
 			if err != nil {
 				if err.Error() == "Cancelled" {
 					return
