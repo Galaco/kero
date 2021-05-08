@@ -249,7 +249,7 @@ func (s *Renderer) ReleaseGPUResources() {
 }
 
 func (s *Renderer) bindConVars() {
-	console.AddCommand("kero_dumplightmap", "Dump lightmaps to a file", "kero_dumplightmap <filename>", func(options string) error {
+	console.AddCommand("kero_dumplightmap", "Dump lightmap texture to a JPG", "kero_dumplightmap <filepath/filename>", func(options string) error {
 		if s == nil {
 			return nil
 		}
@@ -261,7 +261,7 @@ func (s *Renderer) bindConVars() {
 
 		return errors.New("kero_dumplightmap: no lightmap in memory")
 	})
-	console.AddCommand("kero_drawlightmaps", "Renders lightmaps in place of diffuse textures", "", func(options string) error {
+	console.AddCommand("kero_drawlightmaps", "Renders lightmaps in place of diffuse textures", "kero_drawlightmaps <0|1>", func(options string) error {
 		if s == nil {
 			return nil
 		}
@@ -275,7 +275,7 @@ func (s *Renderer) bindConVars() {
 		}
 		return nil
 	})
-	console.AddCommand("kero_drawleafwireframes", "Renders visible leaf wireframes", "", func(options string) error {
+	console.AddCommand("kero_drawleafwireframes", "Renders visible leaf wireframes", "kero_drawleafwireframes <0|1>", func(options string) error {
 		if s == nil {
 			return nil
 		}

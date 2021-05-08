@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/gui"
@@ -24,8 +25,14 @@ type Gui struct {
 
 func (s *Gui) Initialize() {
 	console.AddOutputPipe(func(level console.LogLevel, message interface{}) {
-		s.menuView.Console.AddMessage(level, message.(string))
+		switch v := message.(type) {
+		case string:
+			s.menuView.Console.AddMessage(level, message.(string))
+		default:
+			s.menuView.Console.AddMessage(level, fmt.Sprintf("%s", v))
+		}
 	})
+	console.DisableBufferedLogs()
 
 	s.uiContext = context.NewContext(window.CurrentWindow())
 	middleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)

@@ -37,6 +37,24 @@ func AddCommand(key, description, usage string, callback CommandCallback) {
 	}
 }
 
+// GetCommandList collates all available commands
+func GetCommandList(prefix string) []string {
+	commands := make([]string, 0, len(commandListSingleton.commands))
+
+	for key := range commandListSingleton.commands {
+		if len(prefix) == 0 {
+			commands = append(commands, key)
+			continue
+		}
+
+		if strings.HasPrefix(key, prefix) {
+			commands = append(commands, key)
+		}
+	}
+
+	return commands
+}
+
 // ExecuteCommand parses a command string and executes the assigned callback if found
 func ExecuteCommand(input string) (err error) {
 	defer func() {

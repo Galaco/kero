@@ -7,9 +7,17 @@ import (
 // LogLevel represents a the importance of a particular console message
 type LogLevel int
 
+type loggerBufferedEntry struct {
+	level LogLevel
+	value interface{}
+}
+
 type logger struct {
 	mut   sync.Mutex
 	pipes []func(LogLevel, interface{})
+
+	storeEntries bool
+	entries []loggerBufferedEntry
 }
 
 var singleton logger
@@ -34,6 +42,13 @@ const (
 func AddOutputPipe(cb func(LogLevel, interface{})) {
 	singleton.mut.Lock()
 	singleton.pipes = append(singleton.pipes, cb)
+
+	// Any buffered entries are immediately output to the new pipe
+	if singleton.storeEntries == true {
+		for _,entry := range singleton.entries {
+			cb(entry.level, entry.value)
+		}
+	}
 	singleton.mut.Unlock()
 }
 
@@ -48,5 +63,21 @@ func PrintInterface(level LogLevel, i interface{}) {
 	for _, cb := range singleton.pipes {
 		cb(level, i)
 	}
+	singleton.entries = append(singleton.entries, loggerBufferedEntry{
+			level: level,
+			value: i,
+	})
 	singleton.mut.Unlock()
+}
+
+// DisableBufferedLogs stop storing new log entries. It can be called repeatedly, but cannot be undone once called
+// The purpose is such that different output pipes might be attached at runtime, and historical entries might be desirable
+func DisableBufferedLogs() {
+	singleton.storeEntries = false
+	singleton.entries = nil
+}
+
+func init() {
+	singleton.storeEntries = true
+	singleton.entries = make([]loggerBufferedEntry, 0)
 }

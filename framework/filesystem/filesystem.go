@@ -44,8 +44,13 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 		steamAppIdNode,_ := fsNode.Find("SteamAppId")
 		if err == nil && steamAppIdNode != nil {
 			steamAppId,_ := steamAppIdNode.AsInt()
-			console.PrintString(console.LevelSuccess, fmt.Sprintf("Steam AppId: %d", steamAppId))
+			console.PrintString(console.LevelSuccess, fmt.Sprintf("Steam AppId: %d\n\n", steamAppId))
 		}
+		console.PrintString(console.LevelInfo, "Available resource paths:")
+		for _,path := range lfs.EnumerateResourcePaths() {
+			console.PrintString(console.LevelInfo, path)
+		}
+
 		console.PrintString(console.LevelSuccess,"**************************")
 	}
 	return lfs, err

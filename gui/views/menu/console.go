@@ -79,5 +79,8 @@ func (view *Console) Render() {
 }
 
 func (view *Console) AddMessage(level console.LogLevel, message string) {
+	if view.messages == nil {
+		view.messages = make([]consoleMessage, 0)
+	}
 	view.messages = append(view.messages, newConsoleMessage(level, message))
 }
