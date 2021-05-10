@@ -30,6 +30,7 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 
 // Start runs the game loop
 func (kero *Kero) Start() {
+	middleware.AddInitialConvars()
 	kero.input = middleware.InitializeInput()
 	kero.renderer = renderer.NewRenderer()
 	kero.ui = gui.NewGui()

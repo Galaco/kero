@@ -1,6 +1,7 @@
 /.idea/
 imgui.ini
-Build
+Build*
+qtbox
 
 
 # Misc

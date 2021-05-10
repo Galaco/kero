@@ -39,7 +39,10 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []ent
 		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
 		return nil, nil, err
 	}
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", filename))
+	bspNameParts := strings.Split(filename, "/")
+	bspName := bspNameParts[len(bspNameParts)-1]
+
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
 	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
 
 	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateBSPParsed)
@@ -80,6 +83,7 @@ type bspstructs struct {
 	dispInfos []dispinfo.DispInfo
 	dispVerts []dispvert.DispVert
 	lightmap  []common.ColorRGBExponent32
+	lightmapHDR  []common.ColorRGBExponent32
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -99,6 +103,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		dispInfos: file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
 		dispVerts: file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
 		lightmap:  file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
+		lightmapHDR:  file.Lump(bsp.LumpLightingHDR).(*lumps.Lighting).GetData(),
 	}
 
 	//MATERIALS
@@ -116,8 +121,16 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	dispFaces := make([]int, 0)
 
 	var lightmapAtlas *graphics.TextureAtlas
-	if bspStructure.lightmap != nil {
-		lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
+	if console.GetConvarBoolean("hdr_enable") == true {
+		if bspStructure.lightmapHDR != nil {
+			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.lightmapHDR)
+		}
+	}
+
+	if lightmapAtlas == nil {
+		if bspStructure.lightmap != nil {
+			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
+		}
 	}
 
 	for idx, f := range bspStructure.faces {
