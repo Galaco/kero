@@ -8,7 +8,6 @@ import (
 	"github.com/galaco/studiomodel/vtx"
 	"github.com/galaco/studiomodel/vvd"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -86,20 +85,17 @@ func loadProp(filePath string, fs virtualFileSystem) (*studiomodel.StudioModel, 
 }
 
 func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel) (*mesh.Model, error) {
-	if filename == "models/props/de_tides/tides_fences_d.mdl" {
-		log.Println(filename)
-	}
 	verts, normals, textureCoordinates, indices, err := VertexDataForModel(studioModel, 0)
 	if err != nil {
 		return nil, err
 	}
 	outModel := mesh.NewModel(filename)
 	mats := materialsForStudioModel(studioModel.Mdl)
-	for i := 0; i < len(verts); i++ { //verts is a slice of slices, (ie vertex data per mesh: len(verts) = num_meshes)
+	for i := 0; i < len(indices); i++ { //indices is a slice of slices, (ie len(indices) = num_meshes)
 		smMesh := mesh.NewMesh()
-		smMesh.AddVertex(verts[i]...)
-		smMesh.AddNormal(normals[i]...)
-		smMesh.AddUV(textureCoordinates[i]...)
+		smMesh.AddVertex(verts...)
+		smMesh.AddNormal(normals...)
+		smMesh.AddUV(textureCoordinates...)
 		smMesh.AddIndice(indices[i]...)
 
 		//@TODO Map ALL materials to mesh data

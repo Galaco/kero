@@ -8,10 +8,7 @@ import (
 )
 
 // VertexDataForModel loads model vertex data
-func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]float32, [][]float32, [][]float32, [][]uint32, error) {
-	vertices := make([][]float32, 0)
-	normals := make([][]float32, 0)
-	textureCoordinates := make([][]float32, 0)
+func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([]float32, []float32, []float32, [][]uint32, error) {
 	indices := make([][]uint32, 0)
 	for _, bodyPart := range studioModel.Vtx.BodyParts {
 		for _, model := range bodyPart.Models {
@@ -23,17 +20,14 @@ func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([][]f
 				if len(i) == 0 {
 					return nil, nil, nil, nil, errors.New("invalid studiomodel mesh: 0 indices. ignoring")
 				}
-
-				v, n, uv, err := vertexDataForMesh(studioModel.Vvd)
-				if err != nil {
-					return nil, nil, nil, nil, err
-				}
-				vertices = append(vertices, v)
-				normals = append(normals, n)
-				textureCoordinates = append(textureCoordinates, uv)
 				indices = append(indices, i)
 			}
 		}
+	}
+
+	vertices, normals, textureCoordinates, err := vertexDataForMesh(studioModel.Vvd)
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
 
 	return vertices, normals, textureCoordinates, indices, nil
@@ -53,8 +47,6 @@ func indicesForMesh(mesh *vtx.Mesh) []uint32 {
 		for j := int32(0); j < strip.NumIndices; j++ {
 			index := stripGroup.Indices[strip.IndexOffset+j]
 			vert := stripGroup.Vertexes[index]
-
-			//meshIndices = append(meshIndices, uint32(index))
 
 			meshIndices = append(meshIndices, uint32(strip.VertOffset)+uint32(vert.OriginalMeshVertexID))
 		}
