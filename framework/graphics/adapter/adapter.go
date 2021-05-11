@@ -243,3 +243,63 @@ func EnableBackFaceCulling() {
 func EnableFrontFaceCulling() {
 	gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
 }
+
+
+
+// not a great implementation, but isolates gl specifics from outside of the adapter
+var drawLineVBO, drawLineVAO uint32
+
+func DrawLine(start, end, color mgl32.Vec3) {
+	// Vertex data
+	points := []float32{
+		start.X(),
+		start.Y(),
+		start.Z(),
+		color.X(),
+		color.Y(),
+		color.Z(),
+		end.X(),
+		end.Y(),
+		end.Z(),
+		color.X(),
+		color.Y(),
+		color.Z(),
+	}
+
+	drawLinesInternal(points)
+}
+
+func DrawDebugLines(points []float32, color mgl32.Vec3) {
+	if len(points) == 0 {
+		return
+	}
+	// Vertex data
+	combinedPoints := make([]float32, 0, len(points) * 2)
+
+	// Unpleasant but masks the data format from adapter users
+	for i := 0; i < len(points); i += 3 {
+		combinedPoints = append(combinedPoints, points[i], points[i+1], points[i+2], color.X(), color.Y(), color.Z())
+	}
+
+	drawLinesInternal(combinedPoints)
+}
+
+func drawLinesInternal(points []float32) {
+	gl.DeleteBuffers(1, &drawLineVBO)
+	gl.DeleteVertexArrays(1, &drawLineVAO)
+	gl.GenBuffers(1, &drawLineVBO)
+	gl.GenVertexArrays(1, &drawLineVAO)
+	gl.BindVertexArray(drawLineVAO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, drawLineVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(points) * 3, gl.Ptr(points), gl.STATIC_DRAW)
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, nil)
+	gl.EnableVertexAttribArray(1)
+	// gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, (GLvoid*)(3 * sizeof(GLfloat)))
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, nil)
+	gl.BindVertexArray(0)
+
+	gl.BindVertexArray(drawLineVAO)
+	gl.DrawArrays(gl.LINES, 0, int32(len(points) / 6))
+	gl.BindVertexArray(0)
+}

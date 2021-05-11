@@ -8,6 +8,7 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/galaco/kero/messages"
@@ -15,6 +16,7 @@ import (
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/utils"
+	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
 
@@ -28,7 +30,7 @@ type Renderer struct {
 
 
 	flags struct {
-		renderDebugLeafWireframes int32
+		matLeafvis int32
 	}
 }
 
@@ -87,6 +89,39 @@ func (s *Renderer) Render() {
 	s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
 	s.renderStaticProps(s.dataScene.Camera, clusters)
+
+	s.DrawDebug()
+}
+
+func (s *Renderer) DrawDebug() {
+	debugPoints := []float32{}
+	switch console.GetConvarInt("mat_leafvis") {
+	case 1:
+		for _,l := range s.dataScene.ClusterLeafs {
+			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
+		}
+	case 2:
+		if s.dataScene.CurrentLeaf != nil {
+			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(
+				mgl32.Vec3{
+					float32(s.dataScene.CurrentLeaf.Mins[0]),
+					float32(s.dataScene.CurrentLeaf.Mins[1]),
+					float32(s.dataScene.CurrentLeaf.Mins[2]),
+				},
+				mgl32.Vec3{
+					float32(s.dataScene.CurrentLeaf.Maxs[0]),
+					float32(s.dataScene.CurrentLeaf.Maxs[1]),
+					float32(s.dataScene.CurrentLeaf.Maxs[2]),
+				},
+			).Vertices()...)
+		}
+	case 3:
+		for _,l := range s.dataScene.VisibleClusterLeafs {
+			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
+		}
+	}
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
+	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0,255,0})
 }
 
 func (s *Renderer) FinishFrame() {
@@ -247,6 +282,7 @@ func (s *Renderer) ReleaseGPUResources() {
 
 func (s *Renderer) bindConVars() {
 	console.AddConvarBool("r_drawlightmaps", "Render lightmaps as diffuse material", false)
+	console.AddConvarInt("mat_leafvis", "Render visleaf wireframes", 0)
 
 	// Currently broken (texcache is flushed after gpu upload so raw lightmap colour data is unavailable)
 	console.AddCommand("kero_dumplightmap", "Dump lightmap texture to a JPG", "kero_dumplightmap <filepath/filename>", func(options string) error {
@@ -272,17 +308,6 @@ func (s *Renderer) bindConVars() {
 			console.SetConvarBoolean("r_drawlightmaps", true)
 		} else {
 			console.SetConvarBoolean("r_drawlightmaps", false)
-		}
-		return nil
-	})
-	console.AddCommand("kero_drawleafwireframes", "Renders visible leaf wireframes", "kero_drawleafwireframes <0|1>", func(options string) error {
-		if s == nil {
-			return nil
-		}
-		if options == "1" {
-			s.flags.renderDebugLeafWireframes = 1
-		} else {
-			s.flags.renderDebugLeafWireframes = 0
 		}
 		return nil
 	})
