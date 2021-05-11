@@ -1,5 +1,7 @@
 package console
 
+import "reflect"
+
 type convarList struct {
 	convars map[string]Convar
 }
@@ -27,9 +29,7 @@ func GetConvarBoolean(key string) bool {
 }
 
 func SetConvarBoolean(key string, value bool) {
-	if convar,ok := convarSingleton.convars[key]; ok {
-		convar.Value = value
-	}
+	setConvarAny(key, value)
 }
 
 func GetConvarInt(key string) int {
@@ -40,9 +40,7 @@ func GetConvarInt(key string) int {
 }
 
 func SetConvarInt(key string, value int) {
-	if convar,ok := convarSingleton.convars[key]; ok {
-		convar.Value = value
-	}
+	setConvarAny(key, value)
 }
 
 func GetConvarString(key string) string {
@@ -53,8 +51,17 @@ func GetConvarString(key string) string {
 }
 
 func SetConvarString(key string, value string) {
-	if convar,ok := convarSingleton.convars[key]; ok {
-		convar.Value = value
+	setConvarAny(key, value)
+}
+
+func setConvarAny(key string, value interface{}) {
+	if cv,ok := convarSingleton.convars[key]; ok {
+		// Ensure the original convar type does not change under the hood
+		if  reflect.TypeOf(cv.Value) != reflect.TypeOf(value) {
+			return
+		}
+		cv.Value = value
+		convarSingleton.convars[key] = cv
 	}
 }
 

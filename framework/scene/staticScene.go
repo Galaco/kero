@@ -123,6 +123,9 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 		texCache.Add(LightmapTexturePath, texCache.Find(ErrorTexturePath))
 	}
 
+	texCache.Add(ErrorTexturePath, graphics.NewErrorTexture(ErrorTexturePath))
+
+
 	// load materials
 	var tex graphics.Texture
 	var err error

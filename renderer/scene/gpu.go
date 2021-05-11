@@ -28,7 +28,6 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		GpuStaticProps: map[string]cache.GpuProp{},
 	}
 
-	frameworkScene.TexCache.Add(scene.ErrorTexturePath, graphics.NewErrorTexture(scene.ErrorTexturePath))
 	s.GpuItemCache.Add(scene.ErrorTexturePath, adapter.UploadTexture(frameworkScene.TexCache.Find(scene.ErrorTexturePath)))
 
 	for key,tex := range frameworkScene.TexCache.All() {

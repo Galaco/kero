@@ -21,14 +21,13 @@ import (
 type Renderer struct {
 	shaderCache    *cache.Shader
 
-	activeShader *adapter.Shader
+	dataScene *scene2.StaticScene
+	gpuScene  scene.GPUScene
 
-	scene *scene2.StaticScene
-	gpuScene scene.GPUScene
+	activeShader *adapter.Shader
 
 
 	flags struct {
-		renderLightmapsAsAlbedo   int32
 		renderDebugLeafWireframes int32
 	}
 }
@@ -49,16 +48,16 @@ func (s *Renderer) Initialize() {
 }
 
 func (s *Renderer) Render() {
-	if s.scene == nil {
+	if s.dataScene == nil {
 		return
 	}
-	s.scene.RecomputeVisibleClusters()
-	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.scene.Camera))
+	s.dataScene.RecomputeVisibleClusters()
+	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.dataScene.Camera))
 
 	// Draw skybox
 	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
 	var shouldRenderSkybox bool
-	if s.gpuScene.Skybox != nil && s.scene.CurrentLeaf != nil && s.scene.CurrentLeaf.Cluster != -1 {
+	if s.gpuScene.Skybox != nil && s.dataScene.CurrentLeaf != nil && s.dataScene.CurrentLeaf.Cluster != -1 {
 		for _, c := range clusters {
 			if c.SkyVisible {
 				shouldRenderSkybox = true
@@ -69,25 +68,25 @@ func (s *Renderer) Render() {
 
 	if shouldRenderSkybox {
 		s.renderSkybox(s.gpuScene.Skybox)
-		if s.scene.SkyCamera != nil {
-			origin := s.scene.SkyCamera.Transform().Position
-			s.scene.SkyCamera.Transform().Rotation = s.scene.Camera.Transform().Rotation
-			s.scene.SkyCamera.Transform().Position = s.scene.SkyCamera.Transform().Position.Add(s.scene.Camera.Transform().Position.Mul(1 / s.scene.SkyCamera.Transform().Scale.X()))
-			s.scene.SkyCamera.Update(0)
-			s.startFrame(s.scene.SkyCamera)
-			s.renderBsp(s.scene.SkyCamera, s.scene.SkyboxClusterLeafs)
-			s.renderDisplacements(s.scene.DisplacementFaces)
-			s.renderStaticProps(s.scene.SkyCamera, s.scene.SkyboxClusterLeafs)
+		if s.dataScene.SkyCamera != nil {
+			origin := s.dataScene.SkyCamera.Transform().Position
+			s.dataScene.SkyCamera.Transform().Rotation = s.dataScene.Camera.Transform().Rotation
+			s.dataScene.SkyCamera.Transform().Position = s.dataScene.SkyCamera.Transform().Position.Add(s.dataScene.Camera.Transform().Position.Mul(1 / s.dataScene.SkyCamera.Transform().Scale.X()))
+			s.dataScene.SkyCamera.Update(0)
+			s.startFrame(s.dataScene.SkyCamera)
+			s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
+			s.renderDisplacements(s.dataScene.DisplacementFaces)
+			s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
 			adapter.ClearDepthBuffer()
-			s.scene.SkyCamera.Transform().Position = origin
+			s.dataScene.SkyCamera.Transform().Position = origin
 		}
 	}
 
 	// Draw world
-	s.startFrame(s.scene.Camera)
-	s.renderBsp(s.scene.Camera, clusters)
-	s.renderDisplacements(s.scene.DisplacementFaces)
-	s.renderStaticProps(s.scene.Camera, clusters)
+	s.startFrame(s.dataScene.Camera)
+	s.renderBsp(s.dataScene.Camera, clusters)
+	s.renderDisplacements(s.dataScene.DisplacementFaces)
+	s.renderStaticProps(s.dataScene.Camera, clusters)
 }
 
 func (s *Renderer) FinishFrame() {
@@ -96,12 +95,12 @@ func (s *Renderer) FinishFrame() {
 }
 
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
-	s.scene = scene2.LoadStaticSceneFromBsp(
+	s.dataScene = scene2.LoadStaticSceneFromBsp(
 		filesystem.Get(),
 		message.(*messages.LoadingLevelParsed).Level().(*graphics.Bsp),
 		message.(*messages.LoadingLevelParsed).Entities().([]entity.IEntity))
 
-	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.scene, filesystem.Get())
+	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
 }
 
 func (s *Renderer) startFrame(camera *graphics.Camera) {
@@ -116,7 +115,11 @@ func (s *Renderer) startFrame(camera *graphics.Camera) {
 
 func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
-	adapter.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), s.flags.renderLightmapsAsAlbedo)
+	if console.GetConvarBoolean("r_drawlightmaps") == true {
+		adapter.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), 1)
+	} else {
+		adapter.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), 0)
+	}
 
 	adapter.BindMesh(&s.gpuScene.GpuMesh)
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
@@ -165,7 +168,7 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
 	indices := make([]uint32, 0, 256)
 	for _, face := range faces {
-		indices = append(indices, s.scene.BspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
+		indices = append(indices, s.dataScene.BspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
 	adapter.UpdateIndexArrayBuffer(indices)
 	adapter.BindTexture(mat.Diffuse)
@@ -213,24 +216,24 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 
 func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
 	renderClusters := make([]*vis.ClusterLeaf, 0, 64)
-	for idx, cluster := range s.scene.VisibleClusterLeafs {
+	for idx, cluster := range s.dataScene.VisibleClusterLeafs {
 		if !viewFrustum.IsLeafInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
-		renderClusters = append(renderClusters, s.scene.VisibleClusterLeafs[idx])
+		renderClusters = append(renderClusters, s.dataScene.VisibleClusterLeafs[idx])
 	}
 	return renderClusters
 }
 
 func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 	skyboxTransform := skybox.SkyMeshTransform
-	skyboxTransform.Position = s.scene.Camera.Transform().Position
+	skyboxTransform.Position = s.dataScene.Camera.Transform().Position
 
 	s.activeShader = s.shaderCache.Find("Skybox")
 	s.activeShader.Bind()
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.scene.Camera.ProjectionMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.scene.Camera.ViewMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.dataScene.Camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
 	adapter.BindMesh(&skybox.SkyMeshGpuID)
@@ -243,12 +246,15 @@ func (s *Renderer) ReleaseGPUResources() {
 }
 
 func (s *Renderer) bindConVars() {
+	console.AddConvarBool("r_drawlightmaps", "Render lightmaps as diffuse material", false)
+
+	// Currently broken (texcache is flushed after gpu upload so raw lightmap colour data is unavailable)
 	console.AddCommand("kero_dumplightmap", "Dump lightmap texture to a JPG", "kero_dumplightmap <filepath/filename>", func(options string) error {
 		if s == nil {
 			return nil
 		}
 
-		if ok := s.scene.TexCache.Find(scene2.LightmapTexturePath); ok != nil {
+		if ok := s.dataScene.TexCache.Find(scene2.LightmapTexturePath); ok != nil {
 			utils.DumpLightmap(options, ok)
 			return nil
 		}
@@ -259,13 +265,13 @@ func (s *Renderer) bindConVars() {
 		if s == nil {
 			return nil
 		}
-		if ok := s.scene.TexCache.Find(scene2.LightmapTexturePath); ok == nil {
+		if ok := s.dataScene.TexCache.Find(scene2.LightmapTexturePath); ok == nil {
 			return errors.New("kero_drawlightmaps: no lightmap in memory")
 		}
 		if options == "1" {
-			s.flags.renderLightmapsAsAlbedo = 1
+			console.SetConvarBoolean("r_drawlightmaps", true)
 		} else {
-			s.flags.renderLightmapsAsAlbedo = 0
+			console.SetConvarBoolean("r_drawlightmaps", false)
 		}
 		return nil
 	})
