@@ -35,8 +35,8 @@ func (cache *Material) Find(name string) *GpuMaterial {
 }
 
 // NewTextureCache
-func NewMaterialCache() *Material {
-	return &Material{
+func NewMaterialCache() Material {
+	return Material{
 		items: map[string]*GpuMaterial{},
 	}
 }

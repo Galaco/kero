@@ -16,7 +16,3 @@ func (prop *GpuProp) AddMesh(id adapter.GpuMesh) {
 func (prop *GpuProp) AddMaterial(mat GpuMaterial) {
 	prop.Material = append(prop.Material, mat)
 }
-
-func NewGpuProp() *GpuProp {
-	return &GpuProp{}
-}

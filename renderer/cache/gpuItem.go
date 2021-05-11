@@ -15,8 +15,8 @@ func (cache *GpuItem) Find(name string) uint32 {
 }
 
 // NewTextureCache
-func NewGpuItemCache() *GpuItem {
-	return &GpuItem{
+func NewGpuItemCache() GpuItem {
+	return GpuItem{
 		items: map[string]uint32{},
 	}
 }

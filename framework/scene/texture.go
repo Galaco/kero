@@ -1,4 +1,4 @@
-package cache
+package scene
 
 import "github.com/galaco/kero/framework/graphics"
 
@@ -7,23 +7,27 @@ const (
 	LightmapTexturePath = "__lightmap__"
 )
 
-type Texture struct {
+type TextureCache struct {
 	items map[string]graphics.Texture
 }
 
 // Add
-func (cache *Texture) Add(name string, item graphics.Texture) {
+func (cache *TextureCache) Add(name string, item graphics.Texture) {
 	cache.items[name] = item
 }
 
 // Find
-func (cache *Texture) Find(name string) graphics.Texture {
+func (cache *TextureCache) Find(name string) graphics.Texture {
 	return cache.items[name]
 }
 
+func (cache *TextureCache) All() map[string]graphics.Texture {
+	return cache.items
+}
+
 // NewTextureCache
-func NewTextureCache() *Texture {
-	return &Texture{
+func NewTextureCache() TextureCache {
+	return TextureCache{
 		items: map[string]graphics.Texture{},
 	}
 }

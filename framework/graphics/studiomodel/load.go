@@ -112,7 +112,11 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 func materialsForStudioModel(mdlData *mdl.Mdl) []string {
 	materials := make([]string, 0)
 	for _, dir := range mdlData.TextureDirs {
+		//trueDir := strings.Replace(dir, "\\", "/", -1)
 		for _, name := range mdlData.TextureNames {
+			// In some cases the texture name seems to include the directory itself. e.g. csgo de_dust2
+			//name = strings.TrimSpace(strings.TrimLeft(strings.Replace(name, "\\", "/", -1), trueDir))
+			// materials = append(materials, trueDir + name)
 			materials = append(materials, strings.Replace(dir, "\\", "/", -1)+name)
 		}
 	}

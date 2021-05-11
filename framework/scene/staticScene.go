@@ -1,4 +1,4 @@
-package renderer
+package scene
 
 import (
 	"fmt"
@@ -6,60 +6,69 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
-	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"github.com/galaco/kero/renderer/cache"
-	"github.com/galaco/kero/renderer/scene"
-	"github.com/galaco/kero/renderer/vis"
+	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/go-gl/mathgl/mgl32"
 	"io"
-	"strings"
 )
 
 type fileSystem interface {
 	GetFile(string) (io.Reader, error)
 }
 
+var sceneSingleton StaticScene
+
+func CurrentScene() *StaticScene {
+	if sceneSingleton.BspMesh == nil {
+		return nil
+	}
+
+	return &sceneSingleton
+}
+
+
 type StaticScene struct {
-	bspMesh           *mesh.BasicMesh
-	bspFaces          []graphics.BspFace
-	displacementFaces []*graphics.BspFace
-	skybox            *scene.Skybox
+	RawBsp			*graphics.Bsp
+	BspMesh           *mesh.BasicMesh
+	BspFaces          []graphics.BspFace
+	DisplacementFaces []*graphics.BspFace
+	Textures 		map[string]graphics.Texture
 
-	gpuMesh     adapter.GpuMesh
-	staticProps []graphics.StaticProp
-	entities    []entity.IEntity
+	StaticProps []graphics.StaticProp
+	Entities    []entity.IEntity
 
-	visData      *vis.Vis
-	clusterLeafs []vis.ClusterLeaf
+	VisData      *vis.Vis
+	ClusterLeafs []vis.ClusterLeaf
 	LeafCache    *vis.Cluster
 
-	visibleClusterLeafs []*vis.ClusterLeaf
-	currentLeaf         *leaf.Leaf
+	VisibleClusterLeafs []*vis.ClusterLeaf
+	CurrentLeaf         *leaf.Leaf
 
-	camera             *graphics.Camera
-	cameraPrevPosition mgl32.Vec3
+	Camera             *graphics.Camera
+	CameraPrevPosition mgl32.Vec3
 
-	skyboxClusterLeafs []*vis.ClusterLeaf
-	skyCamera          *graphics.Camera
+	SkyboxClusterLeafs []*vis.ClusterLeaf
+	SkyCamera          *graphics.Camera
+
+	TexCache TextureCache
 }
 
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
 // recalculating using vvis data
 func (scene *StaticScene) RecomputeVisibleClusters() {
-	if scene.camera.Transform().Position.ApproxEqual(scene.cameraPrevPosition) {
+	if scene.Camera.Transform().Position.ApproxEqual(scene.CameraPrevPosition) {
 		return
 	}
-	scene.cameraPrevPosition = scene.camera.Transform().Position
+	scene.CameraPrevPosition = scene.Camera.Transform().Position
 	// View hasn't moved
-	currentLeaf := scene.visData.FindCurrentLeaf(scene.camera.Transform().Position)
+	currentLeaf := scene.VisData.FindCurrentLeaf(scene.Camera.Transform().Position)
 
-	if scene.currentLeaf == currentLeaf {
+	if scene.CurrentLeaf == currentLeaf {
 		return
 	}
 
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
-		scene.currentLeaf = currentLeaf
+		scene.CurrentLeaf = currentLeaf
 
 		scene.asyncRebuildVisibleWorld(currentLeaf)
 		return
@@ -70,10 +79,10 @@ func (scene *StaticScene) RecomputeVisibleClusters() {
 		return
 	}
 
-	scene.currentLeaf = currentLeaf
-	scene.LeafCache = scene.visData.GetPVSCacheForCluster(currentLeaf.Cluster)
+	scene.CurrentLeaf = currentLeaf
+	scene.LeafCache = scene.VisData.GetPVSCacheForCluster(currentLeaf.Cluster)
 
-	scene.visibleClusterLeafs = scene.asyncRebuildVisibleWorld(scene.currentLeaf)
+	scene.VisibleClusterLeafs = scene.asyncRebuildVisibleWorld(scene.CurrentLeaf)
 }
 
 // Launches rebuilding the visible world in a separate thread
@@ -85,38 +94,33 @@ func (scene *StaticScene) asyncRebuildVisibleWorld(currentLeaf *leaf.Leaf) []*vi
 	var visibleClusterIds []int16
 
 	if currentLeaf != nil && currentLeaf.Cluster != -1 {
-		visibleClusterIds = scene.visData.PVSForCluster(currentLeaf.Cluster)
+		visibleClusterIds = scene.VisData.PVSForCluster(currentLeaf.Cluster)
 	}
 
 	// nothing visible so render everything
 	if len(visibleClusterIds) == 0 {
-		for idx := range scene.clusterLeafs {
-			visibleWorld = append(visibleWorld, &scene.clusterLeafs[idx])
+		for idx := range scene.ClusterLeafs {
+			visibleWorld = append(visibleWorld, &scene.ClusterLeafs[idx])
 		}
 	} else {
 		for _, clusterId := range visibleClusterIds {
-			visibleWorld = append(visibleWorld, &scene.clusterLeafs[clusterId])
+			visibleWorld = append(visibleWorld, &scene.ClusterLeafs[clusterId])
 		}
 	}
 
 	return visibleWorld
 }
 
-func NewStaticSceneFromBsp(fs fileSystem,
+func LoadStaticSceneFromBsp(fs fileSystem,
 	level *graphics.Bsp,
-	entities []entity.IEntity,
-	materialCache *cache.Material,
-	texCache *cache.Texture,
-	gpuItemCache *cache.GpuItem,
-	gpuStaticProps map[string]*cache.GpuProp) *StaticScene {
+	entities []entity.IEntity) *StaticScene {
+
+	texCache := NewTextureCache()
 
 	if level.LightmapAtlas() != nil {
-		texCache.Add(cache.LightmapTexturePath, level.LightmapAtlas())
-		gpuItemCache.Add(cache.LightmapTexturePath, adapter.UploadLightmap(texCache.Find(cache.LightmapTexturePath)))
-		texCache.Find(cache.LightmapTexturePath).Release()
+		texCache.Add(LightmapTexturePath, level.LightmapAtlas())
 	} else {
-		texCache.Add(cache.LightmapTexturePath, texCache.Find(cache.ErrorTexturePath))
-		gpuItemCache.Add(cache.LightmapTexturePath, gpuItemCache.Find(cache.ErrorTexturePath))
+		texCache.Add(LightmapTexturePath, texCache.Find(ErrorTexturePath))
 	}
 
 	// load materials
@@ -126,24 +130,19 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		if tex = texCache.Find(mat.BaseTextureName); tex == nil {
 			if mat.BaseTextureName == "" {
 				console.PrintString(console.LevelWarning, fmt.Sprintf("%s has no $BaseTexture", mat.FilePath()))
-				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
-				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
+				texCache.Add(mat.BaseTextureName, texCache.Find(ErrorTexturePath))
 			} else {
 				tex, err = graphics.LoadTexture(fs, mat.BaseTextureName)
 				if err != nil || tex == nil {
 					if err != nil {
 						console.PrintString(console.LevelWarning, err.Error())
 					}
-					texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
-					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
+					texCache.Add(mat.BaseTextureName, texCache.Find(ErrorTexturePath))
 				} else {
 					texCache.Add(mat.BaseTextureName, tex)
-					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
-					adapter.ReleaseTextureResource(tex)
 				}
 			}
 		}
-		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
 	}
 
 	// generate displacement faces
@@ -159,10 +158,10 @@ func NewStaticSceneFromBsp(fs fileSystem,
 	for idx, bspFace := range level.Faces() {
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
-			tex = texCache.Find(cache.ErrorTexturePath)
+			tex = texCache.Find(ErrorTexturePath)
 		} else {
 			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
-				tex = texCache.Find(cache.ErrorTexturePath)
+				tex = texCache.Find(ErrorTexturePath)
 			} else {
 				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
@@ -198,52 +197,47 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
 
-	// Finish staticprops
-	for _, prop := range level.StaticPropDictionary {
-		gpuStaticProps[prop.Id] = cache.NewGpuProp()
-		for _, m := range prop.Meshes() {
-			gpuStaticProps[prop.Id].AddMesh(adapter.UploadMesh(m))
-		}
-		for _, materialPath := range prop.Materials() {
-			if _, ok := level.MaterialDictionary()[materialPath]; ok {
-				gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
-				continue
-			}
-			mat, err := graphics.LoadMaterial(fs, materialPath)
-			if err != nil {
-				console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
-				mat = graphics.NewMaterial(materialPath)
-				mat.BaseTextureName = cache.ErrorTexturePath
-			}
-			if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-				tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
-				if err != nil {
-					console.PrintString(console.LevelWarning, err.Error())
-					texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
-					gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
-				} else {
-					texCache.Add(mat.BaseTextureName, tex)
-					gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
-					adapter.ReleaseTextureResource(tex)
-				}
-			}
-			materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
-			gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
-		}
-	}
+	//// Finish staticprops
+	//for _, prop := range level.StaticPropDictionary {
+	//	gpuStaticProps[prop.Id] = cache.NewGpuProp()
+	//	for _, m := range prop.Meshes() {
+	//		gpuStaticProps[prop.Id].AddMesh(adapter.UploadMesh(m))
+	//	}
+	//	for _, materialPath := range prop.Materials() {
+	//		if _, ok := level.MaterialDictionary()[materialPath]; ok {
+	//			gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
+	//			continue
+	//		}
+	//		mat, err := graphics.LoadMaterial(fs, materialPath)
+	//		if err != nil {
+	//			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
+	//			mat = graphics.NewMaterial(materialPath)
+	//			mat.BaseTextureName = cache.ErrorTexturePath
+	//		}
+	//		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
+	//			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
+	//			if err != nil {
+	//				console.PrintString(console.LevelWarning, err.Error())
+	//				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
+	//				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
+	//			} else {
+	//				texCache.Add(mat.BaseTextureName, tex)
+	//				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+	//				adapter.ReleaseTextureResource(tex)
+	//			}
+	//		}
+	//		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
+	//		gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
+	//	}
+	//}
 
 	// Generate visibility tree
 	visibility := vis.LoadVisData(level.File())
 	clusterLeafs := generateClusterLeafs(level, visibility)
 
-	var worldspawn entity.IEntity
 	var skyCameraEntity entity.IEntity
 	var infoPlayerStart entity.IEntity
 	for idx, e := range entities {
-		if e.Classname() == "worldspawn" {
-			worldspawn = entities[idx]
-			continue
-		}
 		if e.Classname() == "sky_camera" {
 			skyCameraEntity = entities[idx]
 			continue
@@ -253,13 +247,6 @@ func NewStaticSceneFromBsp(fs fileSystem,
 			continue
 		}
 	}
-	skyboxOrigin := mgl32.Vec3{}
-	skyName := ""
-	if worldspawn != nil {
-		skyboxOrigin = worldspawn.VectorForKey("origin")
-		skyName = worldspawn.ValueForKey("skyname")
-	}
-	skybox := scene.LoadSkybox(fs, skyName, skyboxOrigin)
 	var skyCamera *graphics.Camera
 
 	if skyCameraEntity != nil {
@@ -273,28 +260,28 @@ func NewStaticSceneFromBsp(fs fileSystem,
 		level.Camera().Transform().Rotation = infoPlayerStart.VectorForKey("angles")
 	}
 
-	scene := &StaticScene{
-		bspMesh:            level.Mesh(),
-		gpuMesh:            adapter.UploadMesh(level.Mesh()),
-		bspFaces:           remappedFaces,
-		displacementFaces:  dispFaces,
-		skybox:             skybox,
-		entities:           entities,
-		staticProps:        level.StaticProps,
-		clusterLeafs:       clusterLeafs,
-		visData:            visibility,
-		camera:             level.Camera(),
-		cameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
-		skyCamera:          skyCamera,
+	sceneSingleton = StaticScene{
+		RawBsp:				level,
+		BspMesh:            level.Mesh(),
+		BspFaces:           remappedFaces,
+		DisplacementFaces:  dispFaces,
+		Entities:           entities,
+		StaticProps:        level.StaticProps,
+		ClusterLeafs:       clusterLeafs,
+		VisData:            visibility,
+		Camera:             level.Camera(),
+		CameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
+		SkyCamera:          skyCamera,
+		TexCache:			texCache,
 	}
 
 	// Generate Initial visibility data
-	scene.asyncRebuildVisibleWorld(nil)
+	sceneSingleton.asyncRebuildVisibleWorld(nil)
 	if skyCamera != nil {
-		scene.skyboxClusterLeafs = scene.asyncRebuildVisibleWorld(scene.visData.FindCurrentLeaf(skyCamera.Transform().Position))
+		sceneSingleton.SkyboxClusterLeafs = sceneSingleton.asyncRebuildVisibleWorld(sceneSingleton.VisData.FindCurrentLeaf(skyCamera.Transform().Position))
 	}
 
-	return scene
+	return CurrentScene()
 }
 
 func generateClusterLeafs(level *graphics.Bsp, visData *vis.Vis) []vis.ClusterLeaf {
