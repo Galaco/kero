@@ -7,11 +7,23 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/go-gl/mathgl/mgl32"
 	"strings"
 )
+
+// PropRenderable Base renderable prop interface
+type PropRenderable interface {
+	PropPath() string
+}
+
+type EntityPropCacheItem struct {
+	Id string
+	Entities []entity.IEntity
+	Prop *mesh.Model
+}
 
 type GPUScene struct {
 	Skybox *Skybox
@@ -19,6 +31,7 @@ type GPUScene struct {
 	GpuItemCache cache.GpuItem
 	GpuMaterialCache cache.Material
 	GpuStaticProps map[string]cache.GpuProp
+	GpuRenderablePropEntities []EntityPropCacheItem
 }
 
 func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem) *GPUScene {
@@ -26,6 +39,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		GpuItemCache: cache.NewGpuItemCache(),
 		GpuMaterialCache: cache.NewMaterialCache(),
 		GpuStaticProps: map[string]cache.GpuProp{},
+		GpuRenderablePropEntities: []EntityPropCacheItem{},
 	}
 
 	s.GpuItemCache.Add(scene.ErrorTexturePath, adapter.UploadTexture(frameworkScene.TexCache.Find(scene.ErrorTexturePath)))
@@ -45,40 +59,33 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 
 	// Finish staticprops
 	for _, prop := range frameworkScene.RawBsp.StaticPropDictionary {
-		gpuProp := cache.GpuProp{}
-		s.GpuStaticProps[prop.Id] = cache.GpuProp{}
-		for _, m := range prop.Meshes() {
-			gpuProp.AddMesh(adapter.UploadMesh(m))
-		}
-		for _, materialPath := range prop.Materials() {
-			if _, ok := frameworkScene.RawBsp.MaterialDictionary()[materialPath]; ok {
-				gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
-				continue
-			}
-			mat, err := graphics.LoadMaterial(fs, materialPath)
-			if err != nil {
-				console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
-				mat = graphics.NewMaterial(materialPath)
-				mat.BaseTextureName = scene.ErrorTexturePath
-			}
-			if tex := frameworkScene.TexCache.Find(mat.BaseTextureName); tex == nil {
-				tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
-				if err != nil {
-					console.PrintString(console.LevelWarning, err.Error())
-					frameworkScene.TexCache.Add(mat.BaseTextureName, frameworkScene.TexCache.Find(scene.ErrorTexturePath))
-					s.GpuItemCache.Add(mat.BaseTextureName, s.GpuItemCache.Find(scene.ErrorTexturePath))
-				} else {
-					frameworkScene.TexCache.Add(mat.BaseTextureName, tex)
-					s.GpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
-					adapter.ReleaseTextureResource(tex)
+		s.LoadSingleProp(prop, frameworkScene, fs)
+	}
+
+	// Finish props referenced by entities
+	for _, prop := range frameworkScene.RawBsp.EntityPropDictionary {
+		s.LoadSingleProp(prop, frameworkScene, fs)
+
+		s.GpuRenderablePropEntities = append(s.GpuRenderablePropEntities, EntityPropCacheItem{
+			Id: prop.Id,
+			Prop: prop,
+			Entities: make([]entity.IEntity, 0),
+		})
+	}
+
+	// @TODO this will be rewritten once other systems start interacting with entities; a better shared cache is needed.
+	// It's also hella slow as it doesn't make use of leaf visdata
+	for _, ent := range frameworkScene.Entities {
+		if strings.HasPrefix(ent.Classname(), "prop_") {
+			for idx,r := range s.GpuRenderablePropEntities {
+				if r.Id == ent.ValueForKey("model") {
+					s.GpuRenderablePropEntities[idx].Entities = append(s.GpuRenderablePropEntities[idx].Entities, ent)
+					break
 				}
 			}
-			s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(s.GpuItemCache.Find(mat.BaseTextureName), mat))
-			gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
-
-			s.GpuStaticProps[prop.Id] = gpuProp
 		}
 	}
+
 
 	var worldspawn entity.IEntity
 	for idx, e := range frameworkScene.Entities {
@@ -104,4 +111,44 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 
 
 	return s
+}
+
+func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.StaticScene, fs fileSystem) {
+	if _,ok := s.GpuStaticProps[prop.Id]; ok {
+		return
+	}
+
+	gpuProp := cache.GpuProp{}
+	s.GpuStaticProps[prop.Id] = cache.GpuProp{}
+	for _, m := range prop.Meshes() {
+		gpuProp.AddMesh(adapter.UploadMesh(m))
+	}
+	for _, materialPath := range prop.Materials() {
+		if _, ok := frameworkScene.RawBsp.MaterialDictionary()[materialPath]; ok {
+			gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
+			continue
+		}
+		mat, err := graphics.LoadMaterial(fs, materialPath)
+		if err != nil {
+			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
+			mat = graphics.NewMaterial(materialPath)
+			mat.BaseTextureName = scene.ErrorTexturePath
+		}
+		if tex := frameworkScene.TexCache.Find(mat.BaseTextureName); tex == nil {
+			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
+			if err != nil {
+				console.PrintString(console.LevelWarning, err.Error())
+				frameworkScene.TexCache.Add(mat.BaseTextureName, frameworkScene.TexCache.Find(scene.ErrorTexturePath))
+				s.GpuItemCache.Add(mat.BaseTextureName, s.GpuItemCache.Find(scene.ErrorTexturePath))
+			} else {
+				frameworkScene.TexCache.Add(mat.BaseTextureName, tex)
+				s.GpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+				adapter.ReleaseTextureResource(tex)
+			}
+		}
+		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(s.GpuItemCache.Find(mat.BaseTextureName), mat))
+		gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
+
+		s.GpuStaticProps[prop.Id] = gpuProp
+	}
 }

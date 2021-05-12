@@ -7,10 +7,14 @@ import (
 // PropPhysicsOverride
 type PropPhysicsOverride struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropPhysicsOverride) Classname() string {
 	return "prop_physics_override"
+}
+
+// PropPath
+func (entity PropPhysicsOverride) PropPath() string {
+	return entity.ValueForKey("model")
 }

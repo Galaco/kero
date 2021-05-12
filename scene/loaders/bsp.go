@@ -68,6 +68,9 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []ent
 	if err != nil {
 		return nil, nil, err
 	}
+
+	level.EntityPropDictionary = LoadEntityProps(fs, ents)
+
 	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateEntitiesLoaded)
 
 	return level, ents, err

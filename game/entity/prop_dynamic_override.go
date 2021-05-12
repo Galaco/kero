@@ -7,10 +7,14 @@ import (
 // PropDynamicOverride
 type PropDynamicOverride struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropDynamicOverride) Classname() string {
 	return "prop_dynamic_override"
+}
+
+// PropPath
+func (entity PropDynamicOverride) PropPath() string {
+	return entity.ValueForKey("model")
 }

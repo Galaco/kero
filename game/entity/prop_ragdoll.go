@@ -7,10 +7,14 @@ import (
 // PropRagdoll
 type PropRagdoll struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropRagdoll) Classname() string {
 	return "prop_ragdoll"
+}
+
+// PropPath
+func (entity PropRagdoll) PropPath() string {
+	return entity.ValueForKey("model")
 }

@@ -7,10 +7,14 @@ import (
 // PropPhysicsMultiplayer
 type PropPhysicsMultiplayer struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropPhysicsMultiplayer) Classname() string {
 	return "prop_physics_multiplayer"
+}
+
+// PropPath
+func (entity PropPhysicsMultiplayer) PropPath() string {
+	return entity.ValueForKey("model")
 }

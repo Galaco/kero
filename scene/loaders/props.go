@@ -5,9 +5,11 @@ import (
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/graphics/studiomodel"
+	"strings"
 	"sync"
 )
 
@@ -45,6 +47,33 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 	}
 
 	return propDictionary, staticPropList
+}
+
+func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) (map[string]*mesh.Model) {
+	modelName := ""
+	propPaths := make([]string, 0)
+	for _,e := range entities {
+		modelName = e.ValueForKey("model")
+		if !strings.HasPrefix(modelName, graphics.BasePathModel) {
+			continue
+		}
+		propPaths = append(propPaths, modelName)
+
+		// Assumption is we've found a prop
+	}
+	propPaths = generateUniquePropList(propPaths)
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Entities referenced %d props", len(propPaths)))
+
+
+	// Load Prop data
+	propDictionary := asyncLoadProps(fs, propPaths)
+	console.PrintString(console.LevelSuccess, fmt.Sprintf("%d staticprops loaded", len(propDictionary)))
+
+	if len(propDictionary) != len(propPaths) {
+		console.PrintString(console.LevelError, fmt.Sprintf("%d staticprops could not be loaded", len(propPaths)-len(propDictionary)))
+	}
+
+	return propDictionary
 }
 
 func generateUniquePropList(propList []string) (uniqueList []string) {

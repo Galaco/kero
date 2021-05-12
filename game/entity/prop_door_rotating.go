@@ -7,10 +7,14 @@ import (
 // PropDoorRotating
 type PropDoorRotating struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropDoorRotating) Classname() string {
 	return "prop_door_rotating"
+}
+
+// PropPath
+func (entity PropDoorRotating) PropPath() string {
+	return entity.ValueForKey("model")
 }

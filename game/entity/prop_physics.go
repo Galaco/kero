@@ -7,10 +7,14 @@ import (
 // PropPhysics
 type PropPhysics struct {
 	entity.Entity
-	PropRenderableBase
 }
 
 // Classname
 func (entity PropPhysics) Classname() string {
 	return "prop_physics"
+}
+
+// PropPath
+func (entity PropPhysics) PropPath() string {
+	return entity.ValueForKey("model")
 }

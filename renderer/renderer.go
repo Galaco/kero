@@ -20,6 +20,7 @@ import (
 	"math"
 )
 
+
 type Renderer struct {
 	shaderCache    *cache.Shader
 
@@ -89,12 +90,13 @@ func (s *Renderer) Render() {
 	s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
 	s.renderStaticProps(s.dataScene.Camera, clusters)
+	s.renderEntityProps()
 
 	s.DrawDebug()
 }
 
 func (s *Renderer) DrawDebug() {
-	debugPoints := []float32{}
+	debugPoints := make([]float32, 0)
 	switch console.GetConvarInt("mat_leafvis") {
 	case 1:
 		for _,l := range s.dataScene.ClusterLeafs {
@@ -243,6 +245,21 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 					adapter.BindMesh(&gpuProp.Id[idx])
 					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
 					adapter.DrawIndexedArray(len(prop.Model().Meshes()[idx].Indices()), 0, nil)
+				}
+			}
+		}
+	}
+}
+
+func (s *Renderer) renderEntityProps() {
+	for _, entry := range s.gpuScene.GpuRenderablePropEntities {
+		for _, ent := range entry.Entities {
+			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, ent.Transform().TransformationMatrix())
+			if gpuProp, ok := s.gpuScene.GpuStaticProps[entry.Id]; ok {
+				for idx := range gpuProp.Id {
+					adapter.BindMesh(&gpuProp.Id[idx])
+					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+					adapter.DrawIndexedArray(len(entry.Prop.Meshes()[idx].Indices()), 0, nil)
 				}
 			}
 		}

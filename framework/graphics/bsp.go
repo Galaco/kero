@@ -116,6 +116,8 @@ type Bsp struct {
 	StaticPropDictionary map[string]*mesh2.Model
 	StaticProps          []StaticProp
 
+	EntityPropDictionary map[string]*mesh2.Model
+
 	camera *Camera
 
 	lightmapAtlas *TextureAtlas

@@ -31,13 +31,15 @@ type IEntity interface {
 	FloatForKeyWithDefault(key string, defaultValue float32) float32
 	// Properties returns a linked list of all entity key-values
 	Properties() *entity.EPair
+	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
+	Transform() *graphics.Transform
 }
 
 // Entity is a common base that most entities can be based upon
 type Entity struct {
 	entity.Entity
 	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
-	Transform graphics.Transform
+	transform graphics.Transform
 	// Class contains the entity's classname (e.g. func_movelinear)
 	class string
 	// Name contains the entity's targetname
@@ -54,14 +56,19 @@ func (e *Entity) Targetname() string {
 	return e.name
 }
 
+// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
+func (e *Entity) Transform() *graphics.Transform {
+	return &e.transform
+}
+
 // Origin returns the entity position in the world
 func (e *Entity) Origin() mgl32.Vec3 {
-	return e.Transform.Position
+	return e.transform.Position
 }
 
 // Angles returns the entity orientation in the world
 func (e *Entity) Angles() mgl32.Vec3 {
-	return e.Transform.Rotation
+	return e.transform.Rotation
 }
 
 // Properties returns all the entity's key-values as a linked list
@@ -78,7 +85,7 @@ func (e *Entity) Think(dt float64) {
 func NewEntityBaseFromLib(e entity.Entity) *Entity {
 	return &Entity{
 		Entity: e,
-		Transform: graphics.Transform{
+		transform: graphics.Transform{
 			Position: e.VectorForKey("origin"),
 			Rotation: e.VectorForKey("angles"),
 		},
@@ -90,7 +97,7 @@ func NewEntityBaseFromLib(e entity.Entity) *Entity {
 // NewEntityBase returns a new base entity
 func NewEntityBase(classname, targetname string, transform graphics.Transform) *Entity {
 	return &Entity{
-		Transform: transform,
+		transform: transform,
 		class:     classname,
 		name:      targetname,
 	}
