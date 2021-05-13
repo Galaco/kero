@@ -3,7 +3,6 @@ package renderer
 import (
 	"errors"
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
@@ -132,11 +131,7 @@ func (s *Renderer) FinishFrame() {
 }
 
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
-	s.dataScene = scene2.LoadStaticSceneFromBsp(
-		filesystem.Get(),
-		message.(*messages.LoadingLevelParsed).Level().(*graphics.Bsp),
-		message.(*messages.LoadingLevelParsed).Entities().([]entity.IEntity))
-
+	s.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
 	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
 }
 

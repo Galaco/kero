@@ -2,11 +2,10 @@ package scene
 
 import (
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/input"
+	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
 	loader "github.com/galaco/kero/scene/loaders"
@@ -14,8 +13,7 @@ import (
 )
 
 type Scene struct {
-	currentLevel *graphics.Bsp
-	entities     []entity.IEntity
+	dataScene *scene2.StaticScene
 
 	listenToInput bool
 }
@@ -27,32 +25,33 @@ func (s *Scene) Initialize() {
 }
 
 func (s *Scene) Update(dt float64) {
-	if s.currentLevel == nil {
+	if s.dataScene == nil {
 		return
 	}
 	if s.listenToInput {
 		if input.Keyboard().IsKeyPressed(input.KeyW) {
-			s.currentLevel.Camera().Forwards(dt)
+			s.dataScene.Camera.Forwards(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyA) {
-			s.currentLevel.Camera().Left(dt)
+			s.dataScene.Camera.Left(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyS) {
-			s.currentLevel.Camera().Backwards(dt)
+			s.dataScene.Camera.Backwards(dt)
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyD) {
-			s.currentLevel.Camera().Right(dt)
+			s.dataScene.Camera.Right(dt)
 		}
 
-		s.currentLevel.Camera().Update(dt)
+		s.dataScene.Camera.Update(dt)
 	}
-	for _, e := range s.entities {
+
+	for _, e := range s.dataScene.Entities {
 		e.Think(dt)
 	}
 }
 
 func (s *Scene) onChangeLevel(message interface{}) {
-	if s.currentLevel != nil {
+	if s.dataScene != nil {
 		// Cleanup
 
 	}
@@ -63,11 +62,10 @@ func (s *Scene) onChangeLevel(message interface{}) {
 			console.PrintString(console.LevelError, err.Error())
 			return
 		}
-		s.entities = ents
+		s.dataScene = scene2.LoadStaticSceneFromBsp(filesystem.Get(), level, ents)
 		// Change level: we must clear the current event queue
 		event.Get().CancelPending()
-		s.currentLevel = level
-		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(level, ents))
+		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(s.dataScene))
 		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateFinished)
 	}(message.(string))
 }
@@ -80,11 +78,11 @@ func (s *Scene) onKeyRelease(message interface{}) {
 }
 
 func (s *Scene) onMouseMove(message interface{}) {
-	if s.currentLevel == nil || s.currentLevel.Camera() == nil || !s.listenToInput {
+	if s.dataScene == nil || s.dataScene.Camera == nil || !s.listenToInput {
 		return
 	}
 	msg := message.(mgl32.Vec2)
-	s.currentLevel.Camera().Rotate(msg[0], 0, msg[1])
+	s.dataScene.Camera.Rotate(msg[0], 0, msg[1])
 }
 
 func NewScene() *Scene {
