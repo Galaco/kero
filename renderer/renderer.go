@@ -3,11 +3,13 @@ package renderer
 import (
 	"errors"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/graphics/mesh"
+	"github.com/galaco/kero/framework/physics/raytrace"
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/galaco/kero/messages"
@@ -17,17 +19,16 @@ import (
 	"github.com/galaco/kero/utils"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
+	"strings"
 )
 
-
 type Renderer struct {
-	shaderCache    *cache.Shader
+	shaderCache *cache.Shader
 
 	dataScene *scene2.StaticScene
 	gpuScene  scene.GPUScene
 
 	activeShader *adapter.Shader
-
 
 	flags struct {
 		matLeafvis int32
@@ -54,7 +55,7 @@ func (s *Renderer) Render() {
 		return
 	}
 	s.dataScene.RecomputeVisibleClusters()
-	clusters := s.computeRenderableClusters(vis.FrustumFromCamera(s.dataScene.Camera))
+	clusters := s.computeRenderableClusters(graphics.FrustumFromCamera(s.dataScene.Camera))
 
 	// Draw skybox
 	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
@@ -98,7 +99,7 @@ func (s *Renderer) DrawDebug() {
 	debugPoints := make([]float32, 0)
 	switch console.GetConvarInt("mat_leafvis") {
 	case 1:
-		for _,l := range s.dataScene.ClusterLeafs {
+		for _, l := range s.dataScene.ClusterLeafs {
 			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
 		}
 	case 2:
@@ -117,12 +118,30 @@ func (s *Renderer) DrawDebug() {
 			).Vertices()...)
 		}
 	case 3:
-		for _,l := range s.dataScene.VisibleClusterLeafs {
+		for _, l := range s.dataScene.VisibleClusterLeafs {
 			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
 		}
 	}
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
-	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0,255,0})
+
+	var testEnt entity.IEntity
+	for _, e := range s.dataScene.Entities {
+		if strings.HasPrefix(e.Classname(), "prop_") {
+			testEnt = e
+			break
+		}
+	}
+	if testEnt != nil {
+		result := raytrace.TraceRayBetween(s.dataScene, s.dataScene.Camera.Transform().Position, testEnt.Transform().Position)
+
+		if result.Hit {
+			adapter.DrawLine(testEnt.Transform().Position, result.Point, mgl32.Vec3{0, 255, 0})
+		}
+		//adapter.DrawLine(s.dataScene.Camera.Transform().Position.Add(mgl32.Vec3{1,1,1}), testEnt.Transform().Position, mgl32.Vec3{0,255,0})
+		//adapter.DrawLine(mgl32.Vec3{0,0,0}, testEnt.Transform().Position, mgl32.Vec3{0,255,0})
+	}
+
+	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0, 255, 0})
 }
 
 func (s *Renderer) FinishFrame() {
@@ -261,7 +280,7 @@ func (s *Renderer) renderEntityProps() {
 	}
 }
 
-func (s *Renderer) computeRenderableClusters(viewFrustum *vis.Frustum) []*vis.ClusterLeaf {
+func (s *Renderer) computeRenderableClusters(viewFrustum *graphics.Frustum) []*vis.ClusterLeaf {
 	renderClusters := make([]*vis.ClusterLeaf, 0, 64)
 	for idx, cluster := range s.dataScene.VisibleClusterLeafs {
 		if !viewFrustum.IsLeafInFrustum(cluster.Mins, cluster.Maxs) {

@@ -45,6 +45,5 @@ func AddInitialConvars() {
 		return nil
 	})
 
-
 	console.AddConvarBool("hdr_enable", "Use HDR by default", true)
 }

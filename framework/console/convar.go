@@ -9,20 +9,20 @@ type convarList struct {
 var convarSingleton convarList
 
 type Convar struct {
-	Key string
+	Key         string
 	Description string
-	Value interface{}
+	Value       interface{}
 }
 
 func GetConvar(key string) *Convar {
-	if convar,ok := convarSingleton.convars[key]; ok {
+	if convar, ok := convarSingleton.convars[key]; ok {
 		return &convar
 	}
 	return nil
 }
 
 func GetConvarBoolean(key string) bool {
-	if convar,ok := convarSingleton.convars[key]; ok {
+	if convar, ok := convarSingleton.convars[key]; ok {
 		return convar.Value.(bool)
 	}
 	return false
@@ -33,7 +33,7 @@ func SetConvarBoolean(key string, value bool) {
 }
 
 func GetConvarInt(key string) int {
-	if convar,ok := convarSingleton.convars[key]; ok {
+	if convar, ok := convarSingleton.convars[key]; ok {
 		return convar.Value.(int)
 	}
 	return 0
@@ -44,7 +44,7 @@ func SetConvarInt(key string, value int) {
 }
 
 func GetConvarString(key string) string {
-	if convar,ok := convarSingleton.convars[key]; ok {
+	if convar, ok := convarSingleton.convars[key]; ok {
 		return convar.Value.(string)
 	}
 	return ""
@@ -55,9 +55,9 @@ func SetConvarString(key string, value string) {
 }
 
 func setConvarAny(key string, value interface{}) {
-	if cv,ok := convarSingleton.convars[key]; ok {
+	if cv, ok := convarSingleton.convars[key]; ok {
 		// Ensure the original convar type does not change under the hood
-		if  reflect.TypeOf(cv.Value) != reflect.TypeOf(value) {
+		if reflect.TypeOf(cv.Value) != reflect.TypeOf(value) {
 			return
 		}
 		cv.Value = value
@@ -67,25 +67,25 @@ func setConvarAny(key string, value interface{}) {
 
 func AddConvarBool(key string, description string, value bool) {
 	convarSingleton.convars[key] = Convar{
-		Key: key,
+		Key:         key,
 		Description: description,
-		Value: value,
+		Value:       value,
 	}
 }
 
 func AddConvarInt(key string, description string, value int) {
 	convarSingleton.convars[key] = Convar{
-		Key: key,
+		Key:         key,
 		Description: description,
-		Value: value,
+		Value:       value,
 	}
 }
 
 func AddConvarString(key string, description string, value string) {
 	convarSingleton.convars[key] = Convar{
-		Key: key,
+		Key:         key,
 		Description: description,
-		Value: value,
+		Value:       value,
 	}
 }
 

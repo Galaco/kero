@@ -49,10 +49,10 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 	return propDictionary, staticPropList
 }
 
-func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) (map[string]*mesh.Model) {
+func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) map[string]*mesh.Model {
 	modelName := ""
 	propPaths := make([]string, 0)
-	for _,e := range entities {
+	for _, e := range entities {
 		modelName = e.ValueForKey("model")
 		if !strings.HasPrefix(modelName, graphics.BasePathModel) {
 			continue
@@ -63,7 +63,6 @@ func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) (
 	}
 	propPaths = generateUniquePropList(propPaths)
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Entities referenced %d props", len(propPaths)))
-
 
 	// Load Prop data
 	propDictionary := asyncLoadProps(fs, propPaths)

@@ -26,13 +26,12 @@ func CurrentScene() *StaticScene {
 	return &sceneSingleton
 }
 
-
 type StaticScene struct {
-	RawBsp			*graphics.Bsp
+	RawBsp            *graphics.Bsp
 	BspMesh           *mesh.BasicMesh
 	BspFaces          []graphics.BspFace
 	DisplacementFaces []*graphics.BspFace
-	Textures 		map[string]graphics.Texture
+	Textures          map[string]graphics.Texture
 
 	StaticProps []graphics.StaticProp
 	Entities    []entity.IEntity
@@ -124,7 +123,6 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 	}
 
 	texCache.Add(ErrorTexturePath, graphics.NewErrorTexture(ErrorTexturePath))
-
 
 	// load materials
 	var tex graphics.Texture
@@ -264,7 +262,7 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 	}
 
 	sceneSingleton = StaticScene{
-		RawBsp:				level,
+		RawBsp:             level,
 		BspMesh:            level.Mesh(),
 		BspFaces:           remappedFaces,
 		DisplacementFaces:  dispFaces,
@@ -275,7 +273,7 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 		Camera:             level.Camera(),
 		CameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
 		SkyCamera:          skyCamera,
-		TexCache:			texCache,
+		TexCache:           texCache,
 	}
 
 	// Generate Initial visibility data

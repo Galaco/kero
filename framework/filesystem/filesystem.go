@@ -34,24 +34,24 @@ func InitializeFromGameInfoDefinitions(basePath string, gameInfo *keyvalues.KeyV
 	}
 	fsNode, _ := gameInfo.Find("FileSystem")
 	if fsNode != nil {
-		console.PrintString(console.LevelSuccess,"**************************")
+		console.PrintString(console.LevelSuccess, "**************************")
 		console.PrintString(console.LevelSuccess, "Game identified from gameInfo.txt")
-		gameNameNode,err := gameInfo.Find("game")
+		gameNameNode, err := gameInfo.Find("game")
 		if err == nil && gameNameNode != nil {
-			gameName,_ := gameNameNode.AsString()
+			gameName, _ := gameNameNode.AsString()
 			console.PrintString(console.LevelSuccess, fmt.Sprintf("Game name: %s", gameName))
 		}
-		steamAppIdNode,_ := fsNode.Find("SteamAppId")
+		steamAppIdNode, _ := fsNode.Find("SteamAppId")
 		if err == nil && steamAppIdNode != nil {
-			steamAppId,_ := steamAppIdNode.AsInt()
+			steamAppId, _ := steamAppIdNode.AsInt()
 			console.PrintString(console.LevelSuccess, fmt.Sprintf("Steam AppId: %d\n\n", steamAppId))
 		}
 		console.PrintString(console.LevelInfo, "Available resource paths:")
-		for _,path := range lfs.EnumerateResourcePaths() {
+		for _, path := range lfs.EnumerateResourcePaths() {
 			console.PrintString(console.LevelInfo, path)
 		}
 
-		console.PrintString(console.LevelSuccess,"**************************")
+		console.PrintString(console.LevelSuccess, "**************************")
 	}
 	return lfs, err
 }

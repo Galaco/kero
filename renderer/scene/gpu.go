@@ -20,31 +20,31 @@ type PropRenderable interface {
 }
 
 type EntityPropCacheItem struct {
-	Id string
+	Id       string
 	Entities []entity.IEntity
-	Prop *mesh.Model
+	Prop     *mesh.Model
 }
 
 type GPUScene struct {
-	Skybox *Skybox
-	GpuMesh adapter.GpuMesh
-	GpuItemCache cache.GpuItem
-	GpuMaterialCache cache.Material
-	GpuStaticProps map[string]cache.GpuProp
+	Skybox                    *Skybox
+	GpuMesh                   adapter.GpuMesh
+	GpuItemCache              cache.GpuItem
+	GpuMaterialCache          cache.Material
+	GpuStaticProps            map[string]cache.GpuProp
 	GpuRenderablePropEntities []EntityPropCacheItem
 }
 
 func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem) *GPUScene {
 	s := &GPUScene{
-		GpuItemCache: cache.NewGpuItemCache(),
-		GpuMaterialCache: cache.NewMaterialCache(),
-		GpuStaticProps: map[string]cache.GpuProp{},
+		GpuItemCache:              cache.NewGpuItemCache(),
+		GpuMaterialCache:          cache.NewMaterialCache(),
+		GpuStaticProps:            map[string]cache.GpuProp{},
 		GpuRenderablePropEntities: []EntityPropCacheItem{},
 	}
 
 	s.GpuItemCache.Add(scene.ErrorTexturePath, adapter.UploadTexture(frameworkScene.TexCache.Find(scene.ErrorTexturePath)))
 
-	for key,tex := range frameworkScene.TexCache.All() {
+	for key, tex := range frameworkScene.TexCache.All() {
 		if key == scene.LightmapTexturePath {
 			s.GpuItemCache.Add(scene.LightmapTexturePath, adapter.UploadLightmap(tex))
 			tex.Release()
@@ -67,8 +67,8 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		s.LoadSingleProp(prop, frameworkScene, fs)
 
 		s.GpuRenderablePropEntities = append(s.GpuRenderablePropEntities, EntityPropCacheItem{
-			Id: prop.Id,
-			Prop: prop,
+			Id:       prop.Id,
+			Prop:     prop,
 			Entities: make([]entity.IEntity, 0),
 		})
 	}
@@ -77,7 +77,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 	// It's also hella slow as it doesn't make use of leaf visdata
 	for _, ent := range frameworkScene.Entities {
 		if strings.HasPrefix(ent.Classname(), "prop_") {
-			for idx,r := range s.GpuRenderablePropEntities {
+			for idx, r := range s.GpuRenderablePropEntities {
 				if r.Id == ent.ValueForKey("model") {
 					s.GpuRenderablePropEntities[idx].Entities = append(s.GpuRenderablePropEntities[idx].Entities, ent)
 					break
@@ -85,7 +85,6 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 			}
 		}
 	}
-
 
 	var worldspawn entity.IEntity
 	for idx, e := range frameworkScene.Entities {
@@ -103,18 +102,16 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 	s.Skybox = LoadSkybox(filesystem.Get(), skyName, skyboxOrigin)
 	s.GpuMesh = adapter.UploadMesh(frameworkScene.BspMesh)
 
-
 	// Cleanup unneeded raw data
-	for _,tex := range frameworkScene.TexCache.All() {
+	for _, tex := range frameworkScene.TexCache.All() {
 		tex.Release()
 	}
-
 
 	return s
 }
 
 func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.StaticScene, fs fileSystem) {
-	if _,ok := s.GpuStaticProps[prop.Id]; ok {
+	if _, ok := s.GpuStaticProps[prop.Id]; ok {
 		return
 	}
 

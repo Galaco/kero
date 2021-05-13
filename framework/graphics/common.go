@@ -5,7 +5,7 @@ import "io"
 const (
 	ExtensionVtf     = ".vtf"
 	BasePathMaterial = "materials/"
-	BasePathModel = "models/"
+	BasePathModel    = "models/"
 )
 
 type VirtualFileSystem interface {

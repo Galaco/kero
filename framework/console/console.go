@@ -17,7 +17,7 @@ type logger struct {
 	pipes []func(LogLevel, interface{})
 
 	storeEntries bool
-	entries []loggerBufferedEntry
+	entries      []loggerBufferedEntry
 }
 
 var singleton logger
@@ -45,7 +45,7 @@ func AddOutputPipe(cb func(LogLevel, interface{})) {
 
 	// Any buffered entries are immediately output to the new pipe
 	if singleton.storeEntries == true {
-		for _,entry := range singleton.entries {
+		for _, entry := range singleton.entries {
 			cb(entry.level, entry.value)
 		}
 	}
@@ -64,8 +64,8 @@ func PrintInterface(level LogLevel, i interface{}) {
 		cb(level, i)
 	}
 	singleton.entries = append(singleton.entries, loggerBufferedEntry{
-			level: level,
-			value: i,
+		level: level,
+		value: i,
 	})
 	singleton.mut.Unlock()
 }

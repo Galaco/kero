@@ -41,7 +41,7 @@ func (texture *Texture2D) Image() []uint8 {
 }
 
 // Free color data from memory
-func (texture *Texture2D) Release()  {
+func (texture *Texture2D) Release() {
 	texture.colour = nil
 }
 
@@ -209,8 +209,9 @@ func (atlas *TextureAtlas) PopulatedHeight() int {
 func (atlas *TextureAtlas) Image() []uint8 {
 	return atlas.colour
 }
+
 // Free color data from memory
-func (texture *TextureAtlas) Release()  {
+func (texture *TextureAtlas) Release() {
 	texture.colour = nil
 	for idx := range texture.rectangles {
 		texture.rectangles[idx].Release()

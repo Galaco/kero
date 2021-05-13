@@ -77,16 +77,16 @@ func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []ent
 }
 
 type bspstructs struct {
-	faces     []face.Face
-	planes    []plane.Plane
-	vertexes  []mgl32.Vec3
-	surfEdges []int32
-	edges     [][2]uint16
-	texInfos  []texinfo.TexInfo
-	dispInfos []dispinfo.DispInfo
-	dispVerts []dispvert.DispVert
-	lightmap  []common.ColorRGBExponent32
-	lightmapHDR  []common.ColorRGBExponent32
+	faces       []face.Face
+	planes      []plane.Plane
+	vertexes    []mgl32.Vec3
+	surfEdges   []int32
+	edges       [][2]uint16
+	texInfos    []texinfo.TexInfo
+	dispInfos   []dispinfo.DispInfo
+	dispVerts   []dispvert.DispVert
+	lightmap    []common.ColorRGBExponent32
+	lightmapHDR []common.ColorRGBExponent32
 }
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -97,16 +97,16 @@ type bspstructs struct {
 // StaticProps (materials loaded as required)
 func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error) {
 	bspStructure := bspstructs{
-		faces:     file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
-		planes:    file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
-		vertexes:  file.Lump(bsp.LumpVertexes).(*lumps.Vertex).GetData(),
-		surfEdges: file.Lump(bsp.LumpSurfEdges).(*lumps.Surfedge).GetData(),
-		edges:     file.Lump(bsp.LumpEdges).(*lumps.Edge).GetData(),
-		texInfos:  file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
-		dispInfos: file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
-		dispVerts: file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
-		lightmap:  file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
-		lightmapHDR:  file.Lump(bsp.LumpLightingHDR).(*lumps.Lighting).GetData(),
+		faces:       file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
+		planes:      file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
+		vertexes:    file.Lump(bsp.LumpVertexes).(*lumps.Vertex).GetData(),
+		surfEdges:   file.Lump(bsp.LumpSurfEdges).(*lumps.Surfedge).GetData(),
+		edges:       file.Lump(bsp.LumpEdges).(*lumps.Edge).GetData(),
+		texInfos:    file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
+		dispInfos:   file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
+		dispVerts:   file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
+		lightmap:    file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
+		lightmapHDR: file.Lump(bsp.LumpLightingHDR).(*lumps.Lighting).GetData(),
 	}
 
 	//MATERIALS
@@ -327,7 +327,7 @@ func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponen
 	lightMapAtlas := graphics.NewTextureAtlas(0, 0)
 
 	var tex *graphics.Texture2D
-	for _,f := range faces {
+	for _, f := range faces {
 		tex = lightmapTextureFromFace(&f, samples)
 		lightMapAtlas.AddRaw(tex.Width(), tex.Height(), tex.Image())
 	}

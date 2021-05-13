@@ -1,7 +1,6 @@
-package vis
+package graphics
 
 import (
-	"github.com/galaco/kero/framework/graphics"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
@@ -181,7 +180,7 @@ func (frustum *Frustum) normalizePlane(side int) {
 }
 
 // FrustumFromCamera
-func FrustumFromCamera(camera *graphics.Camera) *Frustum {
+func FrustumFromCamera(camera *Camera) *Frustum {
 	f := &Frustum{}
 	f.extractPlanes(camera.ModelMatrix().Mul4(camera.ViewMatrix()), camera.ProjectionMatrix())
 
