@@ -41,8 +41,8 @@ func (kero *Kero) Start() {
 
 	kero.isRunning = true
 
-	kero.scene.Initialize()
 	kero.physics.Initialize()
+	kero.scene.Initialize()
 
 	kero.renderer.Initialize()
 	kero.ui.Initialize()
@@ -79,6 +79,7 @@ func (kero *Kero) onQuit(e interface{}) {
 }
 
 func (kero *Kero) exit() {
+	kero.physics.Cleanup()
 	kero.renderer.ReleaseGPUResources()
 }
 

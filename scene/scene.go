@@ -53,7 +53,6 @@ func (s *Scene) Update(dt float64) {
 func (s *Scene) onChangeLevel(message interface{}) {
 	if s.dataScene != nil {
 		// Cleanup
-
 	}
 
 	func(mapName string) {

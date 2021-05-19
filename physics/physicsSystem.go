@@ -21,10 +21,11 @@ type PhysicsSystem struct {
 	sdk   bullet.BulletPhysicsSDKHandle
 	world bullet.BulletDynamicWorldHandle
 
-	bspRigidBody bullet.BulletRigidBodyHandle
+	bspRigidBody *BspCollisionMesh
 }
 
 func (system *PhysicsSystem) Initialize() {
+	event.Get().AddListener(messages.TypeChangeLevel, system.onChangeLevel)
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
 	// create an sdk handle
@@ -36,6 +37,12 @@ func (system *PhysicsSystem) Initialize() {
 }
 
 func (system *PhysicsSystem) Cleanup() {
+	for _,i := range system.physicsEntities {
+		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
+		i.Model().RigidBody = nil
+	}
+	bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandle)
+
 	bullet.BulletDeleteDynamicWorld(system.world)
 	bullet.BulletDeletePhysicsSDK(system.sdk)
 }
@@ -68,6 +75,19 @@ func (system *PhysicsSystem) Update(dt float64) {
 		}
 	}
 }
+func (system *PhysicsSystem) onChangeLevel(message interface{}) {
+	if system.dataScene == nil {
+		return
+	}
+
+	for _,i := range system.physicsEntities {
+		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
+		i.Model().RigidBody = nil
+	}
+	bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandle)
+	system.dataScene = nil
+	system.bspRigidBody = nil
+}
 
 func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
@@ -77,14 +97,14 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	for idx,e := range system.dataScene.Entities {
 		if e.Model() != nil {
 			// Prepare Bullet environment for collision meshes
-			system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(4)
+			system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(256)
 			bullet.BulletAddRigidBody(system.world, system.dataScene.Entities[idx].Model().RigidBody.BulletHandle())
 			system.physicsEntities = append(system.physicsEntities, system.dataScene.Entities[idx])
 		}
 	}
 
 	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	bullet.BulletAddRigidBody(system.world, system.bspRigidBody)
+	bullet.BulletAddRigidBody(system.world, system.bspRigidBody.RigidBodyHandle)
 	console.PrintString(console.LevelInfo, "Collision structure ready!")
 }
 

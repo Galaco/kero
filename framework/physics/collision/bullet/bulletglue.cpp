@@ -56,10 +56,8 @@ plCollisionShapeHandle btNewBvhTriangleIndexVertexArray(int* indices, plVector3*
 
 plCollisionShapeHandle btNewBvhTriangleMeshShape(plCollisionShapeHandle indexVertexArrays)
 {
-    btTriangleIndexVertexArray* body = reinterpret_cast<btTriangleIndexVertexArray*>(indexVertexArrays);
-
 	void* mem = btAlignedAlloc(sizeof(btBvhTriangleMeshShape),16);
-	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(body, true, true);
+	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(reinterpret_cast<btTriangleIndexVertexArray*>(indexVertexArrays), false, true);
 }
 
 #ifdef __cplusplus

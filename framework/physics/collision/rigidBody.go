@@ -35,6 +35,7 @@ func (body *ConvexHull) CollisionBodyType() CollisionBodyType {
 func (body *ConvexHull) BulletHandle() bullet.BulletRigidBodyHandle {
 	return body.handle
 }
+
 func (body *ConvexHull) GetTransform() mgl32.Mat4 {
 	return bullet.BulletGetOpenGLMatrix(body.handle)
 }

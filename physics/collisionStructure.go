@@ -12,17 +12,26 @@ const (
 	surfSkip = 0x0200
 )
 
-func generateBspCollisionMesh(scene *scene.StaticScene) bullet.BulletRigidBodyHandle {
+type BspCollisionMesh struct {
+	indices [][]bullet.BulletPhysicsIndice
+	vertices [][]bullet.BulletVec3
+	childShapeHandles []bullet.BulletCollisionShapeHandle
+	RigidBodyHandle bullet.BulletRigidBodyHandle
+}
+
+func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
 	var verts []float32
 
-	indices := make([]bullet.BulletPhysicsIndice, 0)
-	vertices := make([]bullet.BulletVec3, 0)
+	indices := make([][]bullet.BulletPhysicsIndice, len(scene.ClusterLeafs))
+	vertices := make([][]bullet.BulletVec3, len(scene.ClusterLeafs))
+	childShapeHandles := make([]bullet.BulletCollisionShapeHandle, len(scene.ClusterLeafs))
 
 	bspCompoundShape := bullet.BulletNewCompoundShape()
 
-	for _,l := range scene.ClusterLeafs {
+	for idx,l := range scene.ClusterLeafs {
 		index := int64(0)
-		vertices = make([]bullet.BulletVec3, 0)
+		indices[idx] = make([]bullet.BulletPhysicsIndice, 0)
+		vertices[idx] = make([]bullet.BulletVec3, 0)
 		for _,f := range l.Faces {
 			// Much more optimisation can be done here to discard non-solid faces
 			if scene.RawBsp.TexInfos()[f.RawFace().TexInfo].Flags & surfNoDraw != 0 {
@@ -34,7 +43,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) bullet.BulletRigidBodyHa
 				// Something is broken here; how can a triangle not have 3 verts?
 				continue
 			}
-			vertices = append(vertices,
+			vertices[idx] = append(vertices[idx],
 				bullet.Vec3ToBullet(mgl32.Vec3{
 					verts[0],
 					verts[1],
@@ -51,18 +60,22 @@ func generateBspCollisionMesh(scene *scene.StaticScene) bullet.BulletRigidBodyHa
 					verts[8],
 				}),
 			)
-			indices = append(indices, bullet.BulletPhysicsIndice(index), bullet.BulletPhysicsIndice(index + 1), bullet.BulletPhysicsIndice(index + 2))
+			indices[idx] = append(indices[idx], bullet.BulletPhysicsIndice(index), bullet.BulletPhysicsIndice(index + 1), bullet.BulletPhysicsIndice(index + 2))
 			index += 3
 		}
-		if len(vertices) < 9 {
+		if len(vertices[idx]) < 9 {
 			continue
 		}
 
-		bullet.BulletAddChildToCompoundShape(bspCompoundShape, bullet.BulletNewStaticTriangleShape(indices, vertices, int64(len(indices) / 3), int64(len(vertices))), mgl32.Vec3{0,0,0}, mgl32.QuatIdent())
+		childShapeHandles[idx] = bullet.BulletNewStaticTriangleShape(indices[idx], vertices[idx], int64(len(indices[idx]) / 3), int64(len(vertices[idx])))
 
+		bullet.BulletAddChildToCompoundShape(bspCompoundShape, childShapeHandles[idx], mgl32.Vec3{0,0,0}, mgl32.QuatIdent())
 	}
 
-	bullet.BulletAddChildToCompoundShape(bspCompoundShape, bullet.BulletNewStaticPlaneShape(mgl32.Vec3{1,-10,1}, 5), mgl32.Vec3{0,0,0}, mgl32.QuatIdent())
-
-	return bullet.NewRigidBody(0, bspCompoundShape)
+	return &BspCollisionMesh{
+		vertices: vertices,
+		indices: indices,
+		childShapeHandles: childShapeHandles,
+		RigidBodyHandle: bullet.NewRigidBody(0, bspCompoundShape),
+	}
 }
