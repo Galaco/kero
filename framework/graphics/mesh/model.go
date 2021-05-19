@@ -5,6 +5,11 @@ import (
 	"github.com/galaco/studiomodel"
 )
 
+type ModelInstance struct {
+	Model *Model
+	RigidBody collision.RigidBody
+}
+
 type Model struct {
 	Id        string
 	OriginalStudiomodel *studiomodel.StudioModel

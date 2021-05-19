@@ -1,8 +1,10 @@
 package physics
 
 import (
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
+	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
@@ -18,6 +20,8 @@ type PhysicsSystem struct {
 	// Bullet
 	sdk   bullet.BulletPhysicsSDKHandle
 	world bullet.BulletDynamicWorldHandle
+
+	bspRigidBody bullet.BulletRigidBodyHandle
 }
 
 func (system *PhysicsSystem) Initialize() {
@@ -42,18 +46,21 @@ func (system *PhysicsSystem) Update(dt float64) {
 		return
 	}
 
+	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
+		return
+	}
 
 	for _, n := range system.physicsEntities {
-		if n.Model().RigidBody() != nil {
-			n.Model().RigidBody().SetTransform(n.Transform().TransformationMatrix())
+		if n.Model().RigidBody != nil {
+			n.Model().RigidBody.SetTransform(n.Transform().TransformationMatrix())
 		}
 	}
 	bullet.BulletStepSimulation(system.world, dt)
 	for _, n := range system.physicsEntities {
-		if n.Model().RigidBody() == nil {
+		if n.Model().RigidBody == nil {
 			continue
 		}
-		trans := n.Model().RigidBody().GetTransform()
+		trans := n.Model().RigidBody.GetTransform()
 		n.Transform().Position = mgl32.Vec3{
 			trans[12],
 			trans[13],
@@ -66,14 +73,19 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
 
 	// Find entities that have a model
+	console.PrintString(console.LevelInfo, "Generating collision structures....")
 	for idx,e := range system.dataScene.Entities {
 		if e.Model() != nil {
 			// Prepare Bullet environment for collision meshes
-			system.dataScene.Entities[idx].Model().AddRigidBody(collision.NewSphericalHull(32))
-			bullet.BulletAddRigidBody(system.world, system.dataScene.Entities[idx].Model().RigidBody().BulletHandle())
+			system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(4)
+			bullet.BulletAddRigidBody(system.world, system.dataScene.Entities[idx].Model().RigidBody.BulletHandle())
 			system.physicsEntities = append(system.physicsEntities, system.dataScene.Entities[idx])
 		}
 	}
+
+	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
+	bullet.BulletAddRigidBody(system.world, system.bspRigidBody)
+	console.PrintString(console.LevelInfo, "Collision structure ready!")
 }
 
 func NewPhysicsSystem() *PhysicsSystem {

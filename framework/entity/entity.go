@@ -35,7 +35,7 @@ type IEntity interface {
 	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
 	Transform() *graphics.Transform
 
-	Model() *mesh.Model
+	Model() *mesh.ModelInstance
 	AttachModel(m *mesh.Model)
 }
 
@@ -49,7 +49,7 @@ type Entity struct {
 	// Name contains the entity's targetname
 	name string
 
-	model *mesh.Model
+	model *mesh.ModelInstance
 }
 
 // Classname returns the entity classname
@@ -87,11 +87,13 @@ func (e *Entity) Think(dt float64) {
 
 }
 
-func (e *Entity) Model() *mesh.Model {
+func (e *Entity) Model() *mesh.ModelInstance {
 	return e.model
 }
 func (e *Entity) AttachModel(m *mesh.Model) {
-	e.model = m
+	e.model = &mesh.ModelInstance{
+		Model: m,
+	}
 }
 
 // NewEntityBaseFromLib returns a new entity

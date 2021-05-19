@@ -62,7 +62,9 @@ func (s *Scene) onChangeLevel(message interface{}) {
 			console.PrintString(console.LevelError, err.Error())
 			return
 		}
+		console.PrintString(console.LevelInfo, "Generating Static World...")
 		s.dataScene = scene2.LoadStaticSceneFromBsp(filesystem.Get(), level, ents)
+		console.PrintString(console.LevelInfo, "Complete!")
 		// Change level: we must clear the current event queue
 		event.Get().CancelPending()
 		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(s.dataScene))

@@ -6,8 +6,10 @@ package bullet
 import "C"
 import (
 	"github.com/go-gl/mathgl/mgl32"
+	"unsafe"
 )
 
+type BulletPhysicsIndice C.int
 type BulletPhysicsSDKHandle C.plPhysicsSdkHandle
 type BulletDynamicWorldHandle C.plDynamicsWorldHandle
 
@@ -19,7 +21,7 @@ func BulletNewDynamicWorld(sdk BulletPhysicsSDKHandle) BulletDynamicWorldHandle 
 }
 
 func BulletSetGravity(world BulletDynamicWorldHandle, x,y,z float32) {
-	vec3 := vec3ToBullet(mgl32.Vec3{x,y,z})
+	vec3 := Vec3ToBullet(mgl32.Vec3{x,y,z})
 	C.plSetGravity(world, vec3[0], vec3[1], vec3[2])
 }
 
@@ -39,7 +41,7 @@ func BulletDeletePhysicsSDK(sdk BulletPhysicsSDKHandle) {
 type BulletVec3 C.plVector3
 type BulletQuat C.plQuaternion
 
-func vec3ToBullet(vec mgl32.Vec3) (out BulletVec3) {
+func Vec3ToBullet(vec mgl32.Vec3) (out BulletVec3) {
 	out[0] = C.plReal(float64(vec.X()))
 	out[1] = C.plReal(float64(vec.Y()))
 	out[2] = C.plReal(float64(vec.Z()))
@@ -104,7 +106,32 @@ func BulletNewSphericalHullShape(radius float64) BulletCollisionShapeHandle {
 	}
 }
 
+func BulletNewCompoundShape() BulletCollisionShapeHandle {
+	return BulletCollisionShapeHandle{
+		handle: C.plNewCompoundShape(),
+	}
+}
 
+func BulletNewStaticPlaneShape(plane mgl32.Vec3, constant float64) BulletCollisionShapeHandle {
+	p := Vec3ToBullet(plane)
+	return BulletCollisionShapeHandle{
+		handle: C.plNewStaticPlaneShape(&p[0], C.float(constant)),
+	}
+}
+
+func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []BulletVec3, totalTriangles, totalVerts int64) BulletCollisionShapeHandle {
+	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&vertices[0])), C.int(totalTriangles), C.int(totalVerts))
+
+	return BulletCollisionShapeHandle{
+ 		handle: C.btNewBvhTriangleMeshShape(m),
+	}
+}
+
+func BulletAddChildToCompoundShape(parent BulletCollisionShapeHandle, s BulletCollisionShapeHandle, p mgl32.Vec3, o mgl32.Quat) {
+	vec := Vec3ToBullet(p)
+	quat := quatToBullet(o)
+	C.plAddChildShape(parent.handle, s.handle, &vec[0], &quat[0])
+}
 
 func BulletAddRigidBody(world BulletDynamicWorldHandle, handle BulletRigidBodyHandle) {
 	C.plAddRigidBody(world, handle.handle)
@@ -130,7 +157,7 @@ func BulletSetOpenGLMatrix(handle BulletRigidBodyHandle, transform mgl32.Mat4) {
 }
 
 func BulletApplyImpulse(handle BulletRigidBodyHandle, impulse, localPoint mgl32.Vec3) {
-	i := vec3ToBullet(impulse)
-	p := vec3ToBullet(localPoint)
+	i := Vec3ToBullet(impulse)
+	p := Vec3ToBullet(localPoint)
 	C.plApplyImpulse(handle.handle, &i[0], &p[0])
 }

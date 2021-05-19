@@ -37,6 +37,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		GpuRenderablePropEntities: []EntityPropCacheItem{},
 	}
 
+	console.PrintString(console.LevelInfo, "Submitting BSP texture data to GPU...")
 	s.GpuItemCache.Add(scene.ErrorTexturePath, adapter.UploadTexture(frameworkScene.TexCache.Find(scene.ErrorTexturePath)))
 
 	for key, tex := range frameworkScene.TexCache.All() {
@@ -52,11 +53,13 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(s.GpuItemCache.Find(mat.BaseTextureName), mat))
 	}
 
+	console.PrintString(console.LevelInfo, "Submitting staticprop studiomodel data to GPU...")
 	// Finish staticprops
 	for _, prop := range frameworkScene.RawBsp.StaticPropDictionary {
 		s.LoadSingleProp(prop, frameworkScene, fs)
 	}
 
+	console.PrintString(console.LevelInfo, "Submitting entity studiomodel data to GPU...")
 	// Finish props referenced by entities
 	for _, prop := range frameworkScene.RawBsp.EntityPropDictionary {
 		s.LoadSingleProp(prop, frameworkScene, fs)
@@ -98,6 +101,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		skyboxOrigin = worldspawn.VectorForKey("origin")
 		skyName = worldspawn.ValueForKey("skyname")
 	}
+	console.PrintString(console.LevelInfo, "Submitting bsp geometry to GPU...")
 	s.Skybox = LoadSkybox(filesystem.Get(), skyName, skyboxOrigin)
 	s.GpuMesh = adapter.UploadMesh(frameworkScene.BspMesh)
 

@@ -47,6 +47,9 @@ extern "C" {
 /** Rigid Body that can be part of a Dynamics World (C-API)*/	
 	PL_DECLARE_HANDLE(plRigidBodyHandle);
 
+/** Constraint for Rigid Bodies (C-API)*/
+	PL_DECLARE_HANDLE(plBvhRigidBodyHandle);
+
 /** 	Collision Shape/Geometry, property of a Rigid Body (C-API)*/
 	PL_DECLARE_HANDLE(plCollisionShapeHandle);
 
@@ -55,6 +58,7 @@ extern "C" {
 
 /** Triangle Mesh interface (C-API)*/
 	PL_DECLARE_HANDLE(plMeshInterfaceHandle);
+
 
 /** Broadphase Scene/Proxy Handles (C-API)*/
 	PL_DECLARE_HANDLE(plCollisionBroadphaseHandle);

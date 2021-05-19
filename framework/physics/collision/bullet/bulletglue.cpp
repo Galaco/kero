@@ -41,6 +41,27 @@ void plApplyImpulse(plRigidBodyHandle object, const plVector3 impulse, const plV
   body->applyImpulse(implse, relPos);
 }
 
+plCollisionShapeHandle btNewBvhTriangleIndexVertexArray(int* indices, plVector3* vertices, int totalTriangles, int totalVerts)
+{
+	void* mem = btAlignedAlloc(sizeof(btTriangleIndexVertexArray),16);
+	return (plCollisionShapeHandle) new (mem)btTriangleIndexVertexArray(
+                                                     totalTriangles,
+                                             		indices,
+                                             		3*sizeof(int),
+                                             		totalVerts,
+                                             		(btScalar*) (&vertices[0][0]),
+                                             		sizeof(plVector3)
+                                             	);
+}
+
+plCollisionShapeHandle btNewBvhTriangleMeshShape(plCollisionShapeHandle indexVertexArrays)
+{
+    btTriangleIndexVertexArray* body = reinterpret_cast<btTriangleIndexVertexArray*>(indexVertexArrays);
+
+	void* mem = btAlignedAlloc(sizeof(btBvhTriangleMeshShape),16);
+	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(body, true, true);
+}
+
 #ifdef __cplusplus
 }
 #endif
