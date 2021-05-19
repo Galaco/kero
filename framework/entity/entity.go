@@ -2,6 +2,7 @@ package entity
 
 import (
 	"github.com/galaco/kero/framework/graphics"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/source-tools-common/entity"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -33,6 +34,9 @@ type IEntity interface {
 	Properties() *entity.EPair
 	// Transform contains the entity's representation in 3d space (non-renderable entities still have these properties)
 	Transform() *graphics.Transform
+
+	Model() *mesh.Model
+	AttachModel(m *mesh.Model)
 }
 
 // Entity is a common base that most entities can be based upon
@@ -44,6 +48,8 @@ type Entity struct {
 	class string
 	// Name contains the entity's targetname
 	name string
+
+	model *mesh.Model
 }
 
 // Classname returns the entity classname
@@ -79,6 +85,13 @@ func (e *Entity) Properties() *entity.EPair {
 // Think runs entity specific logic based on the elapsed time of the current frame
 func (e *Entity) Think(dt float64) {
 
+}
+
+func (e *Entity) Model() *mesh.Model {
+	return e.model
+}
+func (e *Entity) AttachModel(m *mesh.Model) {
+	e.model = m
 }
 
 // NewEntityBaseFromLib returns a new entity

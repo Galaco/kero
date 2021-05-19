@@ -19,6 +19,14 @@ Source Engine game installation, and it *should* just work!
 </p>
 
 ## Building
+
+### Prerequisites
+This project is tested against Go 1.14+, although will probably build on Go 1.12 or later.
+To compile with the physics module, `Bullet` is required; 
+* On Mac OS it can be installed with `brew install bullet`. 
+* See Bullet documentation for other platforms
+
+### Build
 To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later 
 installed) in the directory `samples/demo`:
 `go build .`

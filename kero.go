@@ -7,6 +7,7 @@ import (
 	"github.com/galaco/kero/gui"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
+	"github.com/galaco/kero/physics"
 	"github.com/galaco/kero/renderer"
 	"github.com/galaco/kero/scene"
 	"time"
@@ -17,6 +18,7 @@ type Kero struct {
 	isRunning bool
 
 	scene *scene.Scene
+	physics *physics.PhysicsSystem
 
 	input    *middleware.Input
 	renderer *renderer.Renderer
@@ -35,10 +37,12 @@ func (kero *Kero) Start() {
 	kero.renderer = renderer.NewRenderer()
 	kero.ui = gui.NewGui()
 	kero.scene = scene.NewScene()
+	kero.physics = physics.NewPhysicsSystem()
 
 	kero.isRunning = true
 
 	kero.scene.Initialize()
+	kero.physics.Initialize()
 
 	kero.renderer.Initialize()
 	kero.ui.Initialize()
@@ -56,6 +60,7 @@ func (kero *Kero) mainLoop() {
 	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
 		kero.input.Poll()
 
+		kero.physics.Update(dt)
 		kero.scene.Update(dt)
 
 		kero.renderer.Render()

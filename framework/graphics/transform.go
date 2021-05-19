@@ -11,6 +11,7 @@ type Transform struct {
 	Position mgl32.Vec3
 	Rotation mgl32.Vec3
 	Scale    mgl32.Vec3
+	Velocity mgl32.Vec3
 
 	prevPosition mgl32.Vec3
 	prevRotation mgl32.Vec3

@@ -198,40 +198,6 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 		remappedFaces = append(remappedFaces, level.Faces()[idx])
 	}
 
-	//// Finish staticprops
-	//for _, prop := range level.StaticPropDictionary {
-	//	gpuStaticProps[prop.Id] = cache.NewGpuProp()
-	//	for _, m := range prop.Meshes() {
-	//		gpuStaticProps[prop.Id].AddMesh(adapter.UploadMesh(m))
-	//	}
-	//	for _, materialPath := range prop.Materials() {
-	//		if _, ok := level.MaterialDictionary()[materialPath]; ok {
-	//			gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
-	//			continue
-	//		}
-	//		mat, err := graphics.LoadMaterial(fs, materialPath)
-	//		if err != nil {
-	//			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
-	//			mat = graphics.NewMaterial(materialPath)
-	//			mat.BaseTextureName = cache.ErrorTexturePath
-	//		}
-	//		if tex := texCache.Find(mat.BaseTextureName); tex == nil {
-	//			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
-	//			if err != nil {
-	//				console.PrintString(console.LevelWarning, err.Error())
-	//				texCache.Add(mat.BaseTextureName, texCache.Find(cache.ErrorTexturePath))
-	//				gpuItemCache.Add(mat.BaseTextureName, gpuItemCache.Find(cache.ErrorTexturePath))
-	//			} else {
-	//				texCache.Add(mat.BaseTextureName, tex)
-	//				gpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
-	//				adapter.ReleaseTextureResource(tex)
-	//			}
-	//		}
-	//		materialCache.Add(strings.ToLower(mat.FilePath()), cache.NewGpuMaterial(gpuItemCache.Find(mat.BaseTextureName), mat))
-	//		gpuStaticProps[prop.Id].AddMaterial(*materialCache.Find(strings.ToLower(materialPath)))
-	//	}
-	//}
-
 	// Generate visibility tree
 	visibility := vis.LoadVisData(level.File())
 	clusterLeafs := generateClusterLeafs(level, visibility)

@@ -8,7 +8,6 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"github.com/galaco/kero/framework/graphics/studiomodel"
 	"strings"
 	"sync"
 )
@@ -72,6 +71,17 @@ func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) m
 		console.PrintString(console.LevelError, fmt.Sprintf("%d staticprops could not be loaded", len(propPaths)-len(propDictionary)))
 	}
 
+	for idx,e := range entities {
+		if strings.HasPrefix(e.Classname(), "prop_") {
+			for propIndex,p := range propDictionary {
+				if p.Id == e.ValueForKey("model") {
+					entities[idx].AttachModel(propDictionary[propIndex])
+					break
+				}
+			}
+		}
+	}
+
 	return propDictionary
 }
 
@@ -98,7 +108,7 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 				console.PrintString(console.LevelError, e.(error).Error())
 			}
 		}()
-		prop, err := studiomodel.LoadProp(path, fs)
+		prop, err := graphics.LoadProp(path, fs)
 		if err != nil {
 			waitGroup.Done()
 			console.PrintString(console.LevelError, fmt.Sprintf("Error loading prop '%s': %s", path, err.Error()))

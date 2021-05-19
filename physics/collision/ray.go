@@ -1,4 +1,4 @@
-package raytrace
+package collision
 
 import (
 	"github.com/galaco/kero/framework/scene"

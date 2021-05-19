@@ -9,10 +9,10 @@ import (
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"github.com/galaco/kero/framework/physics/raytrace"
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/galaco/kero/messages"
+	collision2 "github.com/galaco/kero/physics/collision"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
@@ -132,7 +132,7 @@ func (s *Renderer) DrawDebug() {
 		}
 	}
 	if testEnt != nil {
-		result := raytrace.TraceRayBetween(s.dataScene, s.dataScene.Camera.Transform().Position, testEnt.Transform().Position)
+		result := collision2.TraceRayBetween(s.dataScene, s.dataScene.Camera.Transform().Position, testEnt.Transform().Position)
 
 		if result.Hit {
 			adapter.DrawLine(testEnt.Transform().Position, result.Point, mgl32.Vec3{0, 255, 0})

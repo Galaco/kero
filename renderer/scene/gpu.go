@@ -14,11 +14,6 @@ import (
 	"strings"
 )
 
-// PropRenderable Base renderable prop interface
-type PropRenderable interface {
-	PropPath() string
-}
-
 type EntityPropCacheItem struct {
 	Id       string
 	Entities []entity.IEntity
@@ -75,11 +70,15 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 
 	// @TODO this will be rewritten once other systems start interacting with entities; a better shared cache is needed.
 	// It's also hella slow as it doesn't make use of leaf visdata
+	var entityModel string
 	for _, ent := range frameworkScene.Entities {
+		// @TODO Not 100% reliable; find a better way to detect if an entity is a renderable prop. "model" can also refer
+		// to a BSP model so non-empty value isn't a sufficient check by itself
 		if strings.HasPrefix(ent.Classname(), "prop_") {
-			for idx, r := range s.GpuRenderablePropEntities {
-				if r.Id == ent.ValueForKey("model") {
-					s.GpuRenderablePropEntities[idx].Entities = append(s.GpuRenderablePropEntities[idx].Entities, ent)
+			entityModel = ent.ValueForKey("model")
+			for propIdx, r := range s.GpuRenderablePropEntities {
+				if r.Id == entityModel {
+					s.GpuRenderablePropEntities[propIdx].Entities = append(s.GpuRenderablePropEntities[propIdx].Entities, ent)
 					break
 				}
 			}
