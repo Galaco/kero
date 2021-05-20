@@ -22,7 +22,7 @@ type PhysicsSystem struct {
 	sdk   bullet.BulletPhysicsSDKHandle
 	world bullet.BulletDynamicWorldHandle
 
-	bspRigidBody *BspCollisionMesh
+	bspRigidBody *bspCollisionMesh
 }
 
 func (system *PhysicsSystem) Initialize() {
@@ -42,7 +42,6 @@ func (system *PhysicsSystem) Cleanup() {
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
-	// bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandle)
 	for _,r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletDeleteRigidBody(r)
 	}
@@ -97,7 +96,6 @@ func (system *PhysicsSystem) onChangeLevel(message interface{}) {
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
-	// bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandle)
 	for _,r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletDeleteRigidBody(r)
 	}
@@ -120,7 +118,6 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	}
 
 	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	// bullet.BulletAddRigidBody(system.world, system.bspRigidBody.RigidBodyHandle)
 	for _,r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletAddRigidBody(system.world, r)
 	}

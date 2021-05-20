@@ -12,21 +12,14 @@ import (
 	"sync"
 )
 
-const (
-	surfNoDraw = 0x0080
-	surfTrigger = 0x0040
-	surfSkip = 0x0200
-)
-
-type BspCollisionMesh struct {
+type bspCollisionMesh struct {
 	indices [][]bullet.BulletPhysicsIndice
 	vertices [][]mgl32.Vec3
 	childShapeHandles []bullet.BulletCollisionShapeHandle
-	// RigidBodyHandle bullet.BulletRigidBodyHandle
 	RigidBodyHandles []bullet.BulletRigidBodyHandle
 }
 
-func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
+func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	brushes := scene.RawBsp.File().Lump(bsp.LumpBrushes).(*lumps.Brush).GetData()
 	brushSides := scene.RawBsp.File().Lump(bsp.LumpBrushSides).(*lumps.BrushSide).GetData()
 	planes := scene.RawBsp.File().Lump(bsp.LumpPlanes).(*lumps.Planes).GetData()
@@ -40,7 +33,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
 	wg.Add(len(brushes))
 
 	asyncVertsFromPlanes := func (b brush.Brush, idx int) {
-		if b.Contents & 0x1 <= 0 || b.NumSides < 1 {
+		if b.Contents & bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
 			wg.Done()
 			return
 		}
@@ -61,6 +54,8 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
 	}
 
 	wg.Wait()
+
+	// This loop *could* be done inside asyncVertsFromPlanes, but maybe these bullet CGo calls aren't threadsafe
 	for idx := range brushes {
 		if verts[idx] == nil || len(verts[idx]) == 0 {
 			continue
@@ -72,7 +67,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
 		handles = append(handles, bullet.NewRigidBody(0, h))
 	}
 
-	return &BspCollisionMesh{
+	return &bspCollisionMesh{
 		vertices: verts,
 		childShapeHandles: childShapeHandles,
 		RigidBodyHandles: handles,
@@ -82,8 +77,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *BspCollisionMesh {
 
 func isPointInsidePlanes(planeEquations []plane.Plane, point mgl32.Vec3, margin float32) bool {
 	for i := 0; i < len(planeEquations); i++ {
-		dist := (planeEquations[i].Normal.Mul(planeEquations[i].Distance).Dot(point) + 0) - margin
-		// flipped operator?!
+		dist := (planeEquations[i].Normal.Mul(-planeEquations[i].Distance).Dot(point) + 0) - margin
 		if dist > 0. {
 			return false
 		}
@@ -93,17 +87,19 @@ func isPointInsidePlanes(planeEquations []plane.Plane, point mgl32.Vec3, margin 
 
 func getVerticesFromPlaneEquations(planeEquations []plane.Plane) (verticesOut []mgl32.Vec3) {
 	// brute force:
+	var N1, N2, N3 mgl32.Vec3
+	var D1, D2, D3 float32
 	for i := 0; i < len(planeEquations); i++ {
-		N1 := planeEquations[i].Normal
-		D1 := planeEquations[i].Distance
+		N1 = planeEquations[i].Normal
+		D1 = -planeEquations[i].Distance
 
 		for j := i + 1; j < len(planeEquations); j++ {
-			N2 := planeEquations[j].Normal
-			D2 := planeEquations[j].Distance
+			N2 = planeEquations[j].Normal
+			D2 = -planeEquations[j].Distance
 
 			for k := j + 1; k < len(planeEquations); k++ {
-				N3 := planeEquations[k].Normal
-				D3 := planeEquations[k].Distance
+				N3 = planeEquations[k].Normal
+				D3 = -planeEquations[k].Distance
 
 				n2n3 := N2.Cross(N3)
 				n3n1 := N3.Cross(N1)
@@ -119,9 +115,6 @@ func getVerticesFromPlaneEquations(planeEquations []plane.Plane) (verticesOut []
 					quotient := N1.Dot(n2n3)
 					if math.Abs(float64(quotient)) > 0.000001 {
 						quotient = -1. / quotient
-						//n2n3 = n2n3.Mul(N1[3])
-						//n3n1 = n3n1.Mul(N2[3])
-						//n1n2 = n1n2.Mul(N3[3])
 						n2n3 = n2n3.Mul(D1)
 						n3n1 = n3n1.Mul(D2)
 						n1n2 = n1n2.Mul(D3)
@@ -129,7 +122,7 @@ func getVerticesFromPlaneEquations(planeEquations []plane.Plane) (verticesOut []
 
 						//check if inside, and replace supportingVertexOut if needed
 						if isPointInsidePlanes(planeEquations, potentialVertex, 0.01) {
-							verticesOut = append(verticesOut, mgl32.Vec3{-potentialVertex[0], -potentialVertex[1], -potentialVertex[2]})
+							verticesOut = append(verticesOut, potentialVertex)
 						}
 					}
 				}
