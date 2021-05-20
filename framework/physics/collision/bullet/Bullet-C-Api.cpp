@@ -30,6 +30,7 @@ subject to the following restrictions:
 #include "LinearMath/btScalar.h"	
 #include "LinearMath/btMatrix3x3.h"
 #include "LinearMath/btTransform.h"
+#include "LinearMath/btGeometryUtil.h"
 #include "BulletCollision/NarrowPhaseCollision/btVoronoiSimplexSolver.h"
 #include "BulletCollision/CollisionShapes/btTriangleShape.h"
 
@@ -256,6 +257,18 @@ void		plAddVertex(plCollisionShapeHandle cshape, plReal x,plReal y,plReal z)
 	btAssert(colShape->getShapeType()==CONVEX_HULL_SHAPE_PROXYTYPE);
 	btConvexHullShape* convexHullShape = reinterpret_cast<btConvexHullShape*>( cshape);
 	convexHullShape->addPoint(btVector3(x,y,z));
+}
+
+void plAddVertices(plCollisionShapeHandle cshape, plVector3* vertices, int numVertices)
+{
+	btCollisionShape* colShape = reinterpret_cast<btCollisionShape*>( cshape);
+	(void)colShape;
+	btAssert(colShape->getShapeType()==CONVEX_HULL_SHAPE_PROXYTYPE);
+	btConvexHullShape* convexHullShape = reinterpret_cast<btConvexHullShape*>( cshape);
+
+	for (int i = 0; i < numVertices; i++) {
+	    convexHullShape->addPoint(btVector3(vertices[i][0], vertices[i][1], vertices[i][2]) );
+	}
 
 }
 
@@ -401,4 +414,24 @@ double plNearestPoints(float p1[3], float p2[3], float p3[3], float q1[3], float
 		return gjkOutput.m_distance;
 	}
 	return -1.0f;	
+}
+
+void plGetVerticesFromPlaneEquations(plVector3* normals, int numNormals, plGetVerticesFromPlaneEquationsResult* result)
+{
+    btAlignedObjectArray<btVector3> poNormals;
+    for (int i = 0; i < numNormals; i++) {
+        poNormals.push_back(btVector3(normals[i][0], normals[i][1], normals[i][2]));
+    }
+
+    btAlignedObjectArray<btVector3> poVertices;
+    btGeometryUtil::getVerticesFromPlaneEquations(poNormals, poVertices);
+
+    result->vertices = reinterpret_cast< plVector3* >(&poVertices[0]);
+
+//    for (int i = 0; i < poVertices.size(); i++) {
+//        result->vertices[(i * 3)] = poVertices[i].x();
+//        result->vertices[(i * 3) + 1] = poVertices[i].y();
+//        result->vertices[(i * 3) + 2] = poVertices[i].z();
+//    }
+    result->numVertices = poVertices.size();
 }

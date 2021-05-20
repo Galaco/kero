@@ -89,9 +89,17 @@ type BulletCollisionShapeHandle struct {
 	handle C.plCollisionShapeHandle
 }
 
-// AddVertex implements the core.CollisionShape interface
 func (c BulletCollisionShapeHandle) AddVertex(v mgl32.Vec3) {
 	C.plAddVertex(c.handle, C.plReal(float64(v.X())), C.plReal(float64(v.Y())), C.plReal(float64(v.Z())))
+}
+
+func (c BulletCollisionShapeHandle) AddVertices(verts []mgl32.Vec3) {
+	v := make([]BulletVec3, len(verts))
+	for idx,r := range verts {
+		v[idx] = Vec3ToBullet(r)
+	}
+
+	C.plAddVertices(c.handle, (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(len(v)))
 }
 
 func BulletNewConvexHullShape() BulletCollisionShapeHandle {
@@ -124,6 +132,15 @@ func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []Bull
 
 	return BulletCollisionShapeHandle{
  		handle: C.btNewBvhTriangleMeshShape(m),
+	}
+}
+
+func BulletNewBrushShape(vertices []mgl32.Vec3) BulletCollisionShapeHandle {
+	shape := BulletNewConvexHullShape()
+	shape.AddVertices(vertices)
+
+	return BulletCollisionShapeHandle{
+		handle: shape.handle,
 	}
 }
 

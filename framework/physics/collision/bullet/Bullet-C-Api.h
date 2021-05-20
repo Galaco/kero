@@ -127,6 +127,7 @@ extern "C" {
 
 	/* Convex Meshes */
 	extern  plCollisionShapeHandle plNewConvexHullShape(void);
+	extern  void		plAddVertices(plCollisionShapeHandle convexHull, plVector3* vertices, int numVertices);
 	extern  void		plAddVertex(plCollisionShapeHandle convexHull, plReal x,plReal y,plReal z);
 /* Concave static triangle meshes */
 	extern  plMeshInterfaceHandle		   plNewMeshInterface(void);
@@ -134,6 +135,13 @@ extern "C" {
 	extern  plCollisionShapeHandle plNewStaticTriangleMeshShape(plMeshInterfaceHandle);
 
 	extern  void plSetScaling(plCollisionShapeHandle shape, plVector3 scaling);
+
+	typedef struct plGetVerticesFromPlaneEquationsResult {
+    		int numVertices;
+    		plVector3* vertices;
+    } plGetVerticesFromPlaneEquationsResult;
+
+	extern void plGetVerticesFromPlaneEquations(plVector3* normals, int numNormals, plGetVerticesFromPlaneEquationsResult* result);
 
 /* SOLID has Response Callback/Table/Management */
 /* PhysX has Triggers, User Callbacks and filtering */
