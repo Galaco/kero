@@ -6,16 +6,16 @@ import (
 )
 
 type ModelInstance struct {
-	Model *Model
+	Model     *Model
 	RigidBody collision.RigidBody
 }
 
 type Model struct {
-	Id        string
+	Id                  string
 	OriginalStudiomodel *studiomodel.StudioModel
-	meshes    []*BasicMesh
-	materials []string
-	rigidBody collision.RigidBody
+	meshes              []*BasicMesh
+	materials           []string
+	rigidBody           collision.RigidBody
 }
 
 func (model *Model) Meshes() []*BasicMesh {
@@ -44,7 +44,7 @@ func (model *Model) AddRigidBody(body collision.RigidBody) {
 
 func NewModel(id string, originalStudioModel *studiomodel.StudioModel) *Model {
 	return &Model{
-		Id: id,
+		Id:                  id,
 		OriginalStudiomodel: originalStudioModel,
 	}
 }

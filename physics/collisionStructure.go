@@ -15,10 +15,10 @@ import (
 )
 
 type bspCollisionMesh struct {
-	indices [][]bullet.BulletPhysicsIndice
-	vertices [][]mgl32.Vec3
+	indices           [][]bullet.BulletPhysicsIndice
+	vertices          [][]mgl32.Vec3
 	childShapeHandles []bullet.BulletCollisionShapeHandle
-	RigidBodyHandles []bullet.BulletRigidBodyHandle
+	RigidBodyHandles  []bullet.BulletRigidBodyHandle
 }
 
 func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
@@ -34,15 +34,15 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	verts := make([][]mgl32.Vec3, len(brushes))
 	wg.Add(len(brushes))
 
-	asyncVertsFromPlanes := func (b brush.Brush, idx int) {
-		if b.Contents & bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
+	asyncVertsFromPlanes := func(b brush.Brush, idx int) {
+		if b.Contents&bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
 			wg.Done()
 			return
 		}
-		sides := brushSides[b.FirstSide:b.FirstSide + b.NumSides]
+		sides := brushSides[b.FirstSide : b.FirstSide+b.NumSides]
 		planeNormals := make([]plane.Plane, len(sides))
 
-		for i,side := range sides {
+		for i, side := range sides {
 			planeNormals[i] = planes[side.PlaneNum]
 		}
 
@@ -51,7 +51,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 		wg.Done()
 	}
 
-	for idx,b := range brushes {
+	for idx, b := range brushes {
 		go asyncVertsFromPlanes(b, idx)
 	}
 
@@ -70,15 +70,15 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	}
 
 	return &bspCollisionMesh{
-		vertices: verts,
+		vertices:          verts,
 		childShapeHandles: childShapeHandles,
-		RigidBodyHandles: handles,
+		RigidBodyHandles:  handles,
 	}
 }
 
 type studiomodelCollisionMesh struct {
 	vertices            [][]mgl32.Vec3
-	parts []bullet.BulletCollisionShapeHandle
+	parts               []bullet.BulletCollisionShapeHandle
 	compoundShapeHandle bullet.BulletCollisionShapeHandle
 }
 
@@ -87,9 +87,9 @@ func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionM
 
 	faceOffset := int32(0)
 	verts := make([][]mgl32.Vec3, len(phy.TriangleFaceHeaders))
-	for idx,header := range phy.TriangleFaceHeaders {
+	for idx, header := range phy.TriangleFaceHeaders {
 		verts[idx] = make([]mgl32.Vec3, 0)
-		for _,face := range phy.TriangleFaces[faceOffset:faceOffset + header.FaceCount] {
+		for _, face := range phy.TriangleFaces[faceOffset : faceOffset+header.FaceCount] {
 			//  PHY vertices use a different scaling space!!!
 			verts[idx] = append(verts[idx],
 				transformPhyVertex(nil, mgl32.Vec3{
@@ -117,12 +117,12 @@ func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionM
 		parts = append(parts, part)
 	}
 
-	mesh := studiomodelCollisionMesh {
+	mesh := studiomodelCollisionMesh{
 		vertices:            verts,
-		parts: 				 parts,
+		parts:               parts,
 		compoundShapeHandle: bullet.BulletNewCompoundShape(),
 	}
-	for _,i := range mesh.parts {
+	for _, i := range mesh.parts {
 		bullet.BulletAddChildToCompoundShape(mesh.compoundShapeHandle, i, mgl32.Vec3{}, mgl32.Quat{})
 	}
 
@@ -143,19 +143,18 @@ func transformPhyVertex(bone *mdl.Bone, vertex mgl32.Vec3) (out mgl32.Vec3) {
 	return out
 }
 
-func vectorITransform (in1 mgl32.Vec3, in2 mgl32.Mat3x4) (out mgl32.Vec3) {
+func vectorITransform(in1 mgl32.Vec3, in2 mgl32.Mat3x4) (out mgl32.Vec3) {
 	t := mgl32.Vec3{}
 	t[0] = in1[0] - in2.Col(3)[0]
 	t[1] = in1[1] - in2.Col(3)[1]
 	t[2] = in1[2] - in2.Col(3)[2]
 
-	out[0] = t[0] * in2.Col(0)[0] + t[1] * in2.Col(0)[1] + t[2] * in2.Col(0)[2]
-	out[1] = t[0] * in2.Col(1)[0] + t[1] * in2.Col(1)[1] + t[2] * in2.Col(1)[2]
-	out[2] = t[0] * in2.Col(2)[0] + t[1] * in2.Col(2)[1] + t[2] * in2.Col(2)[2]
+	out[0] = t[0]*in2.Col(0)[0] + t[1]*in2.Col(0)[1] + t[2]*in2.Col(0)[2]
+	out[1] = t[0]*in2.Col(1)[0] + t[1]*in2.Col(1)[1] + t[2]*in2.Col(1)[2]
+	out[2] = t[0]*in2.Col(2)[0] + t[1]*in2.Col(2)[1] + t[2]*in2.Col(2)[2]
 
 	return out
 }
-
 
 func isPointInsidePlanes(planeEquations []plane.Plane, point mgl32.Vec3, margin float32) bool {
 	for i := 0; i < len(planeEquations); i++ {

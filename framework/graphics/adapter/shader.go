@@ -2,12 +2,11 @@ package adapter
 
 import "github.com/galaco/gosigl"
 
-
 type Shader struct {
 	context gosigl.Context
 }
 
-var currentShader * Shader
+var currentShader *Shader
 
 // CurrentShader returns the currently bound shader (if exists)
 func CurrentShader() *Shader {

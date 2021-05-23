@@ -9,13 +9,12 @@ import (
 )
 
 type RayCastResult struct {
-	T float64
-	Hit bool
+	T     float64
+	Hit   bool
 	Point mgl32.Vec3
 }
 
 type Ray struct {
-
 }
 
 func TraceRayBetween(scene *scene.StaticScene, origin mgl32.Vec3, destination mgl32.Vec3) RayCastResult {
@@ -37,8 +36,8 @@ func TraceRay(scene *scene.StaticScene, origin mgl32.Vec3, direction mgl32.Vec3)
 	// Step 3: Find all faces within leafs that intersect
 	var verts []float32
 	var triangle [3]mgl32.Vec3
-	for _,l := range intersectedLeafs {
-		for _,f := range l.Faces {
+	for _, l := range intersectedLeafs {
+		for _, f := range l.Faces {
 			verts = scene.RawBsp.Mesh().Vertices()[f.Offset() : f.Offset()+f.Length()]
 			if len(verts) < 9 {
 				// Something is broken here; how can a triangle not have 3 verts?
@@ -136,11 +135,11 @@ func RayIntersectsAxisAlignedBoundingBox(origin, direction, min, max mgl32.Vec3)
 	//	}
 	//}
 
-
 	return r
 }
 
 const mollerTrumboreEpsilon = float32(0.0000001)
+
 func RayIntersectsTriangle(rayOrigin mgl32.Vec3, rayVector mgl32.Vec3, inTriangle [3]mgl32.Vec3) (r RayCastResult) {
 	// Uses mollerTrumboreRayTriangleIntersection
 	vertex0 := inTriangle[0]

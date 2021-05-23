@@ -20,8 +20,8 @@ func BulletNewDynamicWorld(sdk BulletPhysicsSDKHandle) BulletDynamicWorldHandle 
 	return BulletDynamicWorldHandle(C.plCreateDynamicsWorld(sdk))
 }
 
-func BulletSetGravity(world BulletDynamicWorldHandle, x,y,z float32) {
-	vec3 := Vec3ToBullet(mgl32.Vec3{x,y,z})
+func BulletSetGravity(world BulletDynamicWorldHandle, x, y, z float32) {
+	vec3 := Vec3ToBullet(mgl32.Vec3{x, y, z})
 	C.plSetGravity(world, vec3[0], vec3[1], vec3[2])
 }
 
@@ -95,7 +95,7 @@ func (c BulletCollisionShapeHandle) AddVertex(v mgl32.Vec3) {
 
 func (c BulletCollisionShapeHandle) AddVertices(verts []mgl32.Vec3) {
 	v := make([]BulletVec3, len(verts))
-	for idx,r := range verts {
+	for idx, r := range verts {
 		v[idx] = Vec3ToBullet(r)
 	}
 
@@ -131,7 +131,7 @@ func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []Bull
 	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&vertices[0])), C.int(totalTriangles), C.int(totalVerts))
 
 	return BulletCollisionShapeHandle{
- 		handle: C.btNewBvhTriangleMeshShape(m),
+		handle: C.btNewBvhTriangleMeshShape(m),
 	}
 }
 
@@ -162,7 +162,7 @@ func BulletDeleteRigidBody(handle BulletRigidBodyHandle) {
 	C.plDeleteRigidBody(handle.handle)
 }
 
-func BulletGetOpenGLMatrix(handle BulletRigidBodyHandle) mgl32.Mat4{
+func BulletGetOpenGLMatrix(handle BulletRigidBodyHandle) mgl32.Mat4 {
 	mat := mat4ToBullet(mgl32.Ident4())
 	C.plGetOpenGLMatrix(handle.handle, &mat[0])
 	return mat4FromBullet(mat)

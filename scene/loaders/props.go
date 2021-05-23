@@ -71,9 +71,9 @@ func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) m
 		console.PrintString(console.LevelError, fmt.Sprintf("%d staticprops could not be loaded", len(propPaths)-len(propDictionary)))
 	}
 
-	for idx,e := range entities {
+	for idx, e := range entities {
 		if strings.HasPrefix(e.Classname(), "prop_") {
-			for propIndex,p := range propDictionary {
+			for propIndex, p := range propDictionary {
 				if p.Id == e.ValueForKey("model") {
 					entities[idx].AttachModel(propDictionary[propIndex])
 					break

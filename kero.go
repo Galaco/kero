@@ -17,7 +17,7 @@ import (
 type Kero struct {
 	isRunning bool
 
-	scene *scene.Scene
+	scene   *scene.Scene
 	physics *physics.PhysicsSystem
 
 	input    *middleware.Input

@@ -23,7 +23,6 @@ type RigidBody interface {
 	ApplyImpulse(impulse mgl32.Vec3, localPoint mgl32.Vec3)
 }
 
-
 type ConvexHull struct {
 	handle bullet.BulletRigidBodyHandle
 }
@@ -76,7 +75,6 @@ func NewSphericalHull(radius float64) *ConvexHull {
 }
 
 type OrientedBoundingBox struct {
-
 }
 
 func (body *OrientedBoundingBox) CollisionBodyType() CollisionBodyType {

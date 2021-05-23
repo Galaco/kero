@@ -16,7 +16,6 @@ import (
 // right now it does the bare minimum, and many models seem to have
 // some corruption.
 
-
 type virtualFileSystem interface {
 	GetFile(string) (io.Reader, error)
 }
@@ -186,4 +185,3 @@ func vertexDataForMesh(vvd *vvd.Vvd) ([]float32, []float32, []float32, error) {
 
 	return vertices, normals, uvs, nil
 }
-

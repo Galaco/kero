@@ -22,7 +22,7 @@ type PhysicsSystem struct {
 	sdk   bullet.BulletPhysicsSDKHandle
 	world bullet.BulletDynamicWorldHandle
 
-	bspRigidBody *bspCollisionMesh
+	bspRigidBody               *bspCollisionMesh
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
 }
 
@@ -41,12 +41,12 @@ func (system *PhysicsSystem) Initialize() {
 }
 
 func (system *PhysicsSystem) Cleanup() {
-	for _,i := range system.physicsEntities {
+	for _, i := range system.physicsEntities {
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
 	if system.bspRigidBody != nil {
-		for _,r := range system.bspRigidBody.RigidBodyHandles {
+		for _, r := range system.bspRigidBody.RigidBodyHandles {
 			bullet.BulletDeleteRigidBody(r)
 		}
 	}
@@ -68,7 +68,6 @@ func (system *PhysicsSystem) Update(dt float64) {
 	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
 		return
 	}
-
 
 	for _, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
@@ -101,24 +100,24 @@ func (system *PhysicsSystem) drawDebug() {
 			continue
 		}
 		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, n.Transform().TransformationMatrix())
-		for _,r := range system.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
+		for _, r := range system.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
 			verts := make([]float32, 0)
-			for _,v := range r {
+			for _, v := range r {
 				verts = append(verts, v[0], v[1], v[2])
 			}
-			adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
+			adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 		}
 	}
 	adapter.EnableBackFaceCulling()
 
 	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
 	verts := make([]float32, 0)
-	for _,vs := range system.bspRigidBody.vertices {
-		for _,vert := range vs {
+	for _, vs := range system.bspRigidBody.vertices {
+		for _, vert := range vs {
 			verts = append(verts, vert[0], vert[1], vert[2])
 		}
 	}
-	adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
+	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 }
 
 func (system *PhysicsSystem) onChangeLevel(message interface{}) {
@@ -126,11 +125,11 @@ func (system *PhysicsSystem) onChangeLevel(message interface{}) {
 		return
 	}
 
-	for _,i := range system.physicsEntities {
+	for _, i := range system.physicsEntities {
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
-	for _,r := range system.bspRigidBody.RigidBodyHandles {
+	for _, r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletDeleteRigidBody(r)
 	}
 	system.dataScene = nil
@@ -142,12 +141,12 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 
 	// Find entities that have a model
 	console.PrintString(console.LevelInfo, "Generating collision structures....")
-	for idx,e := range system.dataScene.Entities {
+	for idx, e := range system.dataScene.Entities {
 		if e.Model() != nil {
 			// Prepare Bullet environment for collision meshes
 			if e.Model() != nil && e.Model().Model.OriginalStudiomodel.Phy != nil {
 				// We have an actual source engine .phy collision model
-				if _,ok := system.studiomodelCollisionMeshes[e.Model().Model.Id]; !ok {
+				if _, ok := system.studiomodelCollisionMeshes[e.Model().Model.Id]; !ok {
 					system.studiomodelCollisionMeshes[e.Model().Model.Id] = generateCollisionMeshFromStudiomodelPhy(e.Model().Model.OriginalStudiomodel.Phy)
 				}
 				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(e.Model().Model.OriginalStudiomodel.Mdl.Header.Mass, system.studiomodelCollisionMeshes[e.Model().Model.Id].compoundShapeHandle)
@@ -165,7 +164,7 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 
 	// Generate BSP Rigidbody
 	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	for _,r := range system.bspRigidBody.RigidBodyHandles {
+	for _, r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletAddRigidBody(system.world, r)
 	}
 	console.PrintString(console.LevelInfo, "Collision structure ready!")
@@ -173,7 +172,7 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 
 func NewPhysicsSystem() *PhysicsSystem {
 	return &PhysicsSystem{
-		physicsEntities: make([]entity.IEntity, 0),
+		physicsEntities:            make([]entity.IEntity, 0),
 		studiomodelCollisionMeshes: map[string]studiomodelCollisionMesh{},
 	}
 }
