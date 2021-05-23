@@ -264,7 +264,7 @@ func DrawLine(start, end, color mgl32.Vec3) {
 		color.Z(),
 	}
 
-	drawLinesInternal(points)
+	drawCommonInternal(points, gl.LINES)
 }
 
 func DrawDebugLines(points []float32, color mgl32.Vec3) {
@@ -279,10 +279,25 @@ func DrawDebugLines(points []float32, color mgl32.Vec3) {
 		combinedPoints = append(combinedPoints, points[i], points[i+1], points[i+2], color.X(), color.Y(), color.Z())
 	}
 
-	drawLinesInternal(combinedPoints)
+	drawCommonInternal(combinedPoints, gl.LINES)
 }
 
-func drawLinesInternal(points []float32) {
+func DrawDebugTriangles(points []float32, color mgl32.Vec3) {
+	if len(points) == 0 {
+		return
+	}
+	// Vertex data
+	combinedPoints := make([]float32, 0, len(points)*2)
+
+	// Unpleasant but masks the data format from adapter users
+	for i := 0; i < len(points); i += 3 {
+		combinedPoints = append(combinedPoints, points[i], points[i+1], points[i+2], color.X(), color.Y(), color.Z())
+	}
+
+	drawCommonInternal(combinedPoints, gl.TRIANGLES)
+}
+
+func drawCommonInternal(points []float32, drawType uint32) {
 	gl.DeleteBuffers(1, &drawLineVBO)
 	gl.DeleteVertexArrays(1, &drawLineVAO)
 	gl.GenBuffers(1, &drawLineVBO)
@@ -293,11 +308,10 @@ func drawLinesInternal(points []float32) {
 	gl.EnableVertexAttribArray(0)
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 6*4, nil)
 	gl.EnableVertexAttribArray(1)
-	// gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, (GLvoid*)(3 * sizeof(GLfloat)))
 	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 6*4, nil)
 	gl.BindVertexArray(0)
 
 	gl.BindVertexArray(drawLineVAO)
-	gl.DrawArrays(gl.LINES, 0, int32(len(points)/6))
+	gl.DrawArrays(drawType, 0, int32(len(points)/6))
 	gl.BindVertexArray(0)
 }

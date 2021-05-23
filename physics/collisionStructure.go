@@ -7,6 +7,8 @@ import (
 	"github.com/galaco/bsp/primitives/plane"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
+	"github.com/galaco/studiomodel/mdl"
+	"github.com/galaco/studiomodel/phy"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 	"sync"
@@ -72,6 +74,84 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 		childShapeHandles: childShapeHandles,
 		RigidBodyHandles: handles,
 	}
+}
+
+type studiomodelCollisionMesh struct {
+	vertices            [][]mgl32.Vec3
+	compountShapeHandle bullet.BulletCollisionShapeHandle
+}
+
+func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionMesh {
+	parts := make([]bullet.BulletCollisionShapeHandle, 0)
+
+	faceOffset := int32(0)
+	verts := make([][]mgl32.Vec3, len(phy.TriangleFaceHeaders))
+	for idx,header := range phy.TriangleFaceHeaders {
+		verts[idx] = make([]mgl32.Vec3, 0)
+		for _,face := range phy.TriangleFaces[faceOffset:faceOffset + header.FaceCount] {
+			//  PHY vertices use a different scaling space!!!
+			verts[idx] = append(verts[idx],
+				transformPhyVertex(nil, mgl32.Vec3{
+					phy.Vertices[int32(face.V1)][0],
+					phy.Vertices[int32(face.V1)][1],
+					phy.Vertices[int32(face.V1)][2],
+				}),
+				transformPhyVertex(nil, mgl32.Vec3{
+					phy.Vertices[int32(face.V2)][0],
+					phy.Vertices[int32(face.V2)][1],
+					phy.Vertices[int32(face.V2)][2],
+				}),
+				transformPhyVertex(nil, mgl32.Vec3{
+					phy.Vertices[int32(face.V3)][0],
+					phy.Vertices[int32(face.V3)][1],
+					phy.Vertices[int32(face.V3)][2],
+				}),
+			)
+		}
+		faceOffset += header.FaceCount
+
+		part := bullet.BulletNewConvexHullShape()
+		part.AddVertices(verts[idx])
+	}
+
+	mesh := studiomodelCollisionMesh {
+		vertices:            verts,
+		compountShapeHandle: bullet.BulletNewCompoundShape(),
+	}
+
+	shape := bullet.BulletNewCompoundShape()
+	for _,i := range parts {
+		bullet.BulletAddChildToCompoundShape(shape, i, mgl32.Vec3{}, mgl32.Quat{})
+	}
+
+	return mesh
+}
+
+func transformPhyVertex(bone *mdl.Bone, vertex mgl32.Vec3) (out mgl32.Vec3) {
+	out[0] = 1 / 0.0254 * vertex[0]
+	out[1] = 1 / 0.0254 * vertex[2]
+	out[2] = 1 / 0.0254 * -vertex[1]
+	if bone != nil {
+		out = vectorITransform(out, bone.PoseToBone)
+	} else {
+		out[0] = 1 / 0.0254 * vertex[2]
+		out[1] = 1 / 0.0254 * -vertex[0]
+		out[2] = 1 / 0.0254 * -vertex[1]
+	}
+	return out
+}
+
+func vectorITransform (in1 mgl32.Vec3, in2 mgl32.Mat3x4) (out mgl32.Vec3) {
+	t := mgl32.Vec3{}
+	t[0] = in1[0] - in2.Col(3)[0]
+	t[1] = in1[1] - in2.Col(3)[1]
+	t[2] = in1[2] - in2.Col(3)[2]
+
+	out[0] = t[0] * in2.Col(0)[0] + t[1] * in2.Col(0)[1] + t[2] * in2.Col(0)[2]
+	out[1] = t[0] * in2.Col(1)[0] + t[1] * in2.Col(1)[1] + t[2] * in2.Col(1)[2]
+	out[2] = t[0] * in2.Col(2)[0] + t[1] * in2.Col(2)[1] + t[2] * in2.Col(2)[2]
+
+	return out
 }
 
 

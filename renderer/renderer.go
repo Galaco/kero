@@ -3,7 +3,6 @@ package renderer
 import (
 	"errors"
 	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
@@ -12,14 +11,12 @@ import (
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/galaco/kero/messages"
-	collision2 "github.com/galaco/kero/physics/collision"
 	"github.com/galaco/kero/renderer/cache"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/utils"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
-	"strings"
 )
 
 type Renderer struct {
@@ -90,7 +87,7 @@ func (s *Renderer) Render() {
 	s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
 	s.renderStaticProps(s.dataScene.Camera, clusters)
-	s.renderEntityProps()
+	//s.renderEntityProps()
 
 	s.DrawDebug()
 }
@@ -123,24 +120,6 @@ func (s *Renderer) DrawDebug() {
 		}
 	}
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
-
-	var testEnt entity.IEntity
-	for _, e := range s.dataScene.Entities {
-		if strings.HasPrefix(e.Classname(), "prop_") {
-			testEnt = e
-			break
-		}
-	}
-	if testEnt != nil {
-		result := collision2.TraceRayBetween(s.dataScene, s.dataScene.Camera.Transform().Position, testEnt.Transform().Position)
-
-		if result.Hit {
-			adapter.DrawLine(testEnt.Transform().Position, result.Point, mgl32.Vec3{0, 255, 0})
-		}
-		//adapter.DrawLine(s.dataScene.Camera.Transform().Position.Add(mgl32.Vec3{1,1,1}), testEnt.Transform().Position, mgl32.Vec3{0,255,0})
-		//adapter.DrawLine(mgl32.Vec3{0,0,0}, testEnt.Transform().Position, mgl32.Vec3{0,255,0})
-	}
-
 	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0, 255, 0})
 }
 

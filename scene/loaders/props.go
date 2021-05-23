@@ -103,11 +103,12 @@ func asyncLoadProps(fs graphics.VirtualFileSystem, propPaths []string) map[strin
 	waitGroup := sync.WaitGroup{}
 
 	asyncLoadProp := func(path string) {
-		defer func() {
+		defer func(path string) {
 			if e := recover(); e != nil {
-				console.PrintString(console.LevelError, e.(error).Error())
+				waitGroup.Done()
+				console.PrintString(console.LevelError, fmt.Sprintf("Error loading prop '%s': %s", path, e.(error).Error()))
 			}
-		}()
+		}(path)
 		prop, err := graphics.LoadProp(path, fs)
 		if err != nil {
 			waitGroup.Done()

@@ -59,6 +59,13 @@ func NewConvexHull() *ConvexHull {
 	return cbody
 }
 
+func NewConvexHullFromExistingShape(mass float32, shape bullet.BulletCollisionShapeHandle) *ConvexHull {
+	cbody := new(ConvexHull)
+	cbody.handle = bullet.NewRigidBody(mass, shape)
+
+	return cbody
+}
+
 func NewSphericalHull(radius float64) *ConvexHull {
 	cbody := new(ConvexHull)
 
