@@ -3,6 +3,7 @@ package graphics
 import (
 	"github.com/galaco/bsp/primitives/game"
 	"github.com/galaco/kero/framework/graphics/mesh"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // StaticProp is a somewhat specialised model
@@ -43,8 +44,8 @@ func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticProp
 	for i := uint16(0); i < lumpProp.GetLeafCount(); i++ {
 		prop.leafList[i] = propLeafs.Leaf[lumpProp.GetFirstLeaf()+i]
 	}
-	prop.Transform.Position = lumpProp.GetOrigin()
-	prop.Transform.Rotation = lumpProp.GetAngles()
+	prop.Transform.Translation = lumpProp.GetOrigin()
+	prop.Transform.Orientation = mgl32.AnglesToQuat(mgl32.DegToRad(lumpProp.GetAngles()[0]), mgl32.DegToRad(lumpProp.GetAngles()[1]), mgl32.DegToRad(lumpProp.GetAngles()[2]), mgl32.XZY)
 	prop.fadeMinDistance = lumpProp.GetFadeMinDist()
 	prop.fadeMaxDistance = lumpProp.GetFadeMaxDist()
 

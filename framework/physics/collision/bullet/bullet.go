@@ -49,11 +49,28 @@ func Vec3ToBullet(vec mgl32.Vec3) (out BulletVec3) {
 	return out
 }
 
+func vec3FromBullet(vec BulletVec3) (out mgl32.Vec3) {
+	out[0] = float32(vec[0])
+	out[1] = float32(vec[1])
+	out[2] = float32(vec[2])
+
+	return out
+}
+
 func quatToBullet(quat mgl32.Quat) (out BulletQuat) {
 	out[0] = C.plReal(float64(quat.X()))
 	out[1] = C.plReal(float64(quat.Y()))
 	out[2] = C.plReal(float64(quat.Z()))
 	out[3] = C.plReal(float64(quat.W))
+
+	return out
+}
+
+func quatFromBullet(quat BulletQuat) (out mgl32.Quat) {
+	out.V[0] = float32(quat[0])
+	out.V[1] = float32(quat[1])
+	out.V[2] = float32(quat[2])
+	out.W = float32(quat[3])
 
 	return out
 }
@@ -171,6 +188,18 @@ func BulletGetOpenGLMatrix(handle BulletRigidBodyHandle) mgl32.Mat4 {
 func BulletSetOpenGLMatrix(handle BulletRigidBodyHandle, transform mgl32.Mat4) {
 	mat := mat4ToBullet(transform)
 	C.plSetOpenGLMatrix(handle.handle, &mat[0])
+}
+
+func BulletGetTranslation(handle BulletRigidBodyHandle) mgl32.Vec3 {
+	vec := Vec3ToBullet(mgl32.Vec3{})
+	C.plGetPosition(handle.handle, &vec[0])
+	return vec3FromBullet(vec)
+}
+
+func BulletGetOrientation(handle BulletRigidBodyHandle) mgl32.Quat {
+	quat := quatToBullet(mgl32.Quat{})
+	C.plGetOrientation(handle.handle, &quat[0])
+	return quatFromBullet(quat)
 }
 
 func BulletApplyImpulse(handle BulletRigidBodyHandle, impulse, localPoint mgl32.Vec3) {

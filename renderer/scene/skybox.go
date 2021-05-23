@@ -32,7 +32,7 @@ func LoadSkybox(fs fileSystem, skyName string, origin mgl32.Vec3) *Skybox {
 
 	skyCube := mesh.NewCube()
 	t := graphics.Transform{}
-	t.Rotation[0] = 90
+	t.Orientation = mgl32.AnglesToQuat(mgl32.DegToRad(90), 0, 0, mgl32.XYZ)
 
 	return &Skybox{
 		SkyMaterialGpuID: adapter.UploadCubemap(textures),

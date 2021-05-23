@@ -5,6 +5,7 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
@@ -60,6 +61,10 @@ func (system *PhysicsSystem) Update(dt float64) {
 		return
 	}
 
+	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
+		return
+	}
+
 	for _, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
@@ -71,12 +76,8 @@ func (system *PhysicsSystem) Update(dt float64) {
 		if n.Model().RigidBody == nil {
 			continue
 		}
-		trans := n.Model().RigidBody.GetTransform()
-		system.physicsEntities[idx].Transform().Position = mgl32.Vec3{
-			trans[12],
-			trans[13],
-			trans[14],
-		}
+		system.physicsEntities[idx].Transform().Translation = n.Model().RigidBody.GetTranslation()
+		system.physicsEntities[idx].Transform().Orientation = n.Model().RigidBody.GetOrientation()
 	}
 
 	if console.GetConvarBoolean("r_drawcollisionmodels") == true {

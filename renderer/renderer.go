@@ -69,16 +69,16 @@ func (s *Renderer) Render() {
 	if shouldRenderSkybox {
 		s.renderSkybox(s.gpuScene.Skybox)
 		if s.dataScene.SkyCamera != nil {
-			origin := s.dataScene.SkyCamera.Transform().Position
-			s.dataScene.SkyCamera.Transform().Rotation = s.dataScene.Camera.Transform().Rotation
-			s.dataScene.SkyCamera.Transform().Position = s.dataScene.SkyCamera.Transform().Position.Add(s.dataScene.Camera.Transform().Position.Mul(1 / s.dataScene.SkyCamera.Transform().Scale.X()))
+			origin := s.dataScene.SkyCamera.Transform().Translation
+			s.dataScene.SkyCamera.Transform().Orientation = s.dataScene.Camera.Transform().Orientation
+			s.dataScene.SkyCamera.Transform().Translation = s.dataScene.SkyCamera.Transform().Translation.Add(s.dataScene.Camera.Transform().Translation.Mul(1 / s.dataScene.SkyCamera.Transform().Scale.X()))
 			s.dataScene.SkyCamera.Update(0)
 			s.startFrame(s.dataScene.SkyCamera)
 			s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
 			s.renderDisplacements(s.dataScene.DisplacementFaces)
 			s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
 			adapter.ClearDepthBuffer()
-			s.dataScene.SkyCamera.Transform().Position = origin
+			s.dataScene.SkyCamera.Transform().Translation = origin
 		}
 	}
 
@@ -220,7 +220,7 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 }
 
 func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
-	viewPosition := camera.Transform().Position
+	viewPosition := camera.Transform().Translation
 
 	for _, cluster := range clusters {
 		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
@@ -272,7 +272,7 @@ func (s *Renderer) computeRenderableClusters(viewFrustum *graphics.Frustum) []*v
 
 func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 	skyboxTransform := skybox.SkyMeshTransform
-	skyboxTransform.Position = s.dataScene.Camera.Transform().Position
+	skyboxTransform.Translation = s.dataScene.Camera.Transform().Translation
 
 	s.activeShader = s.shaderCache.Find("Skybox")
 	s.activeShader.Bind()

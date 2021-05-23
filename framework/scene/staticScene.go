@@ -55,12 +55,12 @@ type StaticScene struct {
 // RecomputeVisibleClusters rebuilds the current facelist to render, by first
 // recalculating using vvis data
 func (scene *StaticScene) RecomputeVisibleClusters() {
-	if scene.Camera.Transform().Position.ApproxEqual(scene.CameraPrevPosition) {
+	if scene.Camera.Transform().Translation.ApproxEqual(scene.CameraPrevPosition) {
 		return
 	}
-	scene.CameraPrevPosition = scene.Camera.Transform().Position
+	scene.CameraPrevPosition = scene.Camera.Transform().Translation
 	// View hasn't moved
-	currentLeaf := scene.VisData.FindCurrentLeaf(scene.Camera.Transform().Position)
+	currentLeaf := scene.VisData.FindCurrentLeaf(scene.Camera.Transform().Translation)
 
 	if scene.CurrentLeaf == currentLeaf {
 		return
@@ -218,13 +218,14 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 
 	if skyCameraEntity != nil {
 		skyCamera = graphics.NewCamera(level.Camera().Fov(), level.Camera().AspectRatio())
-		skyCamera.Transform().Position = skyCameraEntity.VectorForKey("origin")
+		skyCamera.Transform().Translation = skyCameraEntity.VectorForKey("origin")
 		scale := skyCameraEntity.FloatForKey("scale")
 		skyCamera.Transform().Scale = mgl32.Vec3{scale, scale, scale}
 	}
 	if infoPlayerStart != nil {
-		level.Camera().Transform().Position = infoPlayerStart.VectorForKey("origin")
-		level.Camera().Transform().Rotation = infoPlayerStart.VectorForKey("angles")
+		level.Camera().Transform().Translation = infoPlayerStart.VectorForKey("origin")
+		angles := infoPlayerStart.VectorForKey("angles")
+		level.Camera().Transform().Orientation = mgl32.AnglesToQuat(angles[0], angles[1], angles[2], mgl32.XYZ)
 	}
 
 	sceneSingleton = StaticScene{
@@ -245,7 +246,7 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 	// Generate Initial visibility data
 	sceneSingleton.asyncRebuildVisibleWorld(nil)
 	if skyCamera != nil {
-		sceneSingleton.SkyboxClusterLeafs = sceneSingleton.asyncRebuildVisibleWorld(sceneSingleton.VisData.FindCurrentLeaf(skyCamera.Transform().Position))
+		sceneSingleton.SkyboxClusterLeafs = sceneSingleton.asyncRebuildVisibleWorld(sceneSingleton.VisData.FindCurrentLeaf(skyCamera.Transform().Translation))
 	}
 
 	return CurrentScene()

@@ -20,6 +20,8 @@ type RigidBody interface {
 
 	GetTransform() mgl32.Mat4
 	SetTransform(transform mgl32.Mat4)
+	GetTranslation() mgl32.Vec3
+	GetOrientation() mgl32.Quat
 	ApplyImpulse(impulse mgl32.Vec3, localPoint mgl32.Vec3)
 }
 
@@ -39,9 +41,16 @@ func (body *ConvexHull) GetTransform() mgl32.Mat4 {
 	return bullet.BulletGetOpenGLMatrix(body.handle)
 }
 
-// SetTransform implements the core.RigidBody interface
 func (body *ConvexHull) SetTransform(transform mgl32.Mat4) {
 	bullet.BulletSetOpenGLMatrix(body.handle, transform)
+}
+
+func (body *ConvexHull) GetTranslation() mgl32.Vec3 {
+	return bullet.BulletGetTranslation(body.handle)
+}
+
+func (body *ConvexHull) GetOrientation() mgl32.Quat {
+	return bullet.BulletGetOrientation(body.handle)
 }
 
 // ApplyImpulse implements the core.RigidBody interface

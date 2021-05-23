@@ -40,36 +40,36 @@ func (camera *Camera) Transform() *Transform {
 
 // Forwards
 func (camera *Camera) Forwards(dt float64) {
-	camera.Transform().Position = camera.Transform().Position.Add(camera.direction.Mul(float32(cameraSpeed * dt)))
+	camera.Transform().Translation = camera.Transform().Translation.Add(camera.direction.Mul(float32(cameraSpeed * dt)))
 }
 
 // Backwards
 func (camera *Camera) Backwards(dt float64) {
-	camera.Transform().Position = camera.Transform().Position.Sub(camera.direction.Mul(float32(cameraSpeed * dt)))
+	camera.Transform().Translation = camera.Transform().Translation.Sub(camera.direction.Mul(float32(cameraSpeed * dt)))
 }
 
 // Left
 func (camera *Camera) Left(dt float64) {
-	camera.Transform().Position = camera.Transform().Position.Sub(camera.right.Mul(float32(cameraSpeed * dt)))
+	camera.Transform().Translation = camera.Transform().Translation.Sub(camera.right.Mul(float32(cameraSpeed * dt)))
 }
 
 // Right
 func (camera *Camera) Right(dt float64) {
-	camera.Transform().Position = camera.Transform().Position.Add(camera.right.Mul(float32(cameraSpeed * dt)))
+	camera.Transform().Translation = camera.Transform().Translation.Add(camera.right.Mul(float32(cameraSpeed * dt)))
 }
 
 // Rotate
 func (camera *Camera) Rotate(x, y, z float32) {
-	camera.Transform().Rotation[0] = camera.Transform().Rotation[0] + (x * sensitivity)
-	camera.Transform().Rotation[1] = camera.Transform().Rotation[1] + (y * sensitivity)
-	camera.Transform().Rotation[2] = camera.Transform().Rotation[2] + (z * sensitivity)
+	camera.Transform().Orientation.V[0] = camera.Transform().Orientation.V[0] + (x * sensitivity)
+	camera.Transform().Orientation.V[1] = camera.Transform().Orientation.V[1] + (y * sensitivity)
+	camera.Transform().Orientation.V[2] = camera.Transform().Orientation.V[2] + (z * sensitivity)
 
 	// Lock vertical rotation
-	if camera.Transform().Rotation[2] > maxVerticalRotation {
-		camera.Transform().Rotation[2] = maxVerticalRotation
+	if camera.Transform().Orientation.V[2] > maxVerticalRotation {
+		camera.Transform().Orientation.V[2] = maxVerticalRotation
 	}
-	if camera.Transform().Rotation[2] < minVerticalRotation {
-		camera.Transform().Rotation[2] = minVerticalRotation
+	if camera.Transform().Orientation.V[2] < minVerticalRotation {
+		camera.Transform().Orientation.V[2] = minVerticalRotation
 	}
 }
 
@@ -80,18 +80,18 @@ func (camera *Camera) Update(dt float64) {
 
 // updateVectors Updates the camera directional properties with any changes
 func (camera *Camera) updateVectors() {
-	rot := camera.Transform().Rotation
+	rot := camera.Transform().Orientation
 
 	// Calculate the new Front vector
 	camera.direction = mgl32.Vec3{
-		float32(math.Cos(float64(rot[2])) * math.Sin(float64(rot[0]))),
-		float32(math.Cos(float64(rot[2])) * math.Cos(float64(rot[0]))),
-		float32(math.Sin(float64(rot[2]))),
+		float32(math.Cos(float64(rot.V[2])) * math.Sin(float64(rot.V[0]))),
+		float32(math.Cos(float64(rot.V[2])) * math.Cos(float64(rot.V[0]))),
+		float32(math.Sin(float64(rot.V[2]))),
 	}
 	// Also re-calculate the right and up vector
 	camera.right = mgl32.Vec3{
-		float32(math.Sin(float64(rot[0]) - math.Pi/2)),
-		float32(math.Cos(float64(rot[0]) - math.Pi/2)),
+		float32(math.Sin(float64(rot.V[0]) - math.Pi/2)),
+		float32(math.Cos(float64(rot.V[0]) - math.Pi/2)),
 		0,
 	}
 	camera.up = camera.right.Cross(camera.direction)
@@ -105,8 +105,8 @@ func (camera *Camera) ModelMatrix() mgl32.Mat4 {
 // ViewMatrix calculates the cameras View matrix
 func (camera *Camera) ViewMatrix() mgl32.Mat4 {
 	return mgl32.LookAtV(
-		camera.Transform().Position,
-		camera.Transform().Position.Add(camera.direction),
+		camera.Transform().Translation,
+		camera.Transform().Translation.Add(camera.direction),
 		camera.up)
 }
 

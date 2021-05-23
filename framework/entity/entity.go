@@ -16,7 +16,7 @@ type IEntity interface {
 	// Origin is position in the world (x,y,z)
 	Origin() mgl32.Vec3
 	// Angles is the orientation in the world (x,y,z)
-	Angles() mgl32.Vec3
+	Angles() mgl32.Quat
 	// Think updates this entity based on elapsed time since last update
 	Think(dt float64)
 	// ValueForKey provides the raw value of an entity key
@@ -69,12 +69,12 @@ func (e *Entity) Transform() *graphics.Transform {
 
 // Origin returns the entity position in the world
 func (e *Entity) Origin() mgl32.Vec3 {
-	return e.transform.Position
+	return e.transform.Translation
 }
 
 // Angles returns the entity orientation in the world
-func (e *Entity) Angles() mgl32.Vec3 {
-	return e.transform.Rotation
+func (e *Entity) Angles() mgl32.Quat {
+	return e.transform.Orientation
 }
 
 // Properties returns all the entity's key-values as a linked list
@@ -98,11 +98,12 @@ func (e *Entity) AttachModel(m *mesh.Model) {
 
 // NewEntityBaseFromLib returns a new entity
 func NewEntityBaseFromLib(e entity.Entity) *Entity {
+	angles := e.VectorForKey("angles")
 	return &Entity{
 		Entity: e,
 		transform: graphics.Transform{
-			Position: e.VectorForKey("origin"),
-			Rotation: e.VectorForKey("angles"),
+			Translation: e.VectorForKey("origin"),
+			Orientation: mgl32.AnglesToQuat(angles[0], angles[1], angles[2], mgl32.XYZ),
 		},
 		class: e.ValueForKey("classname"),
 		name:  e.ValueForKey("targetname"),
