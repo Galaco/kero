@@ -30,6 +30,8 @@ func (system *PhysicsSystem) Initialize() {
 	event.Get().AddListener(messages.TypeChangeLevel, system.onChangeLevel)
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
+	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
+
 	// create an sdk handle
 	system.sdk = bullet.BulletNewPhysicsSDK()
 
@@ -59,32 +61,8 @@ func (system *PhysicsSystem) Update(dt float64) {
 		return
 	}
 
-	if adapter.CurrentShader() != nil {
-		adapter.EnableFrontFaceCulling()
-		for _, n := range system.physicsEntities {
-
-			if n.Model().RigidBody == nil {
-				continue
-			}
-			adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, n.Transform().TransformationMatrix())
-			for _,r := range system.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
-				verts := make([]float32, 0)
-				for _,v := range r {
-					verts = append(verts, v[0], v[1], v[2])
-				}
-				adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
-			}
-		}
-		adapter.EnableBackFaceCulling()
-
-		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
-		verts := make([]float32, 0)
-		for _,vs := range system.bspRigidBody.vertices {
-			for _,vert := range vs {
-				verts = append(verts, vert[0], vert[1], vert[2])
-			}
-		}
-		adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
+	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
+		system.drawDebug()
 	}
 
 	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
@@ -110,6 +88,37 @@ func (system *PhysicsSystem) Update(dt float64) {
 			trans[14],
 		}
 	}
+}
+
+func (system *PhysicsSystem) drawDebug() {
+	if adapter.CurrentShader() == nil {
+		return
+	}
+	adapter.EnableFrontFaceCulling()
+	for _, n := range system.physicsEntities {
+
+		if n.Model().RigidBody == nil {
+			continue
+		}
+		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, n.Transform().TransformationMatrix())
+		for _,r := range system.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
+			verts := make([]float32, 0)
+			for _,v := range r {
+				verts = append(verts, v[0], v[1], v[2])
+			}
+			adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
+		}
+	}
+	adapter.EnableBackFaceCulling()
+
+	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
+	verts := make([]float32, 0)
+	for _,vs := range system.bspRigidBody.vertices {
+		for _,vert := range vs {
+			verts = append(verts, vert[0], vert[1], vert[2])
+		}
+	}
+	adapter.DrawDebugLines(verts, mgl32.Vec3{255,0,255})
 }
 
 func (system *PhysicsSystem) onChangeLevel(message interface{}) {
