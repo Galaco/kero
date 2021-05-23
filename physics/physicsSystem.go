@@ -5,7 +5,6 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/adapter"
-	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
@@ -61,14 +60,6 @@ func (system *PhysicsSystem) Update(dt float64) {
 		return
 	}
 
-	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
-		system.drawDebug()
-	}
-
-	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
-		return
-	}
-
 	for _, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
@@ -76,16 +67,20 @@ func (system *PhysicsSystem) Update(dt float64) {
 		n.Model().RigidBody.SetTransform(n.Transform().TransformationMatrix())
 	}
 	bullet.BulletStepSimulation(system.world, dt)
-	for _, n := range system.physicsEntities {
+	for idx, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
 		}
 		trans := n.Model().RigidBody.GetTransform()
-		n.Transform().Position = mgl32.Vec3{
+		system.physicsEntities[idx].Transform().Position = mgl32.Vec3{
 			trans[12],
 			trans[13],
 			trans[14],
 		}
+	}
+
+	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
+		system.drawDebug()
 	}
 }
 
@@ -94,8 +89,18 @@ func (system *PhysicsSystem) drawDebug() {
 		return
 	}
 	adapter.EnableFrontFaceCulling()
-	for _, n := range system.physicsEntities {
+	adapter.DisableDepthTesting()
 
+	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
+	verts := make([]float32, 0)
+	for _, vs := range system.bspRigidBody.vertices {
+		for _, vert := range vs {
+			verts = append(verts, vert[0], vert[1], vert[2])
+		}
+	}
+	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
+
+	for _, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
 		}
@@ -108,16 +113,8 @@ func (system *PhysicsSystem) drawDebug() {
 			adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 		}
 	}
+	adapter.EnableDepthTesting()
 	adapter.EnableBackFaceCulling()
-
-	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
-	verts := make([]float32, 0)
-	for _, vs := range system.bspRigidBody.vertices {
-		for _, vert := range vs {
-			verts = append(verts, vert[0], vert[1], vert[2])
-		}
-	}
-	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 }
 
 func (system *PhysicsSystem) onChangeLevel(message interface{}) {
@@ -139,8 +136,16 @@ func (system *PhysicsSystem) onChangeLevel(message interface{}) {
 func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
 
-	// Find entities that have a model
 	console.PrintString(console.LevelInfo, "Generating collision structures....")
+
+	// Generate BSP Rigidbody
+	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
+	for _, r := range system.bspRigidBody.RigidBodyHandles {
+		bullet.BulletAddRigidBody(system.world, r)
+	}
+	console.PrintString(console.LevelInfo, "BSP collision structure ready!")
+
+	// Find entities that have a model
 	for idx, e := range system.dataScene.Entities {
 		if e.Model() != nil {
 			// Prepare Bullet environment for collision meshes
@@ -149,24 +154,20 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 				if _, ok := system.studiomodelCollisionMeshes[e.Model().Model.Id]; !ok {
 					system.studiomodelCollisionMeshes[e.Model().Model.Id] = generateCollisionMeshFromStudiomodelPhy(e.Model().Model.OriginalStudiomodel.Phy)
 				}
-				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(e.Model().Model.OriginalStudiomodel.Mdl.Header.Mass, system.studiomodelCollisionMeshes[e.Model().Model.Id].compoundShapeHandle)
+				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(
+					1,
+					system.studiomodelCollisionMeshes[e.Model().Model.Id].compoundShapeHandle)
 			} else {
 				// Fall back to generating one
 				system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(4)
 			}
 
+			system.dataScene.Entities[idx].Model().RigidBody.SetTransform(e.Transform().TransformationMatrix())
 			bullet.BulletAddRigidBody(system.world, system.dataScene.Entities[idx].Model().RigidBody.BulletHandle())
 			system.physicsEntities = append(system.physicsEntities, system.dataScene.Entities[idx])
 		}
 	}
-
-	//
-
-	// Generate BSP Rigidbody
-	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	for _, r := range system.bspRigidBody.RigidBodyHandles {
-		bullet.BulletAddRigidBody(system.world, r)
-	}
+	console.PrintString(console.LevelInfo, "Physics prop collision structures ready!")
 	console.PrintString(console.LevelInfo, "Collision structure ready!")
 }
 

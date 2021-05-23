@@ -5,13 +5,18 @@
 
 # Kero
 
-> Kero is a Source Engine game engine implementation written in Go.
+> Kero is a Source Engine game client implementation written in Go.
 
 ## Current Features
 
-Kero is mostly a BSP renderer for now. It features BSP rendering, with Static Prop support, as well as VisData visibility 
-culling. BSP geometry lightmaps are also supported, as well as skybox rendering. Build Kero, run it by pointing it to a
-Source Engine game installation, and it *should* just work!
+* BSP rendering with visdata support
+* Skybox rendering
+* Lightmap support (incomplete, BSP geometry only)
+* Staticprop rendering
+* Prop entity rendering (incomplete, models with bones unsupported)
+* Bullet physics for brush:physics entity collisions
+
+###### Build Kero, run it by pointing it to a Source Engine game installation, and it *should* just work!
 
 
 <p align="center">
@@ -21,7 +26,7 @@ Source Engine game installation, and it *should* just work!
 ## Building
 
 ### Prerequisites
-This project is tested against Go 1.14+, although will probably build on Go 1.12 or later.
+This project is tested against Go 1.14+, although will probably build on Go 1.12 or later. CGo is required for Imgui and Bullet.
 To compile with the physics module, `Bullet` is required; 
 * On Mac OS it can be installed with `brew install bullet`. 
 * See Bullet documentation for other platforms
@@ -42,6 +47,17 @@ of the game, and `<ContentDir>` is the sub-folder where the game content is loca
 For example, a default Counterstrike: Source installation would be specified like this: 
 `-game="C:\Program Files (x86)\Steam\Steamapps\common\Counterstrike Source\cstrike"`
 
+## What's the end goal?
+
+* An accurate-as-possible renderer compared to the original source engine
+* A physics environment for client-side simulation (Bullet will perform as "close enough")
+* Sound/audio playback
+* Expose an interface for controlling/passing game state in/out (e.g. demo files, netcode, etc)
+* Expose an interface for game specific implementations to be built on top
+* Headless mode. Be able to run this without a renderer or audio output
+* Interface for querying game data at runtime (e.g. LoS calculations between entities)
+* As little reliance on CGo as possible
+* 0 reliance on any valve code or libraries
 
 ## Contributing
 1. Fork it (<https://github.com/galaco/kero/fork>)

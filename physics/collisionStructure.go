@@ -57,7 +57,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 
 	wg.Wait()
 
-	// This loop *could* be done inside asyncVertsFromPlanes, but maybe these bullet CGo calls aren't threadsafe
+	// *Could* be moved inside asyncVertsFromPlanes, but not before confirming if these bullet CGo calls are threadsafe
 	for idx := range brushes {
 		if verts[idx] == nil || len(verts[idx]) == 0 {
 			continue
@@ -111,10 +111,8 @@ func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionM
 		}
 		faceOffset += header.FaceCount
 
-		part := bullet.BulletNewConvexHullShape()
-		part.AddVertices(verts[idx])
-
-		parts = append(parts, part)
+		parts = append(parts, bullet.BulletNewConvexHullShape())
+		parts[idx].AddVertices(verts[idx])
 	}
 
 	mesh := studiomodelCollisionMesh{
@@ -123,7 +121,7 @@ func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionM
 		compoundShapeHandle: bullet.BulletNewCompoundShape(),
 	}
 	for _, i := range mesh.parts {
-		bullet.BulletAddChildToCompoundShape(mesh.compoundShapeHandle, i, mgl32.Vec3{}, mgl32.Quat{})
+		bullet.BulletAddChildToCompoundShape(mesh.compoundShapeHandle, i, mgl32.Vec3{}, mgl32.QuatIdent())
 	}
 
 	return mesh
