@@ -78,7 +78,8 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 
 type studiomodelCollisionMesh struct {
 	vertices            [][]mgl32.Vec3
-	compountShapeHandle bullet.BulletCollisionShapeHandle
+	parts []bullet.BulletCollisionShapeHandle
+	compoundShapeHandle bullet.BulletCollisionShapeHandle
 }
 
 func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionMesh {
@@ -112,16 +113,17 @@ func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionM
 
 		part := bullet.BulletNewConvexHullShape()
 		part.AddVertices(verts[idx])
+
+		parts = append(parts, part)
 	}
 
 	mesh := studiomodelCollisionMesh {
 		vertices:            verts,
-		compountShapeHandle: bullet.BulletNewCompoundShape(),
+		parts: 				 parts,
+		compoundShapeHandle: bullet.BulletNewCompoundShape(),
 	}
-
-	shape := bullet.BulletNewCompoundShape()
-	for _,i := range parts {
-		bullet.BulletAddChildToCompoundShape(shape, i, mgl32.Vec3{}, mgl32.Quat{})
+	for _,i := range mesh.parts {
+		bullet.BulletAddChildToCompoundShape(mesh.compoundShapeHandle, i, mgl32.Vec3{}, mgl32.Quat{})
 	}
 
 	return mesh

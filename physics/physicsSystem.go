@@ -150,7 +150,7 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 				if _,ok := system.studiomodelCollisionMeshes[e.Model().Model.Id]; !ok {
 					system.studiomodelCollisionMeshes[e.Model().Model.Id] = generateCollisionMeshFromStudiomodelPhy(e.Model().Model.OriginalStudiomodel.Phy)
 				}
-				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(e.Model().Model.OriginalStudiomodel.Mdl.Header.Mass, system.studiomodelCollisionMeshes[e.Model().Model.Id].compountShapeHandle)
+				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(e.Model().Model.OriginalStudiomodel.Mdl.Header.Mass, system.studiomodelCollisionMeshes[e.Model().Model.Id].compoundShapeHandle)
 			} else {
 				// Fall back to generating one
 				system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(4)

@@ -87,7 +87,7 @@ func (s *Renderer) Render() {
 	s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
 	s.renderStaticProps(s.dataScene.Camera, clusters)
-	//s.renderEntityProps()
+	s.renderEntityProps()
 
 	s.DrawDebug()
 }
