@@ -67,6 +67,14 @@ func ReleaseTextureResource(texture Texture) {
 	texture.Release()
 }
 
+func DeleteTextureResource(textureId uint32) {
+	gosigl.DeleteTextures(gosigl.TextureBindingId(textureId))
+}
+
+func DeleteMeshResource(mesh GpuMesh) {
+	gosigl.DeleteMesh(mesh)
+}
+
 func UploadLightmap(texture Texture) uint32 {
 	textureBuffer := uint32(0)
 	gl.GenTextures(1, &textureBuffer)

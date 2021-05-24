@@ -13,6 +13,9 @@ func (cache *GpuItem) Add(name string, item uint32) {
 func (cache *GpuItem) Find(name string) uint32 {
 	return cache.items[name]
 }
+func (cache *GpuItem) All() map[string]uint32 {
+	return cache.items
+}
 
 // NewTextureCache
 func NewGpuItemCache() GpuItem {

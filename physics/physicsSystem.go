@@ -32,6 +32,10 @@ func (system *PhysicsSystem) Initialize() {
 	event.Get().AddListener(messages.TypeChangeLevel, system.onChangeLevel)
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		system.Cleanup()
+	})
+
 	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
 }
 

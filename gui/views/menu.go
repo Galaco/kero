@@ -26,6 +26,9 @@ func (view *Menu) Render() {
 			}
 			event.Get().Dispatch(messages.TypeChangeLevel, name)
 		}).Draw()
+		gui.NewButton("menu_disconnect", "Disconnect", func() {
+			event.Get().Dispatch(messages.TypeEngineDisconnect, nil)
+		}).Draw()
 		gui.NewButton("menu_quit", "Quit", func() {
 			event.Get().Dispatch(messages.TypeEngineQuit, nil)
 		}).Draw()

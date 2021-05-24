@@ -44,6 +44,10 @@ func (s *Renderer) Initialize() {
 	adapter.EnableBackFaceCulling()
 
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
+
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		s.Cleanup()
+	})
 	s.bindConVars()
 }
 
@@ -287,7 +291,20 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 }
 
 func (s *Renderer) Cleanup() {
+	// Release GPU resources
 
+	for _,s := range s.gpuScene.GpuStaticProps {
+		for _,id := range s.Id {
+			adapter.DeleteMeshResource(id)
+		}
+	}
+
+	for _,id := range s.gpuScene.GpuItemCache.All() {
+		adapter.DeleteTextureResource(id)
+	}
+
+	s.gpuScene = scene.GPUScene{}
+	s.dataScene = nil
 }
 
 func (s *Renderer) bindConVars() {
