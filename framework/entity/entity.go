@@ -57,7 +57,7 @@ func (e *Entity) Classname() string {
 	return e.class
 }
 
-// Targetname returns the entity targername
+// Targetname returns the entity targetname
 func (e *Entity) Targetname() string {
 	return e.name
 }

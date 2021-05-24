@@ -12,11 +12,13 @@ import (
 	"github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/messages"
 	"github.com/go-gl/mathgl/mgl32"
+	"strings"
 )
 
 type PhysicsSystem struct {
 	dataScene *scene.StaticScene
 
+	// Dynamic entities (includes prop_physics* & prop_dynamic*)
 	physicsEntities []entity.IEntity
 
 	// Bullet
@@ -144,7 +146,12 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	console.PrintString(console.LevelInfo, "Physics prop collision structures...")
 	for _, e := range system.dataScene.Entities {
 		if e.Model() != nil {
-			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), false)
+			disableMotion := true
+			// @TODO Once entity base types are implemented they can be detected better than this
+			if strings.HasPrefix(e.Classname(), "prop_physics") {
+				disableMotion = false
+			}
+			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), disableMotion)
 			system.physicsEntities = append(system.physicsEntities, e)
 		}
 	}

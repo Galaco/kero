@@ -38,10 +38,9 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 			wg.Done()
 			return
 		}
-		sides := brushSides[b.FirstSide : b.FirstSide+b.NumSides]
-		planeNormals := make([]plane.Plane, len(sides))
+		planeNormals := make([]plane.Plane, b.NumSides)
 
-		for i, side := range sides {
+		for i, side := range brushSides[b.FirstSide : b.FirstSide+b.NumSides] {
 			planeNormals[i] = planes[side.PlaneNum]
 		}
 
