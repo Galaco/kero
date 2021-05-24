@@ -233,11 +233,11 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 				continue
 			}
 			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
-			if gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Id]; ok {
+			if gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Model.Id]; ok {
 				for idx := range gpuProp.Id {
 					adapter.BindMesh(&gpuProp.Id[idx])
 					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
-					adapter.DrawIndexedArray(len(prop.Model().Meshes()[idx].Indices()), 0, nil)
+					adapter.DrawIndexedArray(len(prop.Model().Model.Meshes()[idx].Indices()), 0, nil)
 				}
 			}
 		}
@@ -286,7 +286,7 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices()))
 }
 
-func (s *Renderer) ReleaseGPUResources() {
+func (s *Renderer) Cleanup() {
 
 }
 

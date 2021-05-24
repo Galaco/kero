@@ -5,6 +5,7 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
@@ -31,28 +32,6 @@ func (system *PhysicsSystem) Initialize() {
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
 	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
-
-	// create an sdk handle
-	system.sdk = bullet.BulletNewPhysicsSDK()
-
-	// instance a world
-	system.world = bullet.BulletNewDynamicWorld(system.sdk)
-	bullet.BulletSetGravity(system.world, 0.0, 0.0, -100.0)
-}
-
-func (system *PhysicsSystem) Cleanup() {
-	for _, i := range system.physicsEntities {
-		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
-		i.Model().RigidBody = nil
-	}
-	if system.bspRigidBody != nil {
-		for _, r := range system.bspRigidBody.RigidBodyHandles {
-			bullet.BulletDeleteRigidBody(r)
-		}
-	}
-
-	bullet.BulletDeleteDynamicWorld(system.world)
-	bullet.BulletDeletePhysicsSDK(system.sdk)
 }
 
 func (system *PhysicsSystem) Update(dt float64) {
@@ -122,54 +101,88 @@ func (system *PhysicsSystem) onChangeLevel(message interface{}) {
 	if system.dataScene == nil {
 		return
 	}
+	system.Cleanup()
+}
+
+func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
+	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
+
+	// create an sdk handle
+	system.sdk = bullet.BulletNewPhysicsSDK()
+	// instance a world
+	system.world = bullet.BulletNewDynamicWorld(system.sdk)
+	bullet.BulletSetGravity(system.world, 0.0, 0.0, -100.0)
+
+	console.PrintString(console.LevelInfo, "Generating collision structures....")
+
+	// Generate BSP Rigidbody
+	console.PrintString(console.LevelInfo, "BSP collision structure...")
+	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
+	for _, r := range system.bspRigidBody.RigidBodyHandles {
+		bullet.BulletAddRigidBody(system.world, r)
+	}
+
+	// Generate Staticprop RigidBodies
+	console.PrintString(console.LevelInfo, "BSP collision structures...")
+	for _, e := range system.dataScene.StaticProps {
+		system.prepareModelInstanceRigidBody(e.Model(), e.Transform.TransformationMatrix(), true)
+	}
+
+	// Find entities that have a model
+	console.PrintString(console.LevelInfo, "Physics prop collision structures...")
+	for _, e := range system.dataScene.Entities {
+		if e.Model() != nil {
+			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), false)
+			system.physicsEntities = append(system.physicsEntities, e)
+		}
+	}
+	console.PrintString(console.LevelSuccess, "Collision structures ready!")
+}
+
+func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {
+	mass := float32(0)
+	if isStatic == false {
+		mass = model.Model.OriginalStudiomodel.Mdl.Header.Mass
+	}
+
+	// Prepare Bullet environment for collision meshes
+	if model.Model.OriginalStudiomodel.Phy != nil {
+		// We have an actual source engine .phy collision model
+		if _, ok := system.studiomodelCollisionMeshes[model.Model.Id]; !ok {
+			system.studiomodelCollisionMeshes[model.Model.Id] = generateCollisionMeshFromStudiomodelPhy(model.Model.OriginalStudiomodel.Phy)
+		}
+		model.RigidBody = collision.NewConvexHullFromExistingShape(
+			mass,
+			system.studiomodelCollisionMeshes[model.Model.Id].compoundShapeHandle)
+	} else {
+		// Fall back to generating one
+		model.RigidBody = collision.NewSphericalHull(4)
+	}
+
+	model.RigidBody.SetTransform(initialTransformation)
+	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
+}
+
+func (system *PhysicsSystem) Cleanup() {
+	if system.dataScene == nil {
+		return
+	}
+	bullet.BulletDeleteDynamicWorld(system.world)
+	bullet.BulletDeletePhysicsSDK(system.sdk)
 
 	for _, i := range system.physicsEntities {
+		if i.Model() == nil || i.Model().RigidBody == nil {
+			continue
+		}
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
 	for _, r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletDeleteRigidBody(r)
 	}
+	system.physicsEntities = make([]entity.IEntity, 0)
 	system.dataScene = nil
 	system.bspRigidBody = nil
-}
-
-func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
-	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
-
-	console.PrintString(console.LevelInfo, "Generating collision structures....")
-
-	// Generate BSP Rigidbody
-	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	for _, r := range system.bspRigidBody.RigidBodyHandles {
-		bullet.BulletAddRigidBody(system.world, r)
-	}
-	console.PrintString(console.LevelInfo, "BSP collision structure ready!")
-
-	// Find entities that have a model
-	for idx, e := range system.dataScene.Entities {
-		if e.Model() != nil {
-			// Prepare Bullet environment for collision meshes
-			if e.Model() != nil && e.Model().Model.OriginalStudiomodel.Phy != nil {
-				// We have an actual source engine .phy collision model
-				if _, ok := system.studiomodelCollisionMeshes[e.Model().Model.Id]; !ok {
-					system.studiomodelCollisionMeshes[e.Model().Model.Id] = generateCollisionMeshFromStudiomodelPhy(e.Model().Model.OriginalStudiomodel.Phy)
-				}
-				system.dataScene.Entities[idx].Model().RigidBody = collision.NewConvexHullFromExistingShape(
-					1,
-					system.studiomodelCollisionMeshes[e.Model().Model.Id].compoundShapeHandle)
-			} else {
-				// Fall back to generating one
-				system.dataScene.Entities[idx].Model().RigidBody = collision.NewSphericalHull(4)
-			}
-
-			system.dataScene.Entities[idx].Model().RigidBody.SetTransform(e.Transform().TransformationMatrix())
-			bullet.BulletAddRigidBody(system.world, system.dataScene.Entities[idx].Model().RigidBody.BulletHandle())
-			system.physicsEntities = append(system.physicsEntities, system.dataScene.Entities[idx])
-		}
-	}
-	console.PrintString(console.LevelInfo, "Physics prop collision structures ready!")
-	console.PrintString(console.LevelInfo, "Collision structure ready!")
 }
 
 func NewPhysicsSystem() *PhysicsSystem {

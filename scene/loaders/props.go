@@ -19,6 +19,11 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 	// Get StaticProp list to load
 	propPaths := make([]string, 0)
 	for _, propEntry := range propLump.PropLumps {
+		if uint16(len(propLump.DictLump.Name)) <= propEntry.GetPropType() {
+			// @TODO This suggests a bug in the bsp parser.
+			console.PrintString(console.LevelError, fmt.Sprintf("staticprop dictionary index out of range. id: %d", propEntry.GetPropType()))
+			continue
+		}
 		propPaths = append(propPaths, propLump.DictLump.Name[propEntry.GetPropType()])
 	}
 	propPaths = generateUniquePropList(propPaths)
@@ -36,6 +41,10 @@ func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*
 	staticPropList := make([]graphics.StaticProp, 0)
 
 	for _, propEntry := range propLump.PropLumps {
+		if uint16(len(propLump.DictLump.Name)) <= propEntry.GetPropType() {
+			// @TODO This suggests a bug in the bsp parser.
+			continue
+		}
 		modelName := propLump.DictLump.Name[propEntry.GetPropType()]
 		if m, ok := propDictionary[modelName]; ok {
 			staticPropList = append(staticPropList, *graphics.NewStaticProp(propEntry, &propLump.LeafLump, m))
@@ -65,10 +74,10 @@ func LoadEntityProps(fs graphics.VirtualFileSystem, entities []entity.IEntity) m
 
 	// Load Prop data
 	propDictionary := asyncLoadProps(fs, propPaths)
-	console.PrintString(console.LevelSuccess, fmt.Sprintf("%d staticprops loaded", len(propDictionary)))
+	console.PrintString(console.LevelSuccess, fmt.Sprintf("%d dynamic props loaded", len(propDictionary)))
 
 	if len(propDictionary) != len(propPaths) {
-		console.PrintString(console.LevelError, fmt.Sprintf("%d staticprops could not be loaded", len(propPaths)-len(propDictionary)))
+		console.PrintString(console.LevelError, fmt.Sprintf("%d dynamic could not be loaded", len(propPaths)-len(propDictionary)))
 	}
 
 	for idx, e := range entities {

@@ -80,7 +80,7 @@ func (kero *Kero) onQuit(e interface{}) {
 
 func (kero *Kero) exit() {
 	kero.physics.Cleanup()
-	kero.renderer.ReleaseGPUResources()
+	kero.renderer.Cleanup()
 }
 
 // NewKero returns a new Kero instance

@@ -43,7 +43,6 @@ func (transform *Transform) TransformationMatrix() mgl32.Mat4 {
 		//rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{0, 0, 1}, mgl32.DegToRad(transform.Orientation.V[1]))
 		//rotation = transform.rotateAroundAxis(rotation, mgl32.Vec3{0, 1, 0}, mgl32.DegToRad(transform.Orientation.V[2]))
 
-
 		//@TODO ROTATIONS
 
 		// scale

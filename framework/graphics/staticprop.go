@@ -12,14 +12,14 @@ import (
 type StaticProp struct {
 	Transform       Transform
 	leafList        []uint16
-	model           *mesh.Model
 	fadeMinDistance float32
 	fadeMaxDistance float32
+	model           mesh.ModelInstance
 }
 
 // Model returns props model
-func (prop *StaticProp) Model() *mesh.Model {
-	return prop.model
+func (prop *StaticProp) Model() *mesh.ModelInstance {
+	return &prop.model
 }
 
 // LeafList returrns all leafs that this props is in
@@ -38,7 +38,9 @@ func (prop *StaticProp) FadeMaxDistance() float32 {
 // NewStaticProp returns new StaticProp
 func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticPropLeafLump, renderable *mesh.Model) *StaticProp {
 	prop := StaticProp{
-		model:    renderable,
+		model: mesh.ModelInstance{
+			Model: renderable,
+		},
 		leafList: make([]uint16, lumpProp.GetLeafCount()),
 	}
 	for i := uint16(0); i < lumpProp.GetLeafCount(); i++ {
