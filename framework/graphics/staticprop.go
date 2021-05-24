@@ -49,7 +49,7 @@ func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticProp
 
 	angles := lumpProp.GetAngles()
 	prop.Transform.Translation = lumpProp.GetOrigin()
-	prop.Transform.Orientation = mgl32.AnglesToQuat(mgl32.DegToRad(angles[0]), mgl32.DegToRad(angles[1]), mgl32.DegToRad(angles[2]), mgl32.XZY)
+	prop.Transform.Orientation = mgl32.AnglesToQuat(mgl32.DegToRad(angles[0]), mgl32.DegToRad(angles[1]), mgl32.DegToRad(angles[2]), mgl32.YZX)
 	prop.fadeMinDistance = lumpProp.GetFadeMinDist()
 	prop.fadeMaxDistance = lumpProp.GetFadeMaxDist()
 
