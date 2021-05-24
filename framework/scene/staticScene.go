@@ -116,13 +116,13 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 
 	texCache := NewTextureCache()
 
+	texCache.Add(ErrorTexturePath, graphics.NewErrorTexture(ErrorTexturePath))
+
 	if level.LightmapAtlas() != nil {
 		texCache.Add(LightmapTexturePath, level.LightmapAtlas())
 	} else {
 		texCache.Add(LightmapTexturePath, texCache.Find(ErrorTexturePath))
 	}
-
-	texCache.Add(ErrorTexturePath, graphics.NewErrorTexture(ErrorTexturePath))
 
 	// load materials
 	var tex graphics.Texture
