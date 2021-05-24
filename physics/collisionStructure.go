@@ -15,7 +15,6 @@ import (
 )
 
 type bspCollisionMesh struct {
-	indices           [][]bullet.BulletPhysicsIndice
 	vertices          [][]mgl32.Vec3
 	childShapeHandles []bullet.BulletCollisionShapeHandle
 	RigidBodyHandles  []bullet.BulletRigidBodyHandle
@@ -71,6 +70,47 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 
 	return &bspCollisionMesh{
 		vertices:          verts,
+		childShapeHandles: childShapeHandles,
+		RigidBodyHandles:  handles,
+	}
+}
+
+type displacementCollisionMesh struct {
+	indices           [][]bullet.BulletPhysicsIndice
+	vertices          [][]mgl32.Vec3
+	childShapeHandles []bullet.BulletCollisionShapeHandle
+	RigidBodyHandles  []bullet.BulletRigidBodyHandle
+}
+
+func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacementCollisionMesh {
+	indices := make([][]bullet.BulletPhysicsIndice, 0)
+	vertices := make([][]mgl32.Vec3, 0)
+	childShapeHandles := make([]bullet.BulletCollisionShapeHandle, 0)
+	handles := make([]bullet.BulletRigidBodyHandle, 0)
+
+	for idx, face := range scene.DisplacementFaces {
+		faceVertices := make([]mgl32.Vec3, 0)
+		faceIndices := make([]bullet.BulletPhysicsIndice, 0)
+
+		for idx, i := range scene.RawBsp.Mesh().Indices()[face.Offset() : face.Offset()+face.Length()] {
+			faceIndices = append(faceIndices, bullet.BulletPhysicsIndice(idx))
+			faceVertices = append(faceVertices,
+				mgl32.Vec3{
+					scene.RawBsp.Mesh().Vertices()[(i * 3)],
+					scene.RawBsp.Mesh().Vertices()[(i*3)+1],
+					scene.RawBsp.Mesh().Vertices()[(i*3)+2],
+				})
+		}
+
+		indices = append(indices, faceIndices)
+		vertices = append(vertices, faceVertices)
+		childShapeHandles = append(childShapeHandles, bullet.BulletNewStaticTriangleShape(indices[idx], vertices[idx], len(indices[idx])/3, len(vertices[idx])/3))
+		handles = append(handles, bullet.NewRigidBody(0, childShapeHandles[idx]))
+	}
+
+	return &displacementCollisionMesh{
+		indices:           indices,
+		vertices:          vertices,
 		childShapeHandles: childShapeHandles,
 		RigidBodyHandles:  handles,
 	}

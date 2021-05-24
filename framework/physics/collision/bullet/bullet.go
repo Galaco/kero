@@ -144,8 +144,13 @@ func BulletNewStaticPlaneShape(plane mgl32.Vec3, constant float64) BulletCollisi
 	}
 }
 
-func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []BulletVec3, totalTriangles, totalVerts int64) BulletCollisionShapeHandle {
-	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&vertices[0])), C.int(totalTriangles), C.int(totalVerts))
+func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []mgl32.Vec3, totalTriangles, totalVerts int) BulletCollisionShapeHandle {
+	v := make([]BulletVec3, len(vertices))
+	for idx, r := range vertices {
+		v[idx] = Vec3ToBullet(r)
+	}
+
+	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(int64(totalTriangles)), C.int(int64(totalVerts)))
 
 	return BulletCollisionShapeHandle{
 		handle: C.btNewBvhTriangleMeshShape(m),

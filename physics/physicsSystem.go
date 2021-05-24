@@ -24,6 +24,7 @@ type PhysicsSystem struct {
 	world bullet.BulletDynamicWorldHandle
 
 	bspRigidBody               *bspCollisionMesh
+	displacementRigidBody      *displacementCollisionMesh
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
 }
 
@@ -122,8 +123,15 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 		bullet.BulletAddRigidBody(system.world, r)
 	}
 
+	// Generate Displacement RigidBodies
+	console.PrintString(console.LevelInfo, "Displacement collision structures...")
+	system.displacementRigidBody = generateDisplacementCollisionMeshes(system.dataScene)
+	for _, r := range system.displacementRigidBody.RigidBodyHandles {
+		bullet.BulletAddRigidBody(system.world, r)
+	}
+
 	// Generate Staticprop RigidBodies
-	console.PrintString(console.LevelInfo, "BSP collision structures...")
+	console.PrintString(console.LevelInfo, "Static prop collision structures...")
 	for _, e := range system.dataScene.StaticProps {
 		system.prepareModelInstanceRigidBody(e.Model(), e.Transform.TransformationMatrix(), true)
 	}
@@ -180,9 +188,13 @@ func (system *PhysicsSystem) Cleanup() {
 	for _, r := range system.bspRigidBody.RigidBodyHandles {
 		bullet.BulletDeleteRigidBody(r)
 	}
+	for _, r := range system.displacementRigidBody.RigidBodyHandles {
+		bullet.BulletDeleteRigidBody(r)
+	}
 	system.physicsEntities = make([]entity.IEntity, 0)
 	system.dataScene = nil
 	system.bspRigidBody = nil
+	system.displacementRigidBody = nil
 }
 
 func NewPhysicsSystem() *PhysicsSystem {
