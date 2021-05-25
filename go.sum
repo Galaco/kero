@@ -13,8 +13,8 @@ github.com/galaco/source-tools-common v0.1.0 h1:NHhsoSKL42dfFKnfRI2D/3um0tbNLVP2
 github.com/galaco/source-tools-common v0.1.0/go.mod h1:+TApRVomBN759va2qrv5GaLuCaK2AWxR0tn9oc2U73Q=
 github.com/galaco/stringtable v0.1.1 h1:0V4zYLe8/1Ndx5PwT8hPgrYFgujete0QhwS3BdEk7k8=
 github.com/galaco/stringtable v0.1.1/go.mod h1:QsTYRslDE3iPm2wqig/5ZmKKTQsQ+LY6ZtEdBZLf9CY=
-github.com/galaco/studiomodel v1.0.0-alpha h1:WmJtuRWPmkcQKFU3c4QC6k9QH5JMTJJKkIuIB8JJbJI=
-github.com/galaco/studiomodel v1.0.0-alpha/go.mod h1:3sH4l4amq6gij37dAP6d5Jn99YRL6Hm8u6uq4t7zIY8=
+github.com/galaco/studiomodel v1.0.0-alpha.2 h1:3BtYRa6NOhvQl2X/y75JAmJ5b1vdahk2sFo5jjSgtNg=
+github.com/galaco/studiomodel v1.0.0-alpha.2/go.mod h1:3sH4l4amq6gij37dAP6d5Jn99YRL6Hm8u6uq4t7zIY8=
 github.com/galaco/tinygametools v0.1.1 h1:s65gIex1OQpWERPD1FdtZsaMXtf/D3J84eYN1RJE/Z4=
 github.com/galaco/tinygametools v0.1.1/go.mod h1:odt4iPoOUUb0Es074CVcukYLC80qyieSvdOcazcgSH8=
 github.com/galaco/vmf v0.0.0-20180309175744-7a9ccb6e8abb/go.mod h1:+hpnZQBHJ5xrERgGMr6f/KO0ZkxEkrvjqr3RI9aNHes=

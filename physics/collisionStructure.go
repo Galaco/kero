@@ -50,7 +50,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	}
 
 	for idx := range brushes {
-		asyncVertsFromPlanes(&brushes[idx], idx)
+		go asyncVertsFromPlanes(&brushes[idx], idx)
 	}
 
 	wg.Wait()
