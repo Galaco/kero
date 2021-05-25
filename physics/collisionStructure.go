@@ -33,8 +33,8 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	verts := make([][]mgl32.Vec3, len(brushes))
 	wg.Add(len(brushes))
 
-	asyncVertsFromPlanes := func(b brush.Brush, idx int) {
-		if b.Contents&bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
+	asyncVertsFromPlanes := func(b *brush.Brush, idx int) {
+		if b.Contents & bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
 			wg.Done()
 			return
 		}
@@ -49,8 +49,8 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 		wg.Done()
 	}
 
-	for idx, b := range brushes {
-		go asyncVertsFromPlanes(b, idx)
+	for idx := range brushes {
+		asyncVertsFromPlanes(&brushes[idx], idx)
 	}
 
 	wg.Wait()
@@ -195,7 +195,7 @@ func vectorITransform(in1 mgl32.Vec3, in2 mgl32.Mat3x4) (out mgl32.Vec3) {
 
 func isPointInsidePlanes(planeEquations []plane.Plane, point mgl32.Vec3, margin float32) bool {
 	for i := 0; i < len(planeEquations); i++ {
-		dist := (planeEquations[i].Normal.Mul(-planeEquations[i].Distance).Dot(point) + 0) - margin
+		dist := (planeEquations[i].Normal.Dot(point) + -planeEquations[i].Distance) - margin
 		if dist > 0. {
 			return false
 		}
