@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/kero/middleware"
 	loader "github.com/galaco/kero/scene/loaders"
 	"github.com/go-gl/mathgl/mgl32"
+	"runtime"
 )
 
 type Scene struct {
@@ -22,6 +23,11 @@ func (s *Scene) Initialize() {
 	event.Get().AddListener(messages.TypeChangeLevel, s.onChangeLevel)
 	middleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
 	middleware.InputMiddleware().AddListener(messages.TypeMouseMove, s.onMouseMove)
+
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		scene2.CloseCurrentScene()
+		runtime.GC()
+	})
 }
 
 func (s *Scene) Update(dt float64) {

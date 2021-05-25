@@ -26,6 +26,10 @@ func CurrentScene() *StaticScene {
 	return &sceneSingleton
 }
 
+func CloseCurrentScene() {
+	sceneSingleton = StaticScene{}
+}
+
 type StaticScene struct {
 	RawBsp            *graphics.Bsp
 	BspMesh           *mesh.BasicMesh

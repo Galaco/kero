@@ -16,6 +16,10 @@ import (
 // right now it does the bare minimum, and many models seem to have
 // some corruption.
 
+const (
+	stripIsTriangleList = 0x01
+)
+
 type virtualFileSystem interface {
 	GetFile(string) (io.Reader, error)
 }
@@ -132,8 +136,9 @@ func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([]flo
 			if lodIdx > len(model.LODS) {
 				return nil, nil, nil, nil, errors.New("invalid LOD index requested for model")
 			}
-			for _, mesh := range model.LODS[lodIdx].Meshes {
-				i := indicesForMesh(&mesh)
+			for _, m := range model.LODS[lodIdx].Meshes {
+
+				i := indicesForMesh(&m)
 				if len(i) == 0 {
 					return nil, nil, nil, nil, errors.New("invalid studiomodel mesh: 0 indices. ignoring")
 				}
@@ -152,20 +157,23 @@ func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([]flo
 
 // indicesForMesh get indices for mesh
 func indicesForMesh(mesh *vtx.Mesh) []uint32 {
-	if len(mesh.StripGroups) > 1 {
-		return make([]uint32, 0)
-	}
 	meshIndices := make([]uint32, 0)
 
 	// @TODO Use all strip groups
+	if len(mesh.StripGroups) > 1 {
+		return meshIndices
+	}
 	stripGroup := mesh.StripGroups[0]
 
+	var vert vtx.Vertex
 	for _, strip := range stripGroup.Strips {
-		for j := int32(0); j < strip.NumIndices; j++ {
-			index := stripGroup.Indices[strip.IndexOffset+j]
-			vert := stripGroup.Vertexes[index]
+		if strip.Flags & stripIsTriangleList == 0 {
+			continue
+		}
+		for i := int32(0); i < strip.NumIndices; i++ {
+			vert = stripGroup.Vertexes[stripGroup.Indices[strip.IndexOffset + i]]
 
-			meshIndices = append(meshIndices, uint32(strip.VertOffset)+uint32(vert.OriginalMeshVertexID))
+			meshIndices = append(meshIndices, uint32(vert.OriginalMeshVertexID) + uint32(strip.VertOffset))
 		}
 	}
 
@@ -178,9 +186,9 @@ func vertexDataForMesh(vvd *vvd.Vvd) ([]float32, []float32, []float32, error) {
 	uvs := make([]float32, 0, len(vvd.Vertices)*2)
 
 	for _, vertex := range vvd.Vertices {
-		vertices = append(vertices, vertex.Position.X(), vertex.Position.Y(), vertex.Position.Z())
-		normals = append(normals, vertex.Normal.X(), vertex.Normal.Y(), vertex.Normal.Z())
-		uvs = append(uvs, vertex.UVs.X(), vertex.UVs.Y())
+		vertices = append(vertices, vertex.Position[0], vertex.Position[1], vertex.Position[2])
+		normals = append(normals, vertex.Normal[0], vertex.Normal[1], vertex.Normal[2])
+		uvs = append(uvs, vertex.UVs[0], vertex.UVs[1])
 	}
 
 	return vertices, normals, uvs, nil
