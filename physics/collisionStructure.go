@@ -15,9 +15,10 @@ import (
 )
 
 type bspCollisionMesh struct {
-	vertices          [][]mgl32.Vec3
-	childShapeHandles []bullet.BulletCollisionShapeHandle
-	RigidBodyHandles  []bullet.BulletRigidBodyHandle
+	vertices          []mgl32.Vec3
+	indices []bullet.BulletPhysicsIndice
+	childShapeHandles bullet.BulletCollisionShapeHandle
+	RigidBodyHandles  bullet.BulletRigidBodyHandle
 }
 
 func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
@@ -25,8 +26,6 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	brushSides := scene.RawBsp.File().Lump(bsp.LumpBrushSides).(*lumps.BrushSide).GetData()
 	planes := scene.RawBsp.File().Lump(bsp.LumpPlanes).(*lumps.Planes).GetData()
 
-	childShapeHandles := make([]bullet.BulletCollisionShapeHandle, 0)
-	handles := make([]bullet.BulletRigidBodyHandle, 0)
 
 	wg := sync.WaitGroup{}
 
@@ -55,57 +54,64 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 
 	wg.Wait()
 
-	// *Could* be moved inside asyncVertsFromPlanes, but not before confirming if these bullet CGo calls are threadsafe
+	vertices := make([]mgl32.Vec3, 0)
+	indices := make([]bullet.BulletPhysicsIndice, 0)
+	idxBase := 0
 	for idx := range brushes {
 		if verts[idx] == nil || len(verts[idx]) == 0 {
 			continue
 		}
+		vertices = append(vertices, verts[idx]...)
 
-		h := bullet.BulletNewBrushShape(verts[idx])
+		for faceIndex := 0; faceIndex < len(verts[idx]); faceIndex++ {
+			indices = append(indices, bullet.BulletPhysicsIndice(faceIndex + idxBase))
+		}
 
-		childShapeHandles = append(childShapeHandles, h)
-		handles = append(handles, bullet.NewRigidBody(0, h))
+		idxBase = len(vertices)
 	}
 
+
+	childShapeHandle := bullet.BulletNewStaticTriangleShape(indices, vertices, len(indices)/3, len(vertices))
+
 	return &bspCollisionMesh{
-		vertices:          verts,
-		childShapeHandles: childShapeHandles,
-		RigidBodyHandles:  handles,
+		vertices:          vertices,
+		indices: indices,
+		childShapeHandles: childShapeHandle,
+		RigidBodyHandles:  bullet.NewRigidBody(0, childShapeHandle),
 	}
 }
 
 type displacementCollisionMesh struct {
-	indices           [][]bullet.BulletPhysicsIndice
-	vertices          [][]mgl32.Vec3
-	childShapeHandles []bullet.BulletCollisionShapeHandle
-	RigidBodyHandles  []bullet.BulletRigidBodyHandle
+	indices           []bullet.BulletPhysicsIndice
+	vertices          []mgl32.Vec3
+	childShapeHandles bullet.BulletCollisionShapeHandle
+	RigidBodyHandles  bullet.BulletRigidBodyHandle
 }
 
 func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacementCollisionMesh {
-	indices := make([][]bullet.BulletPhysicsIndice, 0)
-	vertices := make([][]mgl32.Vec3, 0)
-	childShapeHandles := make([]bullet.BulletCollisionShapeHandle, 0)
-	handles := make([]bullet.BulletRigidBodyHandle, 0)
+	if len(scene.DisplacementFaces) == 0 {
+		return nil
+	}
 
-	for idx, face := range scene.DisplacementFaces {
-		faceVertices := make([]mgl32.Vec3, 0)
-		faceIndices := make([]bullet.BulletPhysicsIndice, 0)
+	indices := make([]bullet.BulletPhysicsIndice, 0)
+	vertices := make([]mgl32.Vec3, 0)
 
+	idxBase := 0
+	for _, face := range scene.DisplacementFaces {
 		for idx, i := range scene.RawBsp.Mesh().Indices()[face.Offset() : face.Offset()+face.Length()] {
-			faceIndices = append(faceIndices, bullet.BulletPhysicsIndice(idx))
-			faceVertices = append(faceVertices,
+			indices = append(indices, bullet.BulletPhysicsIndice(idxBase + idx))
+			vertices = append(vertices,
 				mgl32.Vec3{
 					scene.RawBsp.Mesh().Vertices()[(i * 3)],
 					scene.RawBsp.Mesh().Vertices()[(i*3)+1],
 					scene.RawBsp.Mesh().Vertices()[(i*3)+2],
 				})
 		}
-
-		indices = append(indices, faceIndices)
-		vertices = append(vertices, faceVertices)
-		childShapeHandles = append(childShapeHandles, bullet.BulletNewStaticTriangleShape(indices[idx], vertices[idx], len(indices[idx])/3, len(vertices[idx])/3))
-		handles = append(handles, bullet.NewRigidBody(0, childShapeHandles[idx]))
+		idxBase += face.Length()
 	}
+
+	childShapeHandles := bullet.BulletNewStaticTriangleShape(indices, vertices, len(indices)/3, len(vertices))
+	handles := bullet.NewRigidBody(0, childShapeHandles)
 
 	return &displacementCollisionMesh{
 		indices:           indices,

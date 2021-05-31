@@ -80,10 +80,8 @@ func (system *PhysicsSystem) drawDebug() {
 
 	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
 	verts := make([]float32, 0)
-	for _, vs := range system.bspRigidBody.vertices {
-		for _, vert := range vs {
-			verts = append(verts, vert[0], vert[1], vert[2])
-		}
+	for _, vert := range system.bspRigidBody.vertices {
+		verts = append(verts, vert[0], vert[1], vert[2])
 	}
 	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 
@@ -125,15 +123,13 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	// Generate BSP Rigidbody
 	console.PrintString(console.LevelInfo, "BSP collision structure...")
 	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	for _, r := range system.bspRigidBody.RigidBodyHandles {
-		bullet.BulletAddRigidBody(system.world, r)
-	}
+	bullet.BulletAddRigidBody(system.world, system.bspRigidBody.RigidBodyHandles)
 
 	// Generate Displacement RigidBodies
 	console.PrintString(console.LevelInfo, "Displacement collision structures...")
 	system.displacementRigidBody = generateDisplacementCollisionMeshes(system.dataScene)
-	for _, r := range system.displacementRigidBody.RigidBodyHandles {
-		bullet.BulletAddRigidBody(system.world, r)
+	if system.displacementRigidBody != nil {
+		bullet.BulletAddRigidBody(system.world, system.displacementRigidBody.RigidBodyHandles)
 	}
 
 	// Generate Staticprop RigidBodies
@@ -196,11 +192,10 @@ func (system *PhysicsSystem) Cleanup() {
 		bullet.BulletDeleteRigidBody(i.Model().RigidBody.BulletHandle())
 		i.Model().RigidBody = nil
 	}
-	for _, r := range system.bspRigidBody.RigidBodyHandles {
-		bullet.BulletDeleteRigidBody(r)
-	}
-	for _, r := range system.displacementRigidBody.RigidBodyHandles {
-		bullet.BulletDeleteRigidBody(r)
+	bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandles)
+
+	if system.displacementRigidBody != nil {
+		bullet.BulletDeleteRigidBody(system.displacementRigidBody.RigidBodyHandles)
 	}
 	system.physicsEntities = make([]entity.IEntity, 0)
 	system.dataScene = nil

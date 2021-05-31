@@ -103,6 +103,7 @@ func NewRigidBody(mass float32, shape BulletCollisionShapeHandle) BulletRigidBod
 }
 
 type BulletCollisionShapeHandle struct {
+	holder interface{}
 	handle C.plCollisionShapeHandle
 }
 
@@ -153,6 +154,7 @@ func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []mgl3
 	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(int64(totalTriangles)), C.int(int64(totalVerts)))
 
 	return BulletCollisionShapeHandle{
+		holder: v,
 		handle: C.btNewBvhTriangleMeshShape(m),
 	}
 }

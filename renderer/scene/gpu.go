@@ -43,7 +43,6 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 	for key, tex := range frameworkScene.TexCache.All() {
 		if key == scene.LightmapTexturePath {
 			s.GpuItemCache.Add(scene.LightmapTexturePath, adapter.UploadLightmap(tex))
-			tex.Release()
 			continue
 		}
 		s.GpuItemCache.Add(key, adapter.UploadTexture(tex))
