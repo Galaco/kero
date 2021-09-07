@@ -18,7 +18,7 @@ require (
 	github.com/galaco/vmt v0.1.3
 	github.com/galaco/vpk2 v1.0.0 // indirect
 	github.com/galaco/vtf v1.2.0
-	github.com/go-gl/gl v0.0.0-20210813123233-e4099ee2221f
+	github.com/go-gl/gl v0.0.0-20210905235341-f7a045908259
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210727001814-0db043d8d5be
 	github.com/go-gl/mathgl v1.0.0
 	github.com/inkyblackness/imgui-go/v4 v4.2.0
