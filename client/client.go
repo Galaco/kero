@@ -7,7 +7,7 @@ import (
 	"github.com/galaco/kero/internal/framework/graphics/adapter"
 	input2 "github.com/galaco/kero/internal/framework/input"
 	"github.com/galaco/kero/internal/framework/window"
-	messages2 "github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/messages"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -66,8 +66,8 @@ func (c *Client) Initialize() error {
 	}
 
 	// Bind to the input library for window handling
-	input.InputMiddleware().AddListener(messages2.TypeKeyRelease, c.onKeyRelease)
-	input.InputMiddleware().AddListener(messages2.TypeMouseMove, c.onMouseMove)
+	input.InputMiddleware().AddListener(messages.TypeKeyRelease, c.onKeyRelease)
+	input.InputMiddleware().AddListener(messages.TypeMouseMove, c.onMouseMove)
 
 	// Initialize our rendering system
 	c.renderer.Initialize()
@@ -75,6 +75,7 @@ func (c *Client) Initialize() error {
 
 	// Bind our client data to shared/server resources
 	c.scene.BindSharedResources()
+	c.renderer.BindSharedResources()
 
 	return nil
 }

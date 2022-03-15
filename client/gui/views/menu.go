@@ -6,7 +6,7 @@ import (
 	"github.com/galaco/kero/internal/framework/filesystem"
 	"github.com/galaco/kero/internal/framework/gui"
 	"github.com/galaco/kero/internal/framework/gui/dialogs"
-	messages2 "github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/messages"
 )
 
 type Menu struct {
@@ -24,13 +24,13 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			event.Get().Dispatch(messages2.TypeChangeLevel, name)
+			event.Get().Dispatch(messages.TypeChangeLevel, name)
 		}).Draw()
 		gui.NewButton("menu_disconnect", "Disconnect", func() {
-			event.Get().Dispatch(messages2.TypeEngineDisconnect, nil)
+			event.Get().Dispatch(messages.TypeEngineDisconnect, nil)
 		}).Draw()
 		gui.NewButton("menu_quit", "Quit", func() {
-			event.Get().Dispatch(messages2.TypeEngineQuit, nil)
+			event.Get().Dispatch(messages.TypeEngineQuit, nil)
 		}).Draw()
 		gui.EndPanel()
 	}

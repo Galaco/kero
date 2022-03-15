@@ -5,6 +5,7 @@ import (
 	"github.com/galaco/kero/client/renderer/cache"
 	"github.com/galaco/kero/client/renderer/scene"
 	"github.com/galaco/kero/client/renderer/shaders"
+	"github.com/galaco/kero/client/renderer/utils"
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/event"
 	"github.com/galaco/kero/internal/framework/filesystem"
@@ -13,8 +14,7 @@ import (
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/internal/framework/scene/vis"
-	messages2 "github.com/galaco/kero/shared/messages"
-	"github.com/galaco/kero/shared/utils"
+	"github.com/galaco/kero/shared/messages"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
@@ -42,13 +42,6 @@ func (s *Renderer) Initialize() {
 	adapter.EnableBlending()
 	adapter.EnableDepthTesting()
 	adapter.EnableBackFaceCulling()
-
-	event.Get().AddListener(messages2.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
-
-	event.Get().AddListener(messages2.TypeEngineDisconnect, func(e interface{}) {
-		s.Cleanup()
-	})
-	s.bindConVars()
 }
 
 func (s *Renderer) Render() {
@@ -134,11 +127,6 @@ func (s *Renderer) DrawDebug() {
 func (s *Renderer) FinishFrame() {
 	adapter.ClearColor(0.25, 0.25, 0.25, 1)
 	adapter.ClearAll()
-}
-
-func (s *Renderer) onLoadingLevelParsed(message interface{}) {
-	s.dataScene = message.(*messages2.LoadingLevelParsed).Level().(*scene2.StaticScene)
-	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
 }
 
 func (s *Renderer) startFrame(camera *graphics.Camera) {
@@ -296,7 +284,6 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 
 func (s *Renderer) Cleanup() {
 	// Release GPU resources
-
 	for _, s := range s.gpuScene.GpuStaticProps {
 		for _, id := range s.Id {
 			adapter.DeleteMeshResource(id)
@@ -374,6 +361,20 @@ func (s *Renderer) bindConVars() {
 		}
 		return nil
 	})
+}
+
+func (s *Renderer) BindSharedResources() {
+	// When a new scene is loaded
+	event.Get().AddListener(messages.TypeLoadingLevelParsed, func(message interface{}) {
+		s.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
+		s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
+	})
+	// When a game is quit
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		s.Cleanup()
+	})
+
+	s.bindConVars()
 }
 
 func NewRenderer() *Renderer {

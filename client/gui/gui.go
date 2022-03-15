@@ -10,7 +10,7 @@ import (
 	"github.com/galaco/kero/internal/framework/gui/context"
 	"github.com/galaco/kero/internal/framework/input"
 	"github.com/galaco/kero/internal/framework/window"
-	messages2 "github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/messages"
 )
 
 type Gui struct {
@@ -35,8 +35,8 @@ func (s *Gui) Initialize() {
 	console.DisableBufferedLogs()
 
 	s.uiContext = context.NewContext(window.CurrentWindow())
-	inputMiddleware.InputMiddleware().AddListener(messages2.TypeKeyRelease, s.onKeyRelease)
-	event.Get().AddListener(messages2.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
+	inputMiddleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
+	event.Get().AddListener(messages.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
 
 }
 
@@ -50,8 +50,8 @@ func (s *Gui) onKeyRelease(message interface{}) {
 func (s *Gui) onLoadingLevelProgress(message interface{}) {
 	stage := message.(int)
 	s.loadingView.UpdateProgress(stage)
-	if stage == messages2.LoadingProgressStateError ||
-		stage == messages2.LoadingProgressStateFinished {
+	if stage == messages.LoadingProgressStateError ||
+		stage == messages.LoadingProgressStateFinished {
 		s.shouldDisplayLoadingScreen = false
 	} else {
 		s.shouldDisplayLoadingScreen = true

@@ -4,7 +4,8 @@ import (
 	"github.com/galaco/kero/client/camera"
 	"github.com/galaco/kero/internal/framework/event"
 	scene2 "github.com/galaco/kero/internal/framework/scene"
-	messages2 "github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/messages"
+	"runtime"
 )
 
 type sceneEntities struct {
@@ -20,9 +21,14 @@ func (s *sceneEntities) Update(dt float64) {
 }
 
 func (s *sceneEntities) BindSharedResources() {
-	event.Get().AddListener(messages2.TypeLoadingLevelParsed, func(message interface{}) {
-		dataScene := message.(*messages2.LoadingLevelParsed).Level().(*scene2.StaticScene)
+	event.Get().AddListener(messages.TypeLoadingLevelParsed, func(message interface{}) {
+		dataScene := message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
 		s.cameras = append(s.cameras, camera.NewCamera(dataScene.Camera))
 		s.activeCamera = s.cameras[0]
+	})
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		s.cameras = make([]*camera.Camera, 0)
+		s.activeCamera = nil
+		runtime.GC()
 	})
 }
