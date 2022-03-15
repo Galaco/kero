@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"github.com/galaco/kero"
-	"github.com/galaco/kero/framework/console"
-	"github.com/galaco/kero/framework/debug"
-	"github.com/galaco/kero/framework/filesystem"
-	"github.com/galaco/kero/framework/graphics/adapter"
-	"github.com/galaco/kero/framework/input"
-	"github.com/galaco/kero/framework/window"
+	"github.com/galaco/kero/internal/framework/console"
+	"github.com/galaco/kero/internal/framework/debug"
+	"github.com/galaco/kero/internal/framework/filesystem"
+	"github.com/galaco/kero/internal/framework/graphics/adapter"
+	"github.com/galaco/kero/internal/framework/input"
+	"github.com/galaco/kero/internal/framework/window"
 	"log"
 	"runtime"
 )

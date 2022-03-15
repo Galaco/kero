@@ -1,15 +1,16 @@
 package kero
 
 import (
-	"github.com/galaco/kero/framework/event"
-	"github.com/galaco/kero/framework/window"
-	"github.com/galaco/kero/game"
-	"github.com/galaco/kero/gui"
-	"github.com/galaco/kero/messages"
-	"github.com/galaco/kero/middleware"
-	"github.com/galaco/kero/physics"
-	"github.com/galaco/kero/renderer"
-	"github.com/galaco/kero/scene"
+	"github.com/galaco/kero/client/gui"
+	"github.com/galaco/kero/client/input"
+	"github.com/galaco/kero/client/renderer"
+	"github.com/galaco/kero/internal/framework/event"
+	"github.com/galaco/kero/internal/framework/window"
+	"github.com/galaco/kero/shared"
+	"github.com/galaco/kero/shared/game"
+	"github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/physics"
+	"github.com/galaco/kero/shared/scene"
 	"time"
 )
 
@@ -20,7 +21,7 @@ type Kero struct {
 	scene   *scene.Scene
 	physics *physics.PhysicsSystem
 
-	input    *middleware.Input
+	input    *input.Input
 	renderer *renderer.Renderer
 	ui       *gui.Gui
 }
@@ -32,8 +33,8 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 
 // Start runs the game loop
 func (kero *Kero) Start() {
-	middleware.AddInitialConvars()
-	kero.input = middleware.InitializeInput()
+	shared.AddInitialConvars()
+	kero.input = input.InitializeInput()
 	kero.renderer = renderer.NewRenderer()
 	kero.ui = gui.NewGui()
 	kero.scene = scene.NewScene()
