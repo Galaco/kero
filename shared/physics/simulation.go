@@ -4,12 +4,11 @@ import (
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/entity"
 	"github.com/galaco/kero/internal/framework/event"
-	"github.com/galaco/kero/internal/framework/graphics/adapter"
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	"github.com/galaco/kero/internal/framework/physics/collision"
 	"github.com/galaco/kero/internal/framework/physics/collision/bullet"
 	"github.com/galaco/kero/internal/framework/scene"
-	messages2 "github.com/galaco/kero/shared/messages"
+	"github.com/galaco/kero/shared/messages"
 	"github.com/go-gl/mathgl/mgl32"
 	"strings"
 )
@@ -18,7 +17,7 @@ const (
 	updateRate = 1 / 12
 )
 
-type PhysicsSystem struct {
+type Simulation struct {
 	dataScene *scene.StaticScene
 
 	timeSinceLastUpdate float64
@@ -35,18 +34,16 @@ type PhysicsSystem struct {
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
 }
 
-func (system *PhysicsSystem) Initialize() {
-	event.Get().AddListener(messages2.TypeChangeLevel, system.onChangeLevel)
-	event.Get().AddListener(messages2.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
+func (system *Simulation) Initialize() {
+	event.Get().AddListener(messages.TypeChangeLevel, system.onChangeLevel)
+	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
-	event.Get().AddListener(messages2.TypeEngineDisconnect, func(e interface{}) {
+	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
 		system.Cleanup()
 	})
-
-	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
 }
 
-func (system *PhysicsSystem) Update(dt float64) {
+func (system *Simulation) Update(dt float64) {
 	// Collisions don't need to run every frame. Aim for 12 times per second
 	if system.timeSinceLastUpdate <= updateRate {
 		system.timeSinceLastUpdate += dt
@@ -77,53 +74,18 @@ func (system *PhysicsSystem) Update(dt float64) {
 		system.physicsEntities[idx].Transform().Orientation = n.Model().RigidBody.GetOrientation()
 	}
 
-	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
-		system.drawDebug()
-	}
-
 	system.timeSinceLastUpdate = 0
 }
 
-func (system *PhysicsSystem) drawDebug() {
-	if adapter.CurrentShader() == nil {
-		return
-	}
-	adapter.EnableFrontFaceCulling()
-	adapter.DisableDepthTesting()
-
-	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
-	verts := make([]float32, 0)
-	for _, vert := range system.bspRigidBody.vertices {
-		verts = append(verts, vert[0], vert[1], vert[2])
-	}
-	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
-
-	for _, n := range system.physicsEntities {
-		if n.Model().RigidBody == nil {
-			continue
-		}
-		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, n.Transform().TransformationMatrix())
-		for _, r := range system.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
-			verts := make([]float32, 0)
-			for _, v := range r {
-				verts = append(verts, v[0], v[1], v[2])
-			}
-			adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
-		}
-	}
-	adapter.EnableDepthTesting()
-	adapter.EnableBackFaceCulling()
-}
-
-func (system *PhysicsSystem) onChangeLevel(message interface{}) {
+func (system *Simulation) onChangeLevel(message interface{}) {
 	if system.dataScene == nil {
 		return
 	}
 	system.Cleanup()
 }
 
-func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
-	system.dataScene = message.(*messages2.LoadingLevelParsed).Level().(*scene.StaticScene)
+func (system *Simulation) onLoadingLevelParsed(message interface{}) {
+	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
 
 	// create an sdk handle
 	system.sdk = bullet.BulletNewPhysicsSDK()
@@ -167,7 +129,7 @@ func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
 	console.PrintString(console.LevelSuccess, "Collision structures ready!")
 }
 
-func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {
+func (system *Simulation) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {
 	mass := float32(0)
 	if isStatic == false {
 		mass = model.Model.OriginalStudiomodel.Mdl.Header.Mass
@@ -191,7 +153,7 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
 }
 
-func (system *PhysicsSystem) Cleanup() {
+func (system *Simulation) Cleanup() {
 	if system.dataScene == nil {
 		return
 	}
@@ -216,8 +178,8 @@ func (system *PhysicsSystem) Cleanup() {
 	system.displacementRigidBody = nil
 }
 
-func NewPhysicsSystem() *PhysicsSystem {
-	return &PhysicsSystem{
+func NewSimulation() *Simulation {
+	return &Simulation{
 		physicsEntities:            make([]entity.IEntity, 0),
 		studiomodelCollisionMeshes: map[string]studiomodelCollisionMesh{},
 	}

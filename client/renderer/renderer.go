@@ -125,6 +125,10 @@ func (s *Renderer) DrawDebug() {
 	}
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
 	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0, 255, 0})
+
+	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
+		s.drawCollisionMeshes()
+	}
 }
 
 func (s *Renderer) FinishFrame() {
@@ -307,8 +311,40 @@ func (s *Renderer) Cleanup() {
 	s.dataScene = nil
 }
 
+func (s *Renderer) drawCollisionMeshes() {
+	//	if adapter.CurrentShader() == nil {
+	//		return
+	//	}
+	//	adapter.EnableFrontFaceCulling()
+	//	adapter.DisableDepthTesting()
+	//
+	//	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
+	//	verts := make([]float32, 0)
+	//	for _, vert := range s.bspRigidBody.vertices {
+	//		verts = append(verts, vert[0], vert[1], vert[2])
+	//	}
+	//	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
+	//
+	//	for _, n := range s.physicsEntities {
+	//		if n.Model().RigidBody == nil {
+	//			continue
+	//		}
+	//		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, n.Transform().TransformationMatrix())
+	//		for _, r := range s.studiomodelCollisionMeshes[n.Model().Model.Id].vertices {
+	//			verts := make([]float32, 0)
+	//			for _, v := range r {
+	//				verts = append(verts, v[0], v[1], v[2])
+	//			}
+	//			adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
+	//		}
+	//	}
+	//	adapter.EnableDepthTesting()
+	//	adapter.EnableBackFaceCulling()
+}
+
 func (s *Renderer) bindConVars() {
 	console.AddConvarBool("r_drawlightmaps", "Render lightmaps as diffuse material", false)
+	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
 	console.AddConvarInt("mat_leafvis", "Render visleaf wireframes", 0)
 
 	// Currently broken (texcache is flushed after gpu upload so raw lightmap colour data is unavailable)

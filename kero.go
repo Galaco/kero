@@ -17,7 +17,7 @@ type Kero struct {
 	isRunning bool
 
 	sharedScene   *scene.Scene
-	sharedPhysics *physics.PhysicsSystem
+	sharedPhysics *physics.Simulation
 
 	client *client.Client
 }
@@ -31,7 +31,7 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 func (kero *Kero) Start() {
 	shared.AddInitialConvars()
 	kero.sharedScene = scene.NewScene()
-	kero.sharedPhysics = physics.NewPhysicsSystem()
+	kero.sharedPhysics = physics.NewSimulation()
 
 	kero.isRunning = true
 
