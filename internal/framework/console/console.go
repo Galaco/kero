@@ -52,6 +52,10 @@ func AddOutputPipe(cb func(LogLevel, interface{})) {
 	singleton.mut.Unlock()
 }
 
+func ClearOutputPipes() {
+	singleton.pipes = []func(LogLevel, interface{}){}
+}
+
 // PrintString prints pass string to output stream
 func PrintString(level LogLevel, text string) {
 	PrintInterface(level, text)

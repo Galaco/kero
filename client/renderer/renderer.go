@@ -361,6 +361,8 @@ func (s *Renderer) bindConVars() {
 		}
 		return nil
 	})
+
+	console.AddConvarBool("hdr_enable", "Use HDR by default", true)
 }
 
 func (s *Renderer) BindSharedResources() {

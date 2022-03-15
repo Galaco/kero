@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func AddInitialConvars() {
+func BindSharedConsoleCommands() {
 	console.AddCommand("set", "Sets a convar", "set <convar> <value int|string|bool>", func(options string) error {
 		if options == "" || strings.Index(options, " ") < 1 {
 			return nil
@@ -44,6 +44,4 @@ func AddInitialConvars() {
 
 		return nil
 	})
-
-	console.AddConvarBool("hdr_enable", "Use HDR by default", true)
 }

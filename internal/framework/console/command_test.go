@@ -1,7 +1,6 @@
 package console
 
 import (
-	"log"
 	"testing"
 )
 
@@ -12,6 +11,28 @@ func TestAddCommand(t *testing.T) {
 
 	if _, ok := commandListSingleton.commands["foo"]; !ok {
 		t.Error("could not find added command")
+	}
+}
+
+func TestBuiltinCommands(t *testing.T) {
+	sut := make([]string, 0)
+	ClearOutputPipes()
+	AddOutputPipe(func(f LogLevel, a interface{}) {
+		sut = append(sut, a.(string))
+	})
+
+	err := ExecuteCommand("listcommands")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(sut) < 3 {
+		t.Error("unexpected number of lines printed by listcommands")
+		return
+	}
+
+	if sut[0] != "> listcommands" || sut[1] != "  describe: Explains a specific command" || sut[3] != "  listcommands: Displays a list of all available commands" {
+		t.Error("unexpected output from listcommands")
 	}
 }
 
@@ -45,27 +66,5 @@ func TestExecuteCommand(t *testing.T) {
 
 	if sut != true {
 		t.Error("executed command with parameter failed to run")
-	}
-}
-
-func TestBuiltinCommands(t *testing.T) {
-	sut := make([]string, 0)
-	AddOutputPipe(func(f LogLevel, a interface{}) {
-		sut = append(sut, a.(string))
-		log.Println(sut)
-	})
-
-	err := ExecuteCommand("listcommands")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if len(sut) < 3 {
-		t.Error("unexpected number of lines printed by listcommands")
-		return
-	}
-
-	if sut[0] != "> listcommands" || sut[1] != "  describe: Explains a specific command" || sut[2] != "  foo: bar" {
-		t.Error("unexpected output from listcommands")
 	}
 }

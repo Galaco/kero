@@ -4,6 +4,7 @@ import (
 	"github.com/galaco/kero/client/gui"
 	"github.com/galaco/kero/client/input"
 	"github.com/galaco/kero/client/renderer"
+	"github.com/galaco/kero/internal/framework/event"
 	"github.com/galaco/kero/internal/framework/graphics/adapter"
 	input2 "github.com/galaco/kero/internal/framework/input"
 	"github.com/galaco/kero/internal/framework/window"
@@ -68,6 +69,9 @@ func (c *Client) Initialize() error {
 	// Bind to the input library for window handling
 	input.InputMiddleware().AddListener(messages.TypeKeyRelease, c.onKeyRelease)
 	input.InputMiddleware().AddListener(messages.TypeMouseMove, c.onMouseMove)
+	event.Get().AddListener(messages.TypeEngineQuit, func(interface{}) {
+		window.CurrentWindow().Close()
+	})
 
 	// Initialize our rendering system
 	c.renderer.Initialize()
@@ -78,6 +82,10 @@ func (c *Client) Initialize() error {
 	c.renderer.BindSharedResources()
 
 	return nil
+}
+
+func (c *Client) ShouldClose() bool {
+	return window.CurrentWindow() == nil || !window.CurrentWindow().ShouldClose()
 }
 
 func (c *Client) Cleanup() {
