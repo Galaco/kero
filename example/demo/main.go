@@ -6,9 +6,6 @@ import (
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/debug"
 	"github.com/galaco/kero/internal/framework/filesystem"
-	"github.com/galaco/kero/internal/framework/graphics/adapter"
-	"github.com/galaco/kero/internal/framework/input"
-	"github.com/galaco/kero/internal/framework/window"
 	"log"
 	"runtime"
 )
@@ -32,11 +29,6 @@ func main() {
 	})
 	debug.StartProfiler()
 
-	// Framework
-	if err := initFramework(); err != nil {
-		panic(err)
-	}
-
 	// Game config
 	game := NewGameDefinition()
 	_, err := filesystem.Init(*gameDirectoryPtr)
@@ -48,16 +40,4 @@ func main() {
 	keroImpl := kero.NewKero()
 	keroImpl.RegisterGameDefinitions(game)
 	keroImpl.Start()
-}
-
-func initFramework() error {
-	win, err := window.CreateWindow(1920, 1080, "Kero: A Source Engine Implementation")
-	if err != nil {
-		return err
-	}
-
-	win.SetActive()
-	input.SetBoundWindow(win)
-	win.Handle().Handle().Focus()
-	return adapter.Init()
 }

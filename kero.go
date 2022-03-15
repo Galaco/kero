@@ -1,9 +1,7 @@
 package kero
 
 import (
-	"github.com/galaco/kero/client/gui"
-	"github.com/galaco/kero/client/input"
-	"github.com/galaco/kero/client/renderer"
+	"github.com/galaco/kero/client"
 	"github.com/galaco/kero/internal/framework/event"
 	"github.com/galaco/kero/internal/framework/window"
 	"github.com/galaco/kero/shared"
@@ -18,12 +16,10 @@ import (
 type Kero struct {
 	isRunning bool
 
-	scene   *scene.Scene
-	physics *physics.PhysicsSystem
+	sharedScene   *scene.Scene
+	sharedPhysics *physics.PhysicsSystem
 
-	input    *input.Input
-	renderer *renderer.Renderer
-	ui       *gui.Gui
+	client *client.Client
 }
 
 // RegisterGameDefinitions sets up provided game-specific configuration
@@ -34,19 +30,16 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 // Start runs the game loop
 func (kero *Kero) Start() {
 	shared.AddInitialConvars()
-	kero.input = input.InitializeInput()
-	kero.renderer = renderer.NewRenderer()
-	kero.ui = gui.NewGui()
-	kero.scene = scene.NewScene()
-	kero.physics = physics.NewPhysicsSystem()
+	kero.sharedScene = scene.NewScene()
+	kero.sharedPhysics = physics.NewPhysicsSystem()
 
 	kero.isRunning = true
 
-	kero.physics.Initialize()
-	kero.scene.Initialize()
+	kero.sharedPhysics.Initialize()
+	kero.sharedScene.Initialize()
 
-	kero.renderer.Initialize()
-	kero.ui.Initialize()
+	kero.client = client.NewClient()
+	kero.client.Initialize()
 
 	event.Get().AddListener(messages.TypeEngineQuit, kero.onQuit)
 
@@ -59,16 +52,11 @@ func (kero *Kero) mainLoop() {
 	dt := 0.0
 	startingTime := time.Now().UTC()
 	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
-		kero.input.Poll()
+		kero.client.FixedUpdate(dt)
+		kero.client.Update()
 
-		kero.physics.Update(dt)
-		kero.scene.Update(dt)
-
-		kero.renderer.Render()
-		kero.ui.Render()
-
-		window.CurrentWindow().SwapBuffers()
-		kero.renderer.FinishFrame()
+		kero.sharedPhysics.Update(dt)
+		kero.sharedScene.Update(dt)
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
 		startingTime = time.Now().UTC()
@@ -80,8 +68,8 @@ func (kero *Kero) onQuit(e interface{}) {
 }
 
 func (kero *Kero) exit() {
-	kero.physics.Cleanup()
-	kero.renderer.Cleanup()
+	kero.sharedPhysics.Cleanup()
+	kero.client.Cleanup()
 }
 
 // NewKero returns a new Kero instance
