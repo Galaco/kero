@@ -7,14 +7,16 @@
 
 > Kero is a Source Engine game client implementation written in Go.
 
+**This project is primarily tested against Counterstrike: Source, but CS:GO there is limited support for other games**
+
 ## Current Features
 
 * BSP rendering with visdata support
-* Skybox rendering
+* Skybox rendering including 3D skybox
 * Lightmap support (incomplete, BSP geometry only)
 * Staticprop rendering
 * Prop entity rendering (incomplete, models with bones unsupported)
-* Bullet physics for brush:physics entity collisions
+* Bullet physics for full physics simulation
 
 ###### Build Kero, run it by pointing it to a Source Engine game installation, and it *should* just work!
 
