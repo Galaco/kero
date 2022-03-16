@@ -2,8 +2,10 @@ package scene
 
 import (
 	"github.com/galaco/kero/internal/framework/console"
+	"github.com/galaco/kero/internal/framework/entity"
 	"github.com/galaco/kero/internal/framework/event"
 	"github.com/galaco/kero/internal/framework/filesystem"
+	"github.com/galaco/kero/internal/framework/graphics"
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/shared/messages"
 	loader "github.com/galaco/kero/shared/scene/loaders"
@@ -12,8 +14,6 @@ import (
 
 type Scene struct {
 	dataScene *scene2.StaticScene
-
-	listenToInput bool
 }
 
 func (s *Scene) Initialize() {
@@ -25,17 +25,18 @@ func (s *Scene) Initialize() {
 	})
 }
 
-func (s *Scene) Update(dt float64) {
+func (s *Scene) Entities() []entity.IEntity {
 	if s.dataScene == nil {
-		return
+		return nil
 	}
-	if s.dataScene.Camera != nil {
-		s.dataScene.Camera.Update(dt)
-	}
+	return s.dataScene.Entities
+}
 
-	for _, e := range s.dataScene.Entities {
-		e.Think(dt)
+func (s *Scene) Camera() *graphics.Camera {
+	if s.dataScene == nil {
+		return nil
 	}
+	return s.dataScene.Camera
 }
 
 func (s *Scene) onChangeLevel(message interface{}) {
@@ -59,6 +60,9 @@ func (s *Scene) onChangeLevel(message interface{}) {
 	}(message.(string))
 }
 
-func NewScene() *Scene {
-	return &Scene{}
+// Only 1 scene can be active at once
+var scene Scene
+
+func CurrentScene() *Scene {
+	return &scene
 }

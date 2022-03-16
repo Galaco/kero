@@ -18,8 +18,6 @@ const (
 )
 
 type Simulation struct {
-	dataScene *scene.StaticScene
-
 	timeSinceLastUpdate float64
 
 	// Dynamic entities (includes prop_physics* & prop_dynamic*)
@@ -78,14 +76,11 @@ func (system *Simulation) Update(dt float64) {
 }
 
 func (system *Simulation) onChangeLevel(message interface{}) {
-	if system.dataScene == nil {
-		return
-	}
 	system.Cleanup()
 }
 
 func (system *Simulation) onLoadingLevelParsed(message interface{}) {
-	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
+	dataScene := message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
 
 	// create an sdk handle
 	system.sdk = bullet.BulletNewPhysicsSDK()
@@ -97,25 +92,25 @@ func (system *Simulation) onLoadingLevelParsed(message interface{}) {
 
 	// Generate BSP Rigidbody
 	console.PrintString(console.LevelInfo, "BSP collision structure...")
-	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
+	system.bspRigidBody = generateBspCollisionMesh(dataScene)
 	bullet.BulletAddRigidBody(system.world, system.bspRigidBody.RigidBodyHandles)
 
 	// Generate Displacement RigidBodies
 	console.PrintString(console.LevelInfo, "Displacement collision structures...")
-	system.displacementRigidBody = generateDisplacementCollisionMeshes(system.dataScene)
+	system.displacementRigidBody = generateDisplacementCollisionMeshes(dataScene)
 	if system.displacementRigidBody != nil {
 		bullet.BulletAddRigidBody(system.world, system.displacementRigidBody.RigidBodyHandles)
 	}
 
 	// Generate Staticprop RigidBodies
 	console.PrintString(console.LevelInfo, "Static prop collision structures...")
-	for _, e := range system.dataScene.StaticProps {
+	for _, e := range dataScene.StaticProps {
 		system.prepareModelInstanceRigidBody(e.Model(), e.Transform.TransformationMatrix(), true)
 	}
 
 	// Find entities that have a model
 	console.PrintString(console.LevelInfo, "Physics prop collision structures...")
-	for _, e := range system.dataScene.Entities {
+	for _, e := range dataScene.Entities {
 		if e.Model() != nil {
 			disableMotion := true
 			// @TODO Once entity base types are implemented they can be detected better than this
@@ -154,7 +149,8 @@ func (system *Simulation) prepareModelInstanceRigidBody(model *mesh.ModelInstanc
 }
 
 func (system *Simulation) Cleanup() {
-	if system.dataScene == nil {
+	if system.bspRigidBody == nil {
+		// Because we cannot have a collisionless BSP
 		return
 	}
 	bullet.BulletDeleteDynamicWorld(system.world)
@@ -173,7 +169,6 @@ func (system *Simulation) Cleanup() {
 		bullet.BulletDeleteRigidBody(system.displacementRigidBody.RigidBodyHandles)
 	}
 	system.physicsEntities = make([]entity.IEntity, 0)
-	system.dataScene = nil
 	system.bspRigidBody = nil
 	system.displacementRigidBody = nil
 }

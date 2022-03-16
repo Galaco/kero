@@ -5,7 +5,6 @@ import (
 	"github.com/galaco/kero/internal/framework/event"
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/shared/messages"
-	"runtime"
 )
 
 type sceneEntities struct {
@@ -29,6 +28,5 @@ func (s *sceneEntities) BindSharedResources() {
 	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
 		s.cameras = make([]*camera.Camera, 0)
 		s.activeCamera = nil
-		runtime.GC()
 	})
 }

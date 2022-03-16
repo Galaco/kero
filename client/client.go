@@ -85,7 +85,7 @@ func (c *Client) Initialize() error {
 }
 
 func (c *Client) ShouldClose() bool {
-	return window.CurrentWindow() == nil || !window.CurrentWindow().ShouldClose()
+	return window.CurrentWindow() == nil || window.CurrentWindow().ShouldClose()
 }
 
 func (c *Client) Cleanup() {

@@ -2,6 +2,7 @@ package kero
 
 import (
 	"github.com/galaco/kero/client"
+	"github.com/galaco/kero/server"
 	"github.com/galaco/kero/shared"
 	"github.com/galaco/kero/shared/game"
 	"github.com/galaco/kero/shared/physics"
@@ -11,10 +12,10 @@ import (
 
 // Kero provides a game loop
 type Kero struct {
-	sharedScene   *scene.Scene
 	sharedPhysics *physics.Simulation
 
 	client *client.Client
+	server *server.Server
 }
 
 // RegisterGameDefinitions sets up provided game-specific configuration
@@ -27,10 +28,12 @@ func (kero *Kero) Start() {
 	shared.BindSharedConsoleCommands()
 
 	// Shared systems
-	kero.sharedScene = scene.NewScene()
 	kero.sharedPhysics = physics.NewSimulation()
-	kero.sharedScene.Initialize()
 	kero.sharedPhysics.Initialize()
+	scene.CurrentScene().Initialize()
+
+	// Server systems
+	kero.server = server.NewServer()
 
 	// Client systems
 	kero.client = client.NewClient()
@@ -45,13 +48,15 @@ func (kero *Kero) mainLoop() {
 	var dt float64
 	startingTime := time.Now().UTC()
 	for !kero.client.ShouldClose() {
-		// Client stuff
-		kero.client.FixedUpdate(dt)
-		kero.client.Update()
 
 		// Server stuff
 		kero.sharedPhysics.Update(dt)
-		kero.sharedScene.Update(dt)
+		kero.server.FixedUpdate(dt)
+		kero.server.Update()
+
+		// Client stuff
+		kero.client.FixedUpdate(dt)
+		kero.client.Update()
 
 		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
 		startingTime = time.Now().UTC()
