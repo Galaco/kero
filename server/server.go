@@ -16,6 +16,10 @@ func (c *Server) Update() {
 
 }
 
+func (c *Server) Cleanup() {
+
+}
+
 func (c *Server) Initialize() error {
 
 	return nil

@@ -55,6 +55,7 @@ func (c *Client) onMouseMove(message interface{}) {
 
 func (c *Client) Initialize() error {
 	// Creates the Client Game Window
+
 	win, err := window.CreateWindow(1920, 1080, "Kero: A Source Engine Implementation")
 	if err != nil {
 		return err

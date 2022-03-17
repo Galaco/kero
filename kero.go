@@ -66,6 +66,7 @@ func (kero *Kero) mainLoop() {
 func (kero *Kero) exit() {
 	kero.sharedPhysics.Cleanup()
 	kero.client.Cleanup()
+	kero.server.Cleanup()
 }
 
 // NewKero returns a new Kero instance

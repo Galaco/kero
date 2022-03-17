@@ -2,6 +2,7 @@ package window
 
 import (
 	"github.com/galaco/tinygametools"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 var currentWindow *Window
@@ -64,10 +65,15 @@ func CreateWindow(width, height int, title string) (*Window, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, _, maxWidth, maxHeight := glfw.GetPrimaryMonitor().GetWorkarea()
+	if width > maxWidth || height > maxHeight {
+		width = maxWidth
+		height = maxHeight
+		win.Handle().SetSize(width, height)
+	}
 
-	w := &Window{
+	currentWindow = &Window{
 		window: win,
 	}
-	currentWindow = w
-	return w, nil
+	return currentWindow, nil
 }
