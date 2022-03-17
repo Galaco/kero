@@ -21,6 +21,7 @@ func (s *Scene) Initialize() {
 
 	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
 		scene2.CloseCurrentScene()
+		s.dataScene = nil
 		runtime.GC()
 	})
 }
@@ -39,9 +40,14 @@ func (s *Scene) Camera() *graphics.Camera {
 	return s.dataScene.Camera
 }
 
+func (s *Scene) Raw() *scene2.StaticScene {
+	return s.dataScene
+}
+
 func (s *Scene) onChangeLevel(message interface{}) {
 	if s.dataScene != nil {
 		// Cleanup
+		s.dataScene = nil
 	}
 
 	func(mapName string) {

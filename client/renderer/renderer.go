@@ -15,6 +15,7 @@ import (
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/internal/framework/scene/vis"
 	"github.com/galaco/kero/shared/messages"
+	scene3 "github.com/galaco/kero/shared/scene"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
@@ -22,8 +23,7 @@ import (
 type Renderer struct {
 	shaderCache *cache.Shader
 
-	dataScene *scene2.StaticScene
-	gpuScene  scene.GPUScene
+	gpuScene scene.GPUScene
 
 	activeShader *adapter.Shader
 
@@ -45,16 +45,16 @@ func (s *Renderer) Initialize() {
 }
 
 func (s *Renderer) Render() {
-	if s.dataScene == nil {
+	if scene3.CurrentScene().Raw() == nil {
 		return
 	}
-	s.dataScene.RecomputeVisibleClusters()
-	clusters := s.computeRenderableClusters(graphics.FrustumFromCamera(s.dataScene.Camera))
+	scene3.CurrentScene().Raw().RecomputeVisibleClusters()
+	clusters := s.computeRenderableClusters(graphics.FrustumFromCamera(scene3.CurrentScene().Raw().Camera))
 
 	// Draw skybox
 	// Skip sky rendering if all renderable clusters cannot see the sky or we are outside the map
 	var shouldRenderSkybox bool
-	if s.gpuScene.Skybox != nil && s.dataScene.CurrentLeaf != nil && s.dataScene.CurrentLeaf.Cluster != -1 {
+	if s.gpuScene.Skybox != nil && scene3.CurrentScene().Raw().CurrentLeaf != nil && scene3.CurrentScene().Raw().CurrentLeaf.Cluster != -1 {
 		for _, c := range clusters {
 			if c.SkyVisible {
 				shouldRenderSkybox = true
@@ -65,25 +65,25 @@ func (s *Renderer) Render() {
 
 	if shouldRenderSkybox {
 		s.renderSkybox(s.gpuScene.Skybox)
-		if s.dataScene.SkyCamera != nil {
-			origin := s.dataScene.SkyCamera.Transform().Translation
-			s.dataScene.SkyCamera.Transform().Orientation = s.dataScene.Camera.Transform().Orientation
-			s.dataScene.SkyCamera.Transform().Translation = s.dataScene.SkyCamera.Transform().Translation.Add(s.dataScene.Camera.Transform().Translation.Mul(1 / s.dataScene.SkyCamera.Transform().Scale.X()))
-			s.dataScene.SkyCamera.Update(0)
-			s.startFrame(s.dataScene.SkyCamera)
-			s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
-			s.renderDisplacements(s.dataScene.DisplacementFaces)
-			s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
+		if scene3.CurrentScene().Raw().SkyCamera != nil {
+			origin := scene3.CurrentScene().Raw().SkyCamera.Transform().Translation
+			scene3.CurrentScene().Raw().SkyCamera.Transform().Orientation = scene3.CurrentScene().Raw().Camera.Transform().Orientation
+			scene3.CurrentScene().Raw().SkyCamera.Transform().Translation = scene3.CurrentScene().Raw().SkyCamera.Transform().Translation.Add(scene3.CurrentScene().Raw().Camera.Transform().Translation.Mul(1 / scene3.CurrentScene().Raw().SkyCamera.Transform().Scale.X()))
+			scene3.CurrentScene().Raw().SkyCamera.Update(0)
+			s.startFrame(scene3.CurrentScene().Raw().SkyCamera)
+			s.renderBsp(scene3.CurrentScene().Raw().SkyCamera, scene3.CurrentScene().Raw().SkyboxClusterLeafs)
+			s.renderDisplacements(scene3.CurrentScene().Raw().DisplacementFaces)
+			s.renderStaticProps(scene3.CurrentScene().Raw().SkyCamera, scene3.CurrentScene().Raw().SkyboxClusterLeafs)
 			adapter.ClearDepthBuffer()
-			s.dataScene.SkyCamera.Transform().Translation = origin
+			scene3.CurrentScene().Raw().SkyCamera.Transform().Translation = origin
 		}
 	}
 
 	// Draw world
-	s.startFrame(s.dataScene.Camera)
-	s.renderBsp(s.dataScene.Camera, clusters)
-	s.renderDisplacements(s.dataScene.DisplacementFaces)
-	s.renderStaticProps(s.dataScene.Camera, clusters)
+	s.startFrame(scene3.CurrentScene().Raw().Camera)
+	s.renderBsp(scene3.CurrentScene().Raw().Camera, clusters)
+	s.renderDisplacements(scene3.CurrentScene().Raw().DisplacementFaces)
+	s.renderStaticProps(scene3.CurrentScene().Raw().Camera, clusters)
 	s.renderEntityProps()
 
 	s.DrawDebug()
@@ -93,30 +93,30 @@ func (s *Renderer) DrawDebug() {
 	debugPoints := make([]float32, 0)
 	switch console.GetConvarInt("mat_leafvis") {
 	case 1:
-		for _, l := range s.dataScene.ClusterLeafs {
+		for _, l := range scene3.CurrentScene().Raw().ClusterLeafs {
 			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
 		}
 	case 2:
-		if s.dataScene.CurrentLeaf != nil {
+		if scene3.CurrentScene().Raw().CurrentLeaf != nil {
 			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(
 				mgl32.Vec3{
-					float32(s.dataScene.CurrentLeaf.Mins[0]),
-					float32(s.dataScene.CurrentLeaf.Mins[1]),
-					float32(s.dataScene.CurrentLeaf.Mins[2]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Mins[0]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Mins[1]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Mins[2]),
 				},
 				mgl32.Vec3{
-					float32(s.dataScene.CurrentLeaf.Maxs[0]),
-					float32(s.dataScene.CurrentLeaf.Maxs[1]),
-					float32(s.dataScene.CurrentLeaf.Maxs[2]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Maxs[0]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Maxs[1]),
+					float32(scene3.CurrentScene().Raw().CurrentLeaf.Maxs[2]),
 				},
 			).Vertices()...)
 		}
 	case 3:
-		for _, l := range s.dataScene.VisibleClusterLeafs {
+		for _, l := range scene3.CurrentScene().Raw().VisibleClusterLeafs {
 			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
 		}
 	}
-	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, scene3.CurrentScene().Raw().Camera.ModelMatrix())
 	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0, 255, 0})
 
 	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
@@ -194,7 +194,7 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
 	indices := make([]uint32, 0, 256)
 	for _, face := range faces {
-		indices = append(indices, s.dataScene.BspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
+		indices = append(indices, scene3.CurrentScene().Raw().BspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
 	}
 	adapter.UpdateIndexArrayBuffer(indices)
 	adapter.BindTexture(mat.Diffuse)
@@ -257,24 +257,24 @@ func (s *Renderer) renderEntityProps() {
 
 func (s *Renderer) computeRenderableClusters(viewFrustum *graphics.Frustum) []*vis.ClusterLeaf {
 	renderClusters := make([]*vis.ClusterLeaf, 0, 64)
-	for idx, cluster := range s.dataScene.VisibleClusterLeafs {
+	for idx, cluster := range scene3.CurrentScene().Raw().VisibleClusterLeafs {
 		if !viewFrustum.IsLeafInFrustum(cluster.Mins, cluster.Maxs) {
 			continue
 		}
-		renderClusters = append(renderClusters, s.dataScene.VisibleClusterLeafs[idx])
+		renderClusters = append(renderClusters, scene3.CurrentScene().Raw().VisibleClusterLeafs[idx])
 	}
 	return renderClusters
 }
 
 func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 	skyboxTransform := skybox.SkyMeshTransform
-	skyboxTransform.Translation = s.dataScene.Camera.Transform().Translation
+	skyboxTransform.Translation = scene3.CurrentScene().Raw().Camera.Transform().Translation
 
 	s.activeShader = s.shaderCache.Find("Skybox")
 	s.activeShader.Bind()
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.dataScene.Camera.ProjectionMatrix())
-	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, scene3.CurrentScene().Raw().Camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, scene3.CurrentScene().Raw().Camera.ViewMatrix())
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, skyboxTransform.TransformationMatrix())
 
 	adapter.BindMesh(&skybox.SkyMeshGpuID)
@@ -295,7 +295,6 @@ func (s *Renderer) Cleanup() {
 	}
 
 	s.gpuScene = scene.GPUScene{}
-	s.dataScene = nil
 }
 
 func (s *Renderer) drawCollisionMeshes() {
@@ -340,7 +339,7 @@ func (s *Renderer) bindConVars() {
 			return nil
 		}
 
-		if ok := s.dataScene.TexCache.Find(scene2.LightmapTexturePath); ok != nil {
+		if ok := scene3.CurrentScene().Raw().TexCache.Find(scene2.LightmapTexturePath); ok != nil {
 			utils.DumpLightmap(options, ok)
 			return nil
 		}
@@ -351,7 +350,7 @@ func (s *Renderer) bindConVars() {
 		if s == nil {
 			return nil
 		}
-		if ok := s.dataScene.TexCache.Find(scene2.LightmapTexturePath); ok == nil {
+		if ok := scene3.CurrentScene().Raw().TexCache.Find(scene2.LightmapTexturePath); ok == nil {
 			return errors.New("kero_drawlightmaps: no lightmap in memory")
 		}
 		if options == "1" {
@@ -368,8 +367,7 @@ func (s *Renderer) bindConVars() {
 func (s *Renderer) BindSharedResources() {
 	// When a new scene is loaded
 	event.Get().AddListener(messages.TypeLoadingLevelParsed, func(message interface{}) {
-		s.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
-		s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
+		s.gpuScene = *scene.GpuSceneFromFrameworkScene(scene3.CurrentScene().Raw(), filesystem.Get())
 	})
 	// When a game is quit
 	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
