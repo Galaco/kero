@@ -82,6 +82,8 @@ github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91 h1:Ap4SC7+bIAFzh81vR
 github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
 github.com/sqweek/dialog v0.0.0-20220227145630-7a1c9e333fcf h1:ug6+uVJ1DgQznhPLlZGtndR/NNNadNAzhzhskHOem3Y=
 github.com/sqweek/dialog v0.0.0-20220227145630-7a1c9e333fcf/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
+github.com/sqweek/dialog v0.0.0-20220504154117-be45b268883a h1:M4NnixT1bCxVc2LC3UDL1DBROoZGiewd9QGlYIIAMVc=
+github.com/sqweek/dialog v0.0.0-20220504154117-be45b268883a/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
