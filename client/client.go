@@ -1,10 +1,12 @@
 package client
 
 import (
+	"fmt"
 	"github.com/galaco/kero/client/gui"
 	"github.com/galaco/kero/client/input"
 	"github.com/galaco/kero/client/renderer"
 	"github.com/galaco/kero/internal/framework/event"
+	"github.com/galaco/kero/internal/framework/filesystem"
 	"github.com/galaco/kero/internal/framework/graphics/adapter"
 	input2 "github.com/galaco/kero/internal/framework/input"
 	"github.com/galaco/kero/internal/framework/window"
@@ -54,9 +56,16 @@ func (c *Client) onMouseMove(message interface{}) {
 }
 
 func (c *Client) Initialize() error {
-	// Creates the Client Game Window
+	// Find game name for Window title
+	title := "Kero: A Source Engine Implementation"
+	gameNameNode, err := filesystem.GameInfo().Find("game")
+	if err == nil && gameNameNode != nil {
+		gameName, _ := gameNameNode.AsString()
+		title = fmt.Sprintf("Kero: %s", gameName)
+	}
 
-	win, err := window.CreateWindow(1920, 1080, "Kero: A Source Engine Implementation")
+	// Creates the Client Game Window
+	win, err := window.CreateWindow(1920, 1080, title)
 	if err != nil {
 		return err
 	}

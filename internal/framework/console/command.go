@@ -37,6 +37,39 @@ func AddCommand(key, description, usage string, callback CommandCallback) {
 	}
 }
 
+func resetBoundCommands() {
+	commandListSingleton.commands = map[string]command{}
+
+	// Register helper commands
+	AddCommand("listcommands", "Displays a list of all available commands", "", func(options string) error {
+		keys := make([]string, 0, len(commandListSingleton.commands))
+		for k := range commandListSingleton.commands {
+			keys = append(keys, k)
+		}
+
+		sort.Sort(sort.StringSlice(keys))
+		for _, k := range keys {
+			PrintString(LevelInfo, fmt.Sprintf("  %s: %s", k, commandListSingleton.commands[k].description))
+		}
+
+		return nil
+	})
+
+	AddCommand("describe", "Explains a specific command", "describe <command>", func(options string) error {
+		if options == "" {
+			return nil
+		}
+
+		if k, ok := commandListSingleton.commands[options]; ok {
+			PrintString(LevelInfo, fmt.Sprintf("  %s.\n  Usage: %s", k.description, k.usage))
+		} else {
+			PrintString(LevelWarning, fmt.Sprintf("%s is not a recognized command", options))
+		}
+
+		return nil
+	})
+}
+
 // GetCommandList collates all available commands
 func GetCommandList(prefix string) []string {
 	commands := make([]string, 0, len(commandListSingleton.commands))
@@ -87,34 +120,5 @@ func ExecuteCommand(input string) (err error) {
 }
 
 func init() {
-	commandListSingleton.commands = map[string]command{}
-
-	// Register helper commands
-	AddCommand("listcommands", "Displays a list of all available commands", "", func(options string) error {
-		keys := make([]string, 0, len(commandListSingleton.commands))
-		for k := range commandListSingleton.commands {
-			keys = append(keys, k)
-		}
-
-		sort.Sort(sort.StringSlice(keys))
-		for _, k := range keys {
-			PrintString(LevelInfo, fmt.Sprintf("  %s: %s", k, commandListSingleton.commands[k].description))
-		}
-
-		return nil
-	})
-
-	AddCommand("describe", "Explains a specific command", "describe <command>", func(options string) error {
-		if options == "" {
-			return nil
-		}
-
-		if k, ok := commandListSingleton.commands[options]; ok {
-			PrintString(LevelInfo, fmt.Sprintf("  %s.\n  Usage: %s", k.description, k.usage))
-		} else {
-			PrintString(LevelWarning, fmt.Sprintf("%s is not a recognized command", options))
-		}
-
-		return nil
-	})
+	resetBoundCommands()
 }

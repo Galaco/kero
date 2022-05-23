@@ -1,10 +1,12 @@
 package console
 
 import (
+	"log"
 	"testing"
 )
 
 func TestAddCommand(t *testing.T) {
+	resetBoundCommands()
 	AddCommand("foo", "bar", "baz", func(options string) error {
 		return nil
 	})
@@ -15,6 +17,7 @@ func TestAddCommand(t *testing.T) {
 }
 
 func TestBuiltinCommands(t *testing.T) {
+	resetBoundCommands()
 	sut := make([]string, 0)
 	ClearOutputPipes()
 	AddOutputPipe(func(f LogLevel, a interface{}) {
@@ -31,12 +34,15 @@ func TestBuiltinCommands(t *testing.T) {
 		return
 	}
 
-	if sut[0] != "> listcommands" || sut[1] != "  describe: Explains a specific command" || sut[3] != "  listcommands: Displays a list of all available commands" {
+	log.Println(sut)
+
+	if sut[0] != "> listcommands" || sut[1] != "  describe: Explains a specific command" || sut[2] != "  listcommands: Displays a list of all available commands" {
 		t.Error("unexpected output from listcommands")
 	}
 }
 
 func TestExecuteCommand(t *testing.T) {
+	resetBoundCommands()
 	sut := false
 	AddCommand("foo", "bar", "baz", func(options string) error {
 		sut = true

@@ -17,9 +17,9 @@ require (
 	github.com/galaco/vpk2 v1.0.0 // indirect
 	github.com/galaco/vtf v1.2.0
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20211213063430-748e38ca8aec
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220516021902-eb3e265c7661
 	github.com/go-gl/mathgl v1.0.0
 	github.com/inkyblackness/imgui-go/v4 v4.4.0
-	github.com/sqweek/dialog v0.0.0-20220227145630-7a1c9e333fcf
-	golang.org/x/image v0.0.0-20220302094943-723b81ca9867 // indirect
+	github.com/sqweek/dialog v0.0.0-20220504154117-be45b268883a
+	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
 )

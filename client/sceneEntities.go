@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/galaco/kero/client/camera"
+	"github.com/galaco/kero/client/entity/camera"
 	"github.com/galaco/kero/internal/framework/event"
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/shared/messages"
