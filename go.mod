@@ -10,7 +10,7 @@ require (
 	github.com/galaco/gosigl v0.2.1
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/stringtable v0.1.1
-	github.com/galaco/studiomodel v1.0.0-alpha.2
+	github.com/galaco/studiomodel v1.0.0-beta.1
 	github.com/galaco/tinygametools v0.1.1
 	github.com/galaco/vmf v1.0.0
 	github.com/galaco/vmt v0.1.3
