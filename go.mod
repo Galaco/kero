@@ -20,6 +20,6 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f
 	github.com/go-gl/mathgl v1.0.0
 	github.com/inkyblackness/imgui-go/v4 v4.5.0
-	github.com/sqweek/dialog v0.0.0-20220504154117-be45b268883a
+	github.com/sqweek/dialog v0.0.0-20220729164723-0e168706f490
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 )
