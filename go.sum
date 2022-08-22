@@ -70,6 +70,8 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0 h1:ZWsNtyC3mg
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f h1:w3h343WgVLKLITcSpwecCDcq0FO8pAv6A/UG86hhFtY=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad h1:kX51IjbsJPCvzV9jUoVQG9GEUqIq5hjfYzXTqQ52Rh8=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/go-gl/mathgl v1.0.0 h1:t9DznWJlXxxjeeKLIdovCOVJQk/GzDEL7h/h+Ro2B68=
