@@ -2,6 +2,8 @@ package scene
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/galaco/bsp/primitives/leaf"
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/entity"
@@ -9,7 +11,6 @@ import (
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	"github.com/galaco/kero/internal/framework/scene/vis"
 	"github.com/go-gl/mathgl/mgl32"
-	"io"
 )
 
 type fileSystem interface {

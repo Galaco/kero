@@ -1,12 +1,13 @@
 package context
 
 import (
+	"math"
+	"unsafe"
+
 	"github.com/galaco/kero/internal/framework/input"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/inkyblackness/imgui-go/v4"
-	"math"
-	"unsafe"
 )
 
 type imguiGlfw3 struct {

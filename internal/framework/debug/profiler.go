@@ -1,9 +1,10 @@
 package debug
 
 import (
-	"github.com/galaco/kero/internal/framework/console"
 	"net/http"
 	_ "net/http/pprof"
+
+	"github.com/galaco/kero/internal/framework/console"
 )
 
 // StartProfiler starts pprof on localhost:6060

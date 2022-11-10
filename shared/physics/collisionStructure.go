@@ -1,6 +1,9 @@
 package physics
 
 import (
+	"math"
+	"sync"
+
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	"github.com/galaco/bsp/primitives/brush"
@@ -10,8 +13,6 @@ import (
 	"github.com/galaco/studiomodel/mdl"
 	"github.com/galaco/studiomodel/phy"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
-	"sync"
 )
 
 type bspCollisionMesh struct {

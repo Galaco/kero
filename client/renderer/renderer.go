@@ -2,6 +2,8 @@ package renderer
 
 import (
 	"errors"
+	"math"
+
 	"github.com/galaco/kero/client/renderer/cache"
 	"github.com/galaco/kero/client/renderer/scene"
 	"github.com/galaco/kero/client/renderer/shaders"
@@ -17,7 +19,6 @@ import (
 	"github.com/galaco/kero/shared/messages"
 	scene3 "github.com/galaco/kero/shared/scene"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
 )
 
 type Renderer struct {

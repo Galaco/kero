@@ -2,13 +2,14 @@ package filesystem
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/galaco/KeyValues"
 	"github.com/galaco/bsp/lumps"
 	filesystemLib "github.com/galaco/filesystem"
 	"github.com/galaco/kero/internal/framework/console"
-	"io"
-	"os"
-	"strings"
 )
 
 // FileSystem provides a gateway to interacting with the

@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+
 	"github.com/galaco/kero/internal/framework/gui"
 )
 

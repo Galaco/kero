@@ -2,14 +2,15 @@ package graphics
 
 import (
 	"errors"
+	"io"
+	"strings"
+
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	"github.com/galaco/studiomodel"
 	"github.com/galaco/studiomodel/mdl"
 	"github.com/galaco/studiomodel/phy"
 	"github.com/galaco/studiomodel/vtx"
 	"github.com/galaco/studiomodel/vvd"
-	"io"
-	"strings"
 )
 
 // @TODO This is SUPER incomplete

@@ -1,8 +1,9 @@
 package graphics
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"testing"
+
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 func TestNewError(t *testing.T) {

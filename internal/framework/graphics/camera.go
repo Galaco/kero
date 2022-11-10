@@ -1,8 +1,9 @@
 package graphics
 
 import (
-	"github.com/go-gl/mathgl/mgl32"
 	"math"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const cameraSpeed = float64(320) * 2

@@ -1,6 +1,6 @@
 package shaders
 
-//language=glsl
+// language=glsl
 var SkyboxFragment = `
     #version 410
 

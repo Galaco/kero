@@ -5,8 +5,9 @@ package bullet
 // #include "bulletglue.h"
 import "C"
 import (
-	"github.com/go-gl/mathgl/mgl32"
 	"unsafe"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type BulletPhysicsIndice C.int

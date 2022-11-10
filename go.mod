@@ -10,16 +10,16 @@ require (
 	github.com/galaco/gosigl v0.2.1
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/stringtable v0.1.1
-	github.com/galaco/studiomodel v1.0.0-alpha.2
+	github.com/galaco/studiomodel v1.0.0-beta.1
 	github.com/galaco/tinygametools v0.1.1
 	github.com/galaco/vmf v1.0.0
 	github.com/galaco/vmt v0.1.3
 	github.com/galaco/vpk2 v1.0.0 // indirect
 	github.com/galaco/vtf v1.2.0
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220516021902-eb3e265c7661
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
 	github.com/go-gl/mathgl v1.0.0
-	github.com/inkyblackness/imgui-go/v4 v4.4.0
-	github.com/sqweek/dialog v0.0.0-20220504154117-be45b268883a
-	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
+	github.com/inkyblackness/imgui-go/v4 v4.6.0
+	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
+	golang.org/x/image v0.1.0 // indirect
 )

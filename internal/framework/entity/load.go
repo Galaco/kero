@@ -1,12 +1,13 @@
 package entity
 
 import (
+	"io"
+	"strings"
+
 	"github.com/galaco/bsp"
 	"github.com/galaco/bsp/lumps"
 	entityLib "github.com/galaco/source-tools-common/entity"
 	"github.com/galaco/vmf"
-	"io"
-	"strings"
 )
 
 type filesystem interface {

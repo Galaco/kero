@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+
 	"github.com/galaco/kero/client/gui/views"
 	inputMiddleware "github.com/galaco/kero/client/input"
 	"github.com/galaco/kero/internal/framework/console"

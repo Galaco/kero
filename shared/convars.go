@@ -2,9 +2,10 @@ package shared
 
 import (
 	"fmt"
-	"github.com/galaco/kero/internal/framework/console"
 	"strconv"
 	"strings"
+
+	"github.com/galaco/kero/internal/framework/console"
 )
 
 func BindSharedConsoleCommands() {

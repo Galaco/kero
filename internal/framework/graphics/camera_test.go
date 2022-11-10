@@ -1,8 +1,9 @@
 package graphics
 
 import (
-	"github.com/go-gl/mathgl/mgl32"
 	"testing"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 func TestCamera_ModelMatrix(t *testing.T) {

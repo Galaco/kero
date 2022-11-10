@@ -1,10 +1,11 @@
 package menu
 
 import (
+	"log"
+
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/gui"
 	"github.com/inkyblackness/imgui-go/v4"
-	"log"
 )
 
 type consoleMessage struct {

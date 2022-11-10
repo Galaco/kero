@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+
 	"github.com/galaco/gosigl"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"

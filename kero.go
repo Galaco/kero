@@ -1,13 +1,14 @@
 package kero
 
 import (
+	"time"
+
 	"github.com/galaco/kero/client"
 	"github.com/galaco/kero/server"
 	"github.com/galaco/kero/shared"
 	"github.com/galaco/kero/shared/game"
 	"github.com/galaco/kero/shared/physics"
 	"github.com/galaco/kero/shared/scene"
-	"time"
 )
 
 // Kero provides a game loop

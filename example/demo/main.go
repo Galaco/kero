@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
+	"log"
+	"runtime"
+
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/debug"
 	"github.com/galaco/kero/internal/framework/filesystem"
-	"log"
-	"runtime"
 )
 
 func main() {

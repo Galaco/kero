@@ -2,13 +2,14 @@ package scene
 
 import (
 	"fmt"
+	"io"
+	"sync"
+
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/graphics"
 	"github.com/galaco/kero/internal/framework/graphics/adapter"
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
-	"io"
-	"sync"
 )
 
 type fileSystem interface {

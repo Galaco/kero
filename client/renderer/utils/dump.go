@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/galaco/kero/internal/framework/graphics"
 	"image"
 	"image/png"
 	"os"
+
+	"github.com/galaco/kero/internal/framework/graphics"
 )
 
 // DumpLightmap exports the loaded lightmap texture atlas as a JPG

@@ -1,12 +1,13 @@
 package graphics
 
 import (
-	"github.com/galaco/kero/internal/framework/graphics/adapter"
-	"github.com/galaco/vtf"
-	"github.com/galaco/vtf/format"
 	"math"
 	"sort"
 	"strings"
+
+	"github.com/galaco/kero/internal/framework/graphics/adapter"
+	"github.com/galaco/vtf"
+	"github.com/galaco/vtf/format"
 )
 
 type Texture adapter.Texture

@@ -1,6 +1,8 @@
 package physics
 
 import (
+	"strings"
+
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/entity"
 	"github.com/galaco/kero/internal/framework/event"
@@ -10,7 +12,6 @@ import (
 	"github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/shared/messages"
 	"github.com/go-gl/mathgl/mgl32"
-	"strings"
 )
 
 const (

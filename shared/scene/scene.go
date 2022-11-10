@@ -1,6 +1,8 @@
 package scene
 
 import (
+	"runtime"
+
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/entity"
 	"github.com/galaco/kero/internal/framework/event"
@@ -9,7 +11,6 @@ import (
 	scene2 "github.com/galaco/kero/internal/framework/scene"
 	"github.com/galaco/kero/shared/messages"
 	loader "github.com/galaco/kero/shared/scene/loaders"
-	"runtime"
 )
 
 type Scene struct {

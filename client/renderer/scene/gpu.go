@@ -2,6 +2,8 @@ package scene
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/galaco/kero/client/renderer/cache"
 	"github.com/galaco/kero/internal/framework/console"
 	"github.com/galaco/kero/internal/framework/entity"
@@ -11,7 +13,6 @@ import (
 	"github.com/galaco/kero/internal/framework/graphics/mesh"
 	"github.com/galaco/kero/internal/framework/scene"
 	"github.com/go-gl/mathgl/mgl32"
-	"strings"
 )
 
 type EntityPropCacheItem struct {

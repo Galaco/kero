@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+
 	"github.com/galaco/kero/client/gui"
 	"github.com/galaco/kero/client/input"
 	"github.com/galaco/kero/client/renderer"
