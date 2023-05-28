@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/galaco/KeyValues v1.4.1
-	github.com/galaco/bsp v0.3.0
+	github.com/galaco/bsp v0.3.1
 	github.com/galaco/filesystem v0.1.4
 	github.com/galaco/gosigl v0.2.1
 	github.com/galaco/source-tools-common v0.1.0
@@ -24,5 +24,5 @@ require (
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d // indirect
 	github.com/galaco/vpk2 v1.0.0 // indirect
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
+	golang.org/x/image v0.5.0 // indirect
 )
