@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d // indirect
 	github.com/galaco/KeyValues v1.4.1
-	github.com/galaco/bsp v0.3.0
+	github.com/galaco/bsp v0.3.1
 	github.com/galaco/filesystem v0.1.4
 	github.com/galaco/gosigl v0.2.1
 	github.com/galaco/source-tools-common v0.1.0
@@ -21,5 +21,5 @@ require (
 	github.com/go-gl/mathgl v1.0.0
 	github.com/inkyblackness/imgui-go/v4 v4.6.0
 	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
-	golang.org/x/image v0.1.0 // indirect
+	golang.org/x/image v0.7.0 // indirect
 )
