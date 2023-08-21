@@ -78,6 +78,8 @@ github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWb
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/go-gl/mathgl v1.0.0 h1:t9DznWJlXxxjeeKLIdovCOVJQk/GzDEL7h/h+Ro2B68=
 github.com/go-gl/mathgl v1.0.0/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
+github.com/go-gl/mathgl v1.1.0 h1:0lzZ+rntPX3/oGrDzYGdowSLC2ky8Osirvf5uAwfIEA=
+github.com/go-gl/mathgl v1.1.0/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/inkyblackness/imgui-go/v4 v4.2.0 h1:5MuhU1tocnrHDZHyHTArzYr1X0+oA3ITleEwgx9juQ4=
 github.com/inkyblackness/imgui-go/v4 v4.2.0/go.mod h1:g8SAGtOYUP7rYaOB2AsVKCEHmPMDmJKgt4z6d+flhb0=
 github.com/inkyblackness/imgui-go/v4 v4.3.0 h1:iyAzqWXq/dG5+6ckDPhGivtrIo6AywGQMvENKzun04s=
