@@ -15,7 +15,7 @@ require (
 	github.com/galaco/vmt v0.1.3
 	github.com/galaco/vtf v1.2.0
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240307211618-a69d953ea142
 	github.com/go-gl/mathgl v1.0.0
 	github.com/inkyblackness/imgui-go/v4 v4.5.0
 	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
