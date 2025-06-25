@@ -27,13 +27,13 @@
 
 ### Prerequisites
 This project is tested against Go 1.14+, although will probably build on Go 1.12 or later. CGo is required for Imgui and Bullet.
-To compile with the physics module, `Bullet` is required; 
-* On Mac OS it can be installed with `brew install bullet`. 
+To compile with the physics module, `Bullet` is required;
+* On Mac OS it can be installed with `brew install bullet`.
 * See Bullet documentation for other platforms
 
 ### Build
-To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later 
-installed) in the directory `samples/demo`:
+To build the project on Windows, Mac OS or Linux, all you need to do is run (assuming you have Go 1.12 or later
+installed) in the directory `example/demo`:
 `go build .`
 
 The demo targets Counterstrike: Source entities. To target a different game, you will need to update `samples/demo/gameDef.go`.
@@ -42,9 +42,9 @@ The demo targets Counterstrike: Source entities. To target a different game, you
 First, you will need to have a source engine game installed, unless you are loading a map that has all its content
 bspzipped.
 
-* Run the built executable with this flag: `-game="<GameDir>/<ContentDir>"`, where `<GameDir>` is the root directory 
+* Run the built executable with this flag: `-game="<GameDir>/<ContentDir>"`, where `<GameDir>` is the root directory
 of the game, and `<ContentDir>` is the sub-folder where the game content is located (e.g. `cstrike`, `hl2`, `csgo` etc).
-For example, a default Counterstrike: Source installation would be specified like this: 
+For example, a default Counterstrike: Source installation would be specified like this:
 `-game="C:\Program Files (x86)\Steam\Steamapps\common\Counterstrike Source\cstrike"`
 
 ## What's the end goal?
