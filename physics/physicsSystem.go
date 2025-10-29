@@ -1,6 +1,7 @@
 package physics
 
 import (
+	"fmt"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -40,10 +41,15 @@ func (system *PhysicsSystem) Initialize() {
 		system.Cleanup()
 	})
 
+	// Physics debug and monitoring console variables
 	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
+	console.AddConvarBool("physics_debug", "Show physics timing debug info", false)
 }
 
-func (system *PhysicsSystem) Update(dt float64) {
+// FixedUpdate runs the physics simulation at a fixed timestep.
+// This method should be called with a constant dt value (typically 1.0/60.0 = 0.0166667 seconds).
+// Fixed timestep ensures stable, deterministic physics simulation regardless of frame rate.
+func (system *PhysicsSystem) FixedUpdate(dt float64) {
 	if len(system.physicsEntities) == 0 {
 		// Nothing to simulate
 		return
@@ -53,13 +59,23 @@ func (system *PhysicsSystem) Update(dt float64) {
 		return
 	}
 
+	// Debug logging (useful to verify fixed timestep is working)
+	if console.GetConvarBoolean("physics_debug") {
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Physics dt: %.6f (should be constant)", dt))
+	}
+
+	// Update entity transforms to physics engine
 	for _, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
 		}
 		n.Model().RigidBody.SetTransform(n.Transform().TransformationMatrix())
 	}
+
+	// Step physics simulation with fixed timestep
 	bullet.BulletStepSimulation(system.world, dt)
+
+	// Apply physics results back to entity transforms
 	for idx, n := range system.physicsEntities {
 		if n.Model().RigidBody == nil {
 			continue
@@ -68,9 +84,17 @@ func (system *PhysicsSystem) Update(dt float64) {
 		system.physicsEntities[idx].Transform().Orientation = n.Model().RigidBody.GetOrientation()
 	}
 
+	// Debug visualization
 	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
 		system.drawDebug()
 	}
+}
+
+// Update is a wrapper around FixedUpdate for backward compatibility.
+// Deprecated: Use FixedUpdate for physics simulation with fixed timestep.
+// This method delegates to FixedUpdate but should not be used directly.
+func (system *PhysicsSystem) Update(dt float64) {
+	system.FixedUpdate(dt)
 }
 
 func (system *PhysicsSystem) drawDebug() {

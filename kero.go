@@ -90,22 +90,55 @@ func (kero *Kero) Start(gameDir string) error {
 }
 
 func (kero *Kero) mainLoop() {
-	dt := 0.0
-	startingTime := time.Now().UTC()
+	// Fixed timestep configuration
+	const PhysicsHz = 60.0
+	const FixedDt = 1.0 / PhysicsHz      // 16.67ms per physics step
+	const MaxAccumulator = 0.25          // Cap at 250ms (prevents spiral of death)
+	const MaxPhysicsSteps = 5            // Max physics iterations per frame
+
+	accumulator := 0.0
+	currentTime := time.Now()
+
 	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
+		// Calculate frame time
+		newTime := time.Now()
+		frameDt := newTime.Sub(currentTime).Seconds()
+		currentTime = newTime
+
+		// Prevent spiral of death - cap frame time
+		if frameDt > MaxAccumulator {
+			frameDt = MaxAccumulator
+		}
+
+		accumulator += frameDt
+
+		// Input processing (once per frame)
 		kero.engine.Input().Poll()
 
-		kero.engine.Physics().Update(dt)
-		kero.engine.Scene().Update(dt)
+		// Fixed timestep physics (may run 0, 1, or multiple times per frame)
+		physicsSteps := 0
+		for accumulator >= FixedDt {
+			kero.engine.Physics().FixedUpdate(FixedDt)
+			accumulator -= FixedDt
+			physicsSteps++
 
+			// Safety: prevent infinite loop if physics is too slow
+			if physicsSteps >= MaxPhysicsSteps {
+				accumulator = 0
+				break
+			}
+		}
+
+		// Variable timestep updates (scene logic, rendering)
+		kero.engine.Scene().Update(frameDt)
+
+		// Render (interpolation factor for future use)
+		// interpolation := float32(accumulator / FixedDt)
 		kero.engine.Renderer().Render()
 		kero.engine.GUI().Render()
 
 		window.CurrentWindow().SwapBuffers()
 		kero.engine.Renderer().FinishFrame()
-
-		dt = float64(time.Now().UTC().Sub(startingTime).Nanoseconds()/1000000) / 1000
-		startingTime = time.Now().UTC()
 	}
 }
 
