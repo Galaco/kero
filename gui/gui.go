@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/event"
+	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/gui"
 	"github.com/galaco/kero/framework/gui/context"
 	"github.com/galaco/kero/framework/input"
@@ -14,16 +15,22 @@ import (
 )
 
 type Gui struct {
-	uiContext *context.Context
+	eventBus        *event.Dispatcher
+	fileSystem      filesystem.FileSystem
+	inputMiddleware *middleware.Input
+	uiContext       *context.Context
 
 	loadingView views.Loading
-	menuView    views.Menu
+	menuView    *views.Menu
 
 	shouldDisplayMenu          bool
 	shouldDisplayLoadingScreen bool
 }
 
 func (s *Gui) Initialize() {
+	// Initialize menu view with dependencies
+	s.menuView = views.NewMenu(s.eventBus, s.fileSystem)
+
 	console.AddOutputPipe(func(level console.LogLevel, message interface{}) {
 		switch v := message.(type) {
 		case string:
@@ -35,8 +42,8 @@ func (s *Gui) Initialize() {
 	console.DisableBufferedLogs()
 
 	s.uiContext = context.NewContext(window.CurrentWindow())
-	middleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
-	event.Get().AddListener(messages.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
+	s.inputMiddleware.EventBus().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
+	s.eventBus.AddListener(messages.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
 
 }
 
@@ -73,8 +80,12 @@ func (s *Gui) Render() {
 	gui.EndFrame(s.uiContext)
 }
 
-func NewGui() *Gui {
+// NewGui creates a new GUI system with explicit dependencies
+func NewGui(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, inputMiddleware *middleware.Input) *Gui {
 	return &Gui{
+		eventBus:          eventBus,
+		fileSystem:        fileSystem,
+		inputMiddleware:   inputMiddleware,
 		shouldDisplayMenu: true,
 	}
 }

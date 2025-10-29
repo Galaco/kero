@@ -16,7 +16,9 @@ import (
 )
 
 type PhysicsSystem struct {
-	dataScene *scene.StaticScene
+	eventBus      *event.Dispatcher
+	sceneManager  *scene.Manager
+	dataScene     *scene.StaticScene
 
 	// Dynamic entities (includes prop_physics* & prop_dynamic*)
 	physicsEntities []entity.IEntity
@@ -31,10 +33,10 @@ type PhysicsSystem struct {
 }
 
 func (system *PhysicsSystem) Initialize() {
-	event.Get().AddListener(messages.TypeChangeLevel, system.onChangeLevel)
-	event.Get().AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
+	system.eventBus.AddListener(messages.TypeChangeLevel, system.onChangeLevel)
+	system.eventBus.AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
 
-	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+	system.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
 		system.Cleanup()
 	})
 
@@ -203,8 +205,11 @@ func (system *PhysicsSystem) Cleanup() {
 	system.displacementRigidBody = nil
 }
 
-func NewPhysicsSystem() *PhysicsSystem {
+// NewPhysicsSystem creates a new physics system with explicit dependencies
+func NewPhysicsSystem(eventBus *event.Dispatcher, sceneManager *scene.Manager) *PhysicsSystem {
 	return &PhysicsSystem{
+		eventBus:                   eventBus,
+		sceneManager:               sceneManager,
 		physicsEntities:            make([]entity.IEntity, 0),
 		studiomodelCollisionMeshes: map[string]studiomodelCollisionMesh{},
 	}

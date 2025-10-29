@@ -14,18 +14,23 @@ import (
 )
 
 type Scene struct {
+	eventBus       *event.Dispatcher
+	fileSystem     filesystem.FileSystem
+	sceneManager   *scene2.Manager
+	inputMiddleware *middleware.Input
+
 	dataScene *scene2.StaticScene
 
 	listenToInput bool
 }
 
 func (s *Scene) Initialize() {
-	event.Get().AddListener(messages.TypeChangeLevel, s.onChangeLevel)
-	middleware.InputMiddleware().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
-	middleware.InputMiddleware().AddListener(messages.TypeMouseMove, s.onMouseMove)
+	s.eventBus.AddListener(messages.TypeChangeLevel, s.onChangeLevel)
+	s.inputMiddleware.EventBus().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
+	s.inputMiddleware.EventBus().AddListener(messages.TypeMouseMove, s.onMouseMove)
 
-	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
-		scene2.CloseCurrentScene()
+	s.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+		s.sceneManager.CloseCurrentScene()
 		runtime.GC()
 	})
 }
@@ -62,18 +67,19 @@ func (s *Scene) onChangeLevel(message interface{}) {
 	}
 
 	func(mapName string) {
-		level, ents, err := loader.LoadBspMap(filesystem.Get(), mapName)
+		level, ents, err := loader.LoadBspMap(s.fileSystem, s.eventBus, mapName)
 		if err != nil {
 			console.PrintString(console.LevelError, err.Error())
 			return
 		}
 		console.PrintString(console.LevelInfo, "Generating Static World...")
-		s.dataScene = scene2.LoadStaticSceneFromBsp(filesystem.Get(), level, ents)
+		s.dataScene = scene2.LoadStaticSceneFromBsp(s.fileSystem, level, ents)
+		s.sceneManager.SetCurrentScene(s.dataScene)
 		console.PrintString(console.LevelInfo, "Complete!")
 		// Change level: we must clear the current event queue
-		event.Get().CancelPending()
-		event.Get().DispatchLegacy(messages.NewLoadingLevelParsed(s.dataScene))
-		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateFinished)
+		s.eventBus.CancelPending()
+		s.eventBus.DispatchLegacy(messages.NewLoadingLevelParsed(s.dataScene))
+		s.eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateFinished)
 	}(message.(string))
 }
 
@@ -92,6 +98,12 @@ func (s *Scene) onMouseMove(message interface{}) {
 	s.dataScene.Camera.Rotate(msg[0], 0, msg[1])
 }
 
-func NewScene() *Scene {
-	return &Scene{}
+// NewScene creates a new scene with explicit dependencies
+func NewScene(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, sceneManager *scene2.Manager, inputMiddleware *middleware.Input) *Scene {
+	return &Scene{
+		eventBus:        eventBus,
+		fileSystem:      fileSystem,
+		sceneManager:    sceneManager,
+		inputMiddleware: inputMiddleware,
+	}
 }

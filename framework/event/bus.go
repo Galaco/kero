@@ -11,6 +11,9 @@ type IDispatcher interface {
 
 var masterDispatcher Dispatcher
 
+// Deprecated: Use Engine.EventBus() instead of this global singleton.
+// This function will be removed in a future version.
+// For new code, pass EventBus as an explicit dependency via constructors.
 func Get() *Dispatcher {
 	if masterDispatcher.listeners == nil {
 		masterDispatcher.Initialize()

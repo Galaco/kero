@@ -30,9 +30,9 @@ func (classMap *entityClassMapper) find(classname string) IEntity {
 	return nil
 }
 
-// RegisterClass adds any type that implements a classname to
-// a saved mapping. From then on, new instances of that classname
-// can be created from just knowing the classname at runtime.
+// Deprecated: Use Engine.EntityRegistry().RegisterClass() instead.
+// This function will be removed in a future version.
+// For new code, pass Registry as an explicit dependency via constructors.
 func RegisterClass(entity IEntity) {
 	if classMap.entityMap == nil {
 		classMap.entityMap = map[string]IEntity{}
@@ -43,8 +43,8 @@ func RegisterClass(entity IEntity) {
 	classMap.mut.Unlock()
 }
 
-// New creates a new IEntity of the specified
-// Classname.
+// Deprecated: Use Engine.EntityRegistry().New() instead.
+// This function will be removed in a future version.
 func New(classname string) IEntity {
 	return classMap.find(classname)
 }

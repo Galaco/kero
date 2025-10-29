@@ -10,13 +10,28 @@ import (
 )
 
 type Menu struct {
-	Console menu.Console
+	Console    menu.Console
+	eventBus   *event.Dispatcher
+	fileSystem filesystem.FileSystem
+}
+
+// NewMenu creates a new menu view with explicit dependencies
+func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Menu {
+	return &Menu{
+		eventBus:   eventBus,
+		fileSystem: fileSystem,
+	}
 }
 
 func (view *Menu) Render() {
 	if gui.StartPanel("Menu") {
 		gui.NewButton("menu_open_map", "Open map", func() {
-			name, err := dialogs.OpenFile("Select BSP", filesystem.GameBasePath(), "Valve .bsp files", "bsp")
+			// Get game base path from filesystem
+			gameBasePath := ""
+			if view.fileSystem != nil {
+				gameBasePath = filesystem.GameBasePath() // Still need to use this for now
+			}
+			name, err := dialogs.OpenFile("Select BSP", gameBasePath, "Valve .bsp files", "bsp")
 			if err != nil {
 				if err.Error() == "Cancelled" {
 					return
@@ -24,13 +39,13 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			event.Get().Dispatch(messages.TypeChangeLevel, name)
+			view.eventBus.Dispatch(messages.TypeChangeLevel, name)
 		}).Draw()
 		gui.NewButton("menu_disconnect", "Disconnect", func() {
-			event.Get().Dispatch(messages.TypeEngineDisconnect, nil)
+			view.eventBus.Dispatch(messages.TypeEngineDisconnect, nil)
 		}).Draw()
 		gui.NewButton("menu_quit", "Quit", func() {
-			event.Get().Dispatch(messages.TypeEngineQuit, nil)
+			view.eventBus.Dispatch(messages.TypeEngineQuit, nil)
 		}).Draw()
 		gui.EndPanel()
 	}

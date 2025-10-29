@@ -20,6 +20,8 @@ import (
 )
 
 type Renderer struct {
+	eventBus    *event.Dispatcher
+	fileSystem  filesystem.FileSystem
 	shaderCache *cache.Shader
 
 	dataScene *scene2.StaticScene
@@ -43,9 +45,9 @@ func (s *Renderer) Initialize() {
 	adapter.EnableDepthTesting()
 	adapter.EnableBackFaceCulling()
 
-	event.Get().AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
+	s.eventBus.AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
 
-	event.Get().AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+	s.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
 		s.Cleanup()
 	})
 	s.bindConVars()
@@ -134,7 +136,7 @@ func (s *Renderer) FinishFrame() {
 
 func (s *Renderer) onLoadingLevelParsed(message interface{}) {
 	s.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
-	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, filesystem.Get())
+	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, s.fileSystem)
 }
 
 func (s *Renderer) startFrame(camera *graphics.Camera) {
@@ -340,6 +342,10 @@ func (s *Renderer) bindConVars() {
 	})
 }
 
-func NewRenderer() *Renderer {
-	return &Renderer{}
+// NewRenderer creates a new renderer with explicit dependencies
+func NewRenderer(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Renderer {
+	return &Renderer{
+		eventBus:   eventBus,
+		fileSystem: fileSystem,
+	}
 }

@@ -18,6 +18,9 @@ type fileSystem interface {
 
 var sceneSingleton StaticScene
 
+// Deprecated: Use Engine.SceneManager().GetCurrentScene() instead.
+// This function will be removed in a future version.
+// For new code, use SceneManager passed as an explicit dependency.
 func CurrentScene() *StaticScene {
 	if sceneSingleton.BspMesh == nil {
 		return nil
@@ -26,6 +29,8 @@ func CurrentScene() *StaticScene {
 	return &sceneSingleton
 }
 
+// Deprecated: Use Engine.SceneManager().CloseCurrentScene() instead.
+// This function will be removed in a future version.
 func CloseCurrentScene() {
 	sceneSingleton = StaticScene{}
 }
