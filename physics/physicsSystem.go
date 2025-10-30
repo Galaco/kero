@@ -3,6 +3,9 @@ package physics
 import (
 	"fmt"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/ecs"
+	"github.com/galaco/kero/framework/ecs/components"
+	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/adapter"
@@ -21,7 +24,12 @@ type PhysicsSystem struct {
 	sceneManager  *scene.Manager
 	dataScene     *scene.StaticScene
 
+	// Phase 4: ECS integration
+	ecsWorld      *ecs.World
+	legacyBridge  *legacy.Bridge
+
 	// Dynamic entities (includes prop_physics* & prop_dynamic*)
+	// TODO: Phase 4 - deprecated, use ECS queries instead
 	physicsEntities []entity.IEntity
 
 	// Bullet
@@ -34,6 +42,11 @@ type PhysicsSystem struct {
 }
 
 func (system *PhysicsSystem) Initialize() {
+	// Phase 4: Initialize ECS bridge if ECS World is set
+	if system.ecsWorld != nil {
+		system.legacyBridge = legacy.NewBridge(system.ecsWorld)
+	}
+
 	// Register typed event listeners (Phase 3)
 	event.RegisterTypedEvent(system.eventBus, system.onChangeLevelTyped)
 	event.RegisterTypedEvent(system.eventBus, system.onLoadingLevelParsedTyped)
@@ -44,12 +57,98 @@ func (system *PhysicsSystem) Initialize() {
 	// Physics debug and monitoring console variables
 	console.AddConvarBool("r_drawcollisionmodels", "Render collision mode vertices", false)
 	console.AddConvarBool("physics_debug", "Show physics timing debug info", false)
+	console.AddConvarBool("physics_use_ecs", "Use ECS for physics updates (Phase 4)", true)
 }
 
 // FixedUpdate runs the physics simulation at a fixed timestep.
 // This method should be called with a constant dt value (typically 1.0/60.0 = 0.0166667 seconds).
 // Fixed timestep ensures stable, deterministic physics simulation regardless of frame rate.
 func (system *PhysicsSystem) FixedUpdate(dt float64) {
+	// Phase 4: Use ECS path if enabled and available
+	if console.GetConvarBoolean("physics_use_ecs") && system.ecsWorld != nil && system.legacyBridge != nil {
+		system.fixedUpdateECS(dt)
+		return
+	}
+
+	// Legacy path (backward compatibility)
+	system.fixedUpdateLegacy(dt)
+}
+
+// fixedUpdateECS updates physics using ECS queries (Phase 4)
+func (system *PhysicsSystem) fixedUpdateECS(dt float64) {
+	// Safety check: Don't run physics if world not initialized
+	// (Bullet world is created in onLoadingLevelParsedTyped)
+	if system.dataScene == nil {
+		return
+	}
+
+	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
+		return
+	}
+
+	// Debug logging
+	if console.GetConvarBoolean("physics_debug") {
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Physics dt: %.6f (ECS mode)", dt))
+	}
+
+	// Query entities with Transform + Physics components
+	query := system.ecsWorld.Query().
+		With(ecs.ComponentTypeTransform).
+		With(ecs.ComponentTypePhysics).
+		Build()
+
+	entities := query.Entities()
+	if len(entities) == 0 {
+		return
+	}
+
+	// Update entity transforms to physics engine
+	for _, entity := range entities {
+		transform, _ := ecs.GetComponent[components.Transform](system.ecsWorld, entity)
+
+		// Get legacy entity to access RigidBody (migration phase)
+		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
+		if !exists || legacyEntity.Model() == nil || legacyEntity.Model().RigidBody == nil {
+			continue
+		}
+
+		// Convert transform to matrix and update Bullet
+		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
+			Mul4(transform.Orientation.Mat4())
+
+		// Update Bullet rigid body transform
+		legacyEntity.Model().RigidBody.SetTransform(transformMatrix)
+	}
+
+	// Step physics simulation with fixed timestep
+	bullet.BulletStepSimulation(system.world, dt)
+
+	// Apply physics results back to ECS components
+	for _, entity := range entities {
+		transform, _ := ecs.GetComponent[components.Transform](system.ecsWorld, entity)
+
+		// Get legacy entity to access RigidBody (migration phase)
+		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
+		if !exists || legacyEntity.Model() == nil || legacyEntity.Model().RigidBody == nil {
+			continue
+		}
+
+		// Read physics results from Bullet
+		transform.Position = legacyEntity.Model().RigidBody.GetTranslation()
+		transform.Orientation = legacyEntity.Model().RigidBody.GetOrientation()
+	}
+
+	// Sync ECS changes back to legacy entities for systems that still use them
+	system.legacyBridge.SyncAllECSToLegacy()
+
+	// Debug visualization
+	if console.GetConvarBoolean("r_drawcollisionmodels") {
+		system.drawDebug()
+	}
+}
+
+// fixedUpdateLegacy updates physics using legacy entity list (backward compatibility)
+func (system *PhysicsSystem) fixedUpdateLegacy(dt float64) {
 	if len(system.physicsEntities) == 0 {
 		// Nothing to simulate
 		return
@@ -61,7 +160,7 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 
 	// Debug logging (useful to verify fixed timestep is working)
 	if console.GetConvarBoolean("physics_debug") {
-		console.PrintString(console.LevelInfo, fmt.Sprintf("Physics dt: %.6f (should be constant)", dt))
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Physics dt: %.6f (legacy mode)", dt))
 	}
 
 	// Update entity transforms to physics engine
@@ -85,7 +184,7 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 	}
 
 	// Debug visualization
-	if console.GetConvarBoolean("r_drawcollisionmodels") == true {
+	if console.GetConvarBoolean("r_drawcollisionmodels") {
 		system.drawDebug()
 	}
 }
@@ -175,6 +274,11 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 			}
 			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), disableMotion)
 			system.physicsEntities = append(system.physicsEntities, e)
+
+			// Phase 4: Create ECS entities from legacy entities
+			if system.legacyBridge != nil {
+				system.legacyBridge.CreateECSEntityFromLegacy(e)
+			}
 		}
 	}
 	console.PrintString(console.LevelSuccess, "Collision structures ready!")
@@ -208,6 +312,12 @@ func (system *PhysicsSystem) Cleanup() {
 	if system.dataScene == nil {
 		return
 	}
+
+	// Phase 4: Clear ECS bridge
+	if system.legacyBridge != nil {
+		system.legacyBridge.Clear()
+	}
+
 	bullet.BulletDeleteDynamicWorld(system.world)
 	bullet.BulletDeletePhysicsSDK(system.sdk)
 
@@ -230,10 +340,11 @@ func (system *PhysicsSystem) Cleanup() {
 }
 
 // NewPhysicsSystem creates a new physics system with explicit dependencies
-func NewPhysicsSystem(eventBus *event.Dispatcher, sceneManager *scene.Manager) *PhysicsSystem {
+func NewPhysicsSystem(eventBus *event.Dispatcher, sceneManager *scene.Manager, ecsWorld *ecs.World) *PhysicsSystem {
 	return &PhysicsSystem{
 		eventBus:                   eventBus,
 		sceneManager:               sceneManager,
+		ecsWorld:                   ecsWorld,
 		physicsEntities:            make([]entity.IEntity, 0),
 		studiomodelCollisionMeshes: map[string]studiomodelCollisionMesh{},
 	}

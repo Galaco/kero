@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -23,6 +24,7 @@ type Engine struct {
 
 	// Game state
 	sceneManager *frameworkScene.Manager
+	ecsWorld     *ecs.World // Phase 4: ECS World for component-based entities
 
 	// Systems (in dependency order)
 	input    *middleware.Input
@@ -139,4 +141,14 @@ func (e *Engine) Window() *window.Window {
 // SetWindow sets the window
 func (e *Engine) SetWindow(w *window.Window) {
 	e.window = w
+}
+
+// ECSWorld returns the ECS world
+func (e *Engine) ECSWorld() *ecs.World {
+	return e.ecsWorld
+}
+
+// SetECSWorld sets the ECS world
+func (e *Engine) SetECSWorld(world *ecs.World) {
+	e.ecsWorld = world
 }

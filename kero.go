@@ -2,6 +2,7 @@ package kero
 
 import (
 	"github.com/galaco/kero/engine"
+	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -56,6 +57,10 @@ func (kero *Kero) Start(gameDir string) error {
 	sceneManager := scene2.NewManager()
 	kero.engine.SetSceneManager(sceneManager)
 
+	// Initialize ECS World (Phase 4)
+	ecsWorld := ecs.NewWorld()
+	kero.engine.SetECSWorld(ecsWorld)
+
 	// Initialize systems with explicit dependencies
 	input := middleware.NewInput(eventBus)
 	kero.engine.SetInput(input)
@@ -69,7 +74,7 @@ func (kero *Kero) Start(gameDir string) error {
 	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input)
 	kero.engine.SetScene(sceneSystem)
 
-	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager)
+	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld)
 	kero.engine.SetPhysics(physicsSystem)
 
 	kero.isRunning = true
