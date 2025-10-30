@@ -46,4 +46,10 @@ func AddInitialConvars() {
 	})
 
 	console.AddConvarBool("hdr_enable", "Use HDR by default", true)
+
+	// Performance metrics ConVars
+	console.AddConvarBool("r_showperf", "Enable performance metrics collection and display", true)
+	console.AddConvarInt("r_perfhistory", "Number of performance samples to keep in history", 300)
+	console.AddConvarInt("r_perfgraphheight", "Performance graph height in pixels", 200)
+	console.AddConvarInt("r_perfgraphwidth", "Performance graph width in pixels", 600)
 }

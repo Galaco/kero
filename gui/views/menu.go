@@ -10,16 +10,18 @@ import (
 )
 
 type Menu struct {
-	Console    menu.Console
-	eventBus   *event.Dispatcher
-	fileSystem filesystem.FileSystem
+	Console     menu.Console
+	Performance *menu.Performance
+	eventBus    *event.Dispatcher
+	fileSystem  filesystem.FileSystem
 }
 
 // NewMenu creates a new menu view with explicit dependencies
-func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Menu {
+func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, performance *menu.Performance) *Menu {
 	return &Menu{
-		eventBus:   eventBus,
-		fileSystem: fileSystem,
+		eventBus:    eventBus,
+		fileSystem:  fileSystem,
+		Performance: performance,
 	}
 }
 
@@ -54,4 +56,9 @@ func (view *Menu) Render() {
 	}
 
 	view.Console.Render()
+
+	// Render performance metrics
+	if view.Performance != nil {
+		view.Performance.Render()
+	}
 }

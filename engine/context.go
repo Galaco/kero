@@ -6,6 +6,7 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/framework/metrics"
 	frameworkScene "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/gui"
@@ -22,6 +23,7 @@ type Engine struct {
 	eventBus       *event.Dispatcher
 	fileSystem     filesystem.FileSystem
 	entityRegistry *entity.Registry
+	metrics        *metrics.Collector
 
 	// Game state
 	sceneManager *frameworkScene.Manager
@@ -163,4 +165,14 @@ func (e *Engine) LegacyBridge() *legacy.Bridge {
 // SetLegacyBridge sets the legacy entity bridge
 func (e *Engine) SetLegacyBridge(bridge *legacy.Bridge) {
 	e.legacyBridge = bridge
+}
+
+// Metrics returns the metrics collector
+func (e *Engine) Metrics() *metrics.Collector {
+	return e.metrics
+}
+
+// SetMetrics sets the metrics collector
+func (e *Engine) SetMetrics(metrics *metrics.Collector) {
+	e.metrics = metrics
 }

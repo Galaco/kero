@@ -7,6 +7,7 @@ import (
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
+	"github.com/galaco/kero/framework/metrics"
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
@@ -67,6 +68,10 @@ func (kero *Kero) Start(gameDir string) error {
 	legacyBridge := legacy.NewBridge(ecsWorld)
 	kero.engine.SetLegacyBridge(legacyBridge)
 
+	// Initialize metrics collector (300 samples = ~5 seconds at 60fps)
+	metricsCollector := metrics.NewCollector(300)
+	kero.engine.SetMetrics(metricsCollector)
+
 	// Initialize systems with explicit dependencies
 	input := middleware.NewInput(eventBus)
 	kero.engine.SetInput(input)
@@ -74,7 +79,7 @@ func (kero *Kero) Start(gameDir string) error {
 	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld, legacyBridge)
 	kero.engine.SetRenderer(renderer)
 
-	ui := gui.NewGui(eventBus, fs, input)
+	ui := gui.NewGui(eventBus, fs, input, metricsCollector)
 	kero.engine.SetGUI(ui)
 
 	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input)
@@ -116,6 +121,9 @@ func (kero *Kero) mainLoop() {
 	currentTime := time.Now()
 
 	for kero.isRunning && (window.CurrentWindow() != nil && !window.CurrentWindow().ShouldClose()) {
+		// Start frame timing
+		frameStartTime := time.Now()
+
 		// Calculate frame time
 		newTime := time.Now()
 		frameDt := newTime.Sub(currentTime).Seconds()
@@ -129,13 +137,18 @@ func (kero *Kero) mainLoop() {
 		accumulator += frameDt
 
 		// Input processing (once per frame)
+		kero.engine.Metrics().StartTiming("input")
 		kero.engine.Input().Poll()
+		kero.engine.Metrics().EndTiming("input")
 
 		// Phase 1: Pre-Update (process events queued before game logic)
+		kero.engine.Metrics().StartTiming("event_preupdate")
 		kero.engine.EventBus().ProcessPhase(event.PhasePreUpdate)
+		kero.engine.Metrics().EndTiming("event_preupdate")
 
 		// Fixed timestep physics (may run 0, 1, or multiple times per frame)
 		physicsSteps := 0
+		kero.engine.Metrics().StartTiming("physics_total")
 		for accumulator >= FixedDt {
 			kero.engine.Physics().FixedUpdate(FixedDt)
 			accumulator -= FixedDt
@@ -147,26 +160,53 @@ func (kero *Kero) mainLoop() {
 				break
 			}
 		}
+		kero.engine.Metrics().EndTiming("physics_total")
+		kero.engine.Metrics().RecordValue("physics_steps", float64(physicsSteps))
 
 		// Variable timestep updates (scene logic, rendering)
+		kero.engine.Metrics().StartTiming("scene_update")
 		kero.engine.Scene().Update(frameDt)
+		kero.engine.Metrics().EndTiming("scene_update")
 
 		// Phase 2: Post-Update (process events after game logic, before rendering)
+		kero.engine.Metrics().StartTiming("event_postupdate")
 		kero.engine.EventBus().ProcessPhase(event.PhasePostUpdate)
+		kero.engine.Metrics().EndTiming("event_postupdate")
 
 		// Phase 3: Pre-Render (process events before rendering begins)
+		kero.engine.Metrics().StartTiming("event_prerender")
 		kero.engine.EventBus().ProcessPhase(event.PhasePreRender)
+		kero.engine.Metrics().EndTiming("event_prerender")
 
 		// Render (interpolation factor for future use)
 		// interpolation := float32(accumulator / FixedDt)
+		kero.engine.Metrics().StartTiming("render")
 		kero.engine.Renderer().Render()
-		kero.engine.GUI().Render()
+		kero.engine.Metrics().EndTiming("render")
 
+		kero.engine.Metrics().StartTiming("gui")
+		kero.engine.GUI().Render()
+		kero.engine.Metrics().EndTiming("gui")
+
+		kero.engine.Metrics().StartTiming("swap_buffers")
 		window.CurrentWindow().SwapBuffers()
 		kero.engine.Renderer().FinishFrame()
+		kero.engine.Metrics().EndTiming("swap_buffers")
 
 		// Phase 4: Post-Render (process events after frame completes)
+		kero.engine.Metrics().StartTiming("event_postrender")
 		kero.engine.EventBus().ProcessPhase(event.PhasePostRender)
+		kero.engine.Metrics().EndTiming("event_postrender")
+
+		// Record total frame time
+		frameTotalTime := time.Since(frameStartTime)
+		kero.engine.Metrics().RecordValue("frame_total", float64(frameTotalTime.Microseconds())/1000.0)
+
+		// Calculate and record FPS
+		if frameTotalTime.Seconds() > 0 {
+			fps := 1.0 / frameTotalTime.Seconds()
+			kero.engine.Metrics().RecordValue("fps", fps)
+		}
 	}
 }
 
