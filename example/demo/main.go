@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
+	"log"
+	"runtime"
+
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/debug"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
-	"log"
-	"runtime"
 )
 
 func main() {
@@ -48,7 +49,7 @@ func main() {
 }
 
 func initFramework() error {
-	win, err := window.CreateWindow(1920, 1080, "Kero: A Source Engine Implementation")
+	win, err := window.CreateWindow(1440, 800, "Kero: A Source Engine Implementation")
 	if err != nil {
 		return err
 	}

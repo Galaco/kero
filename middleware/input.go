@@ -39,10 +39,10 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
 	// Use typed event dispatch (Phase 3)
-	// Note: Delta calculation can be added later by tracking previous position
+	// Note: x, y are already DELTAS from mouse.go (not absolute position)
 	event.DispatchTyped(s.eventBus, messages.MouseMoveEvent{
-		Position: mgl32.Vec2{float32(x), float32(y)},
-		Delta:    mgl32.Vec2{0, 0}, // TODO: Calculate delta from previous position
+		Position: mgl32.Vec2{0, 0},                     // Not used for camera rotation
+		Delta:    mgl32.Vec2{float32(x), float32(y)}, // Mouse movement delta
 	})
 }
 

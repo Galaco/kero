@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/galaco/kero/framework/console"
 	"strconv"
 	"strings"
+
+	"github.com/galaco/kero/framework/console"
 )
 
 func AddInitialConvars() {
@@ -52,4 +53,12 @@ func AddInitialConvars() {
 	console.AddConvarInt("r_perfhistory", "Number of performance samples to keep in history", 300)
 	console.AddConvarInt("r_perfgraphheight", "Performance graph height in pixels", 200)
 	console.AddConvarInt("r_perfgraphwidth", "Performance graph width in pixels", 600)
+
+	// Camera movement ConVars
+	console.AddConvarFloat("cam_acceleration", "Camera acceleration rate (units/second^2)", 1024.0)
+	console.AddConvarFloat("cam_deceleration", "Camera deceleration multiplier", 512.0)
+	console.AddConvarFloat("cam_maxspeed", "Maximum camera movement speed (units/second)", 320.0)
+
+	// Mouse sensitivity ConVar
+	console.AddConvarFloat("m_sensitivity", "Mouse sensitivity multiplier", 1.0)
 }

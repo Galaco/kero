@@ -39,20 +39,27 @@ func (s *Scene) Update(dt float64) {
 		return
 	}
 	if s.listenToInput {
+		// Update camera first to ensure direction vectors are current
+		// (rotation from mouse events may have happened since last frame)
+		s.dataScene.Camera.Update(dt)
+
+		// Build movement input direction from keyboard
+		var forward, right float32
 		if input.Keyboard().IsKeyPressed(input.KeyW) {
-			s.dataScene.Camera.Forwards(dt)
-		}
-		if input.Keyboard().IsKeyPressed(input.KeyA) {
-			s.dataScene.Camera.Left(dt)
+			forward += 1.0
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyS) {
-			s.dataScene.Camera.Backwards(dt)
+			forward -= 1.0
 		}
 		if input.Keyboard().IsKeyPressed(input.KeyD) {
-			s.dataScene.Camera.Right(dt)
+			right += 1.0
+		}
+		if input.Keyboard().IsKeyPressed(input.KeyA) {
+			right -= 1.0
 		}
 
-		s.dataScene.Camera.Update(dt)
+		// Apply movement input to camera (uses updated direction vectors)
+		s.dataScene.Camera.SetMovementInput(forward, right, dt)
 	}
 
 	for _, e := range s.dataScene.Entities {
@@ -91,7 +98,7 @@ func (s *Scene) onMouseMoveTyped(e messages.MouseMoveEvent) {
 	if s.dataScene == nil || s.dataScene.Camera == nil || !s.listenToInput {
 		return
 	}
-	s.dataScene.Camera.Rotate(e.Position[0], 0, e.Position[1])
+	s.dataScene.Camera.Rotate(e.Delta[0], 0, e.Delta[1])
 }
 
 // NewScene creates a new scene with explicit dependencies
