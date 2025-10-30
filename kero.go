@@ -3,6 +3,7 @@ package kero
 import (
 	"github.com/galaco/kero/engine"
 	"github.com/galaco/kero/framework/ecs"
+	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -61,11 +62,16 @@ func (kero *Kero) Start(gameDir string) error {
 	ecsWorld := ecs.NewWorld()
 	kero.engine.SetECSWorld(ecsWorld)
 
+	// Initialize shared Legacy Bridge (Phase 4)
+	// Single bridge instance shared by all systems
+	legacyBridge := legacy.NewBridge(ecsWorld)
+	kero.engine.SetLegacyBridge(legacyBridge)
+
 	// Initialize systems with explicit dependencies
 	input := middleware.NewInput(eventBus)
 	kero.engine.SetInput(input)
 
-	renderer := renderer.NewRenderer(eventBus, fs)
+	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld, legacyBridge)
 	kero.engine.SetRenderer(renderer)
 
 	ui := gui.NewGui(eventBus, fs, input)
@@ -74,7 +80,7 @@ func (kero *Kero) Start(gameDir string) error {
 	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input)
 	kero.engine.SetScene(sceneSystem)
 
-	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld)
+	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
 	kero.engine.SetPhysics(physicsSystem)
 
 	kero.isRunning = true

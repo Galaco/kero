@@ -3,6 +3,9 @@ package renderer
 import (
 	"errors"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/ecs"
+	"github.com/galaco/kero/framework/ecs/components"
+	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
@@ -23,6 +26,10 @@ type Renderer struct {
 	eventBus    *event.Dispatcher
 	fileSystem  filesystem.FileSystem
 	shaderCache *cache.Shader
+
+	// Phase 4: ECS integration
+	ecsWorld     *ecs.World
+	legacyBridge *legacy.Bridge
 
 	dataScene *scene2.StaticScene
 	gpuScene  scene.GPUScene
@@ -93,6 +100,8 @@ func (s *Renderer) Render() {
 	s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
 	s.renderStaticProps(s.dataScene.Camera, clusters)
+
+	// Render entity props using ECS
 	s.renderEntityProps()
 
 	s.DrawDebug()
@@ -250,16 +259,49 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	}
 }
 
+// renderEntityProps renders entities using ECS queries
 func (s *Renderer) renderEntityProps() {
-	for _, entry := range s.gpuScene.GpuRenderablePropEntities {
-		for _, ent := range entry.Entities {
-			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, ent.Transform().TransformationMatrix())
-			if gpuProp, ok := s.gpuScene.GpuStaticProps[entry.Id]; ok {
-				for idx := range gpuProp.Id {
-					adapter.BindMesh(&gpuProp.Id[idx])
-					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
-					adapter.DrawIndexedArray(len(entry.Prop.Meshes()[idx].Indices()), 0, nil)
-				}
+	// Query entities with Transform + Model components
+	query := s.ecsWorld.Query().
+		With(ecs.ComponentTypeTransform).
+		With(ecs.ComponentTypeModel).
+		Build()
+
+	entities := query.Entities()
+	if len(entities) == 0 {
+		return
+	}
+
+	// Render each entity
+	for _, entity := range entities {
+		transform, _ := ecs.GetComponent[components.Transform](s.ecsWorld, entity)
+		model, _ := ecs.GetComponent[components.Model](s.ecsWorld, entity)
+
+		// Skip invisible models
+		if !model.Visible {
+			continue
+		}
+
+		// Get legacy entity to access model instance (migration phase)
+		legacyEntity, exists := s.legacyBridge.GetLegacyEntity(entity)
+		if !exists || legacyEntity.Model() == nil {
+			continue
+		}
+
+		// Create transformation matrix from ECS transform
+		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
+			Mul4(transform.Orientation.Mat4()).
+			Mul4(mgl32.Scale3D(transform.Scale.X(), transform.Scale.Y(), transform.Scale.Z()))
+
+		adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, transformMatrix)
+
+		// Render using cached GPU resources
+		modelId := legacyEntity.Model().Model.Id
+		if gpuProp, ok := s.gpuScene.GpuStaticProps[modelId]; ok {
+			for idx := range gpuProp.Id {
+				adapter.BindMesh(&gpuProp.Id[idx])
+				adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+				adapter.DrawIndexedArray(len(legacyEntity.Model().Model.Meshes()[idx].Indices()), 0, nil)
 			}
 		}
 	}
@@ -295,13 +337,13 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 func (s *Renderer) Cleanup() {
 	// Release GPU resources
 
-	for _,s := range s.gpuScene.GpuStaticProps {
-		for _,id := range s.Id {
+	for _, s := range s.gpuScene.GpuStaticProps {
+		for _, id := range s.Id {
 			adapter.DeleteMeshResource(id)
 		}
 	}
 
-	for _,id := range s.gpuScene.GpuItemCache.All() {
+	for _, id := range s.gpuScene.GpuItemCache.All() {
 		adapter.DeleteTextureResource(id)
 	}
 
@@ -343,9 +385,11 @@ func (s *Renderer) bindConVars() {
 }
 
 // NewRenderer creates a new renderer with explicit dependencies
-func NewRenderer(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Renderer {
+func NewRenderer(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, ecsWorld *ecs.World, legacyBridge *legacy.Bridge) *Renderer {
 	return &Renderer{
-		eventBus:   eventBus,
-		fileSystem: fileSystem,
+		eventBus:     eventBus,
+		fileSystem:   fileSystem,
+		ecsWorld:     ecsWorld,
+		legacyBridge: legacyBridge,
 	}
 }
