@@ -39,13 +39,16 @@ func (view *Menu) Render() {
 				dialogs.ErrorMessage(err)
 				return
 			}
-			view.eventBus.Dispatch(messages.TypeChangeLevel, name)
+			// Use deferred typed event dispatch to prevent mid-frame corruption (Phase 3)
+			event.DispatchTypedDeferred(view.eventBus, event.PhasePostUpdate, messages.ChangeLevelEvent{MapName: name})
 		}).Draw()
 		gui.NewButton("menu_disconnect", "Disconnect", func() {
-			view.eventBus.Dispatch(messages.TypeEngineDisconnect, nil)
+			// Use typed event dispatch (Phase 3)
+			event.DispatchTyped(view.eventBus, messages.EngineDisconnectEvent{})
 		}).Draw()
 		gui.NewButton("menu_quit", "Quit", func() {
-			view.eventBus.Dispatch(messages.TypeEngineQuit, nil)
+			// Use typed event dispatch (Phase 3)
+			event.DispatchTyped(view.eventBus, messages.EngineQuitEvent{})
 		}).Draw()
 		gui.EndPanel()
 	}

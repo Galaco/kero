@@ -9,7 +9,6 @@ import (
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
 	loader "github.com/galaco/kero/scene/loaders"
-	"github.com/go-gl/mathgl/mgl32"
 	"runtime"
 )
 
@@ -25,11 +24,11 @@ type Scene struct {
 }
 
 func (s *Scene) Initialize() {
-	s.eventBus.AddListener(messages.TypeChangeLevel, s.onChangeLevel)
-	s.inputMiddleware.EventBus().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
-	s.inputMiddleware.EventBus().AddListener(messages.TypeMouseMove, s.onMouseMove)
-
-	s.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+	// Register typed event listeners (Phase 3)
+	event.RegisterTypedEvent(s.inputMiddleware.EventBus(), s.onKeyReleaseTyped)
+	event.RegisterTypedEvent(s.inputMiddleware.EventBus(), s.onMouseMoveTyped)
+	event.RegisterTypedEvent(s.eventBus, s.onChangeLevelTyped)
+	event.RegisterTypedEvent(s.eventBus, func(e messages.EngineDisconnectEvent) {
 		s.sceneManager.CloseCurrentScene()
 		runtime.GC()
 	})
@@ -61,41 +60,38 @@ func (s *Scene) Update(dt float64) {
 	}
 }
 
-func (s *Scene) onChangeLevel(message interface{}) {
+func (s *Scene) onChangeLevelTyped(e messages.ChangeLevelEvent) {
 	if s.dataScene != nil {
 		// Cleanup
 	}
 
-	func(mapName string) {
-		level, ents, err := loader.LoadBspMap(s.fileSystem, s.eventBus, mapName)
-		if err != nil {
-			console.PrintString(console.LevelError, err.Error())
-			return
-		}
-		console.PrintString(console.LevelInfo, "Generating Static World...")
-		s.dataScene = scene2.LoadStaticSceneFromBsp(s.fileSystem, level, ents)
-		s.sceneManager.SetCurrentScene(s.dataScene)
-		console.PrintString(console.LevelInfo, "Complete!")
-		// Change level: we must clear the current event queue
-		s.eventBus.CancelPending()
-		s.eventBus.DispatchLegacy(messages.NewLoadingLevelParsed(s.dataScene))
-		s.eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateFinished)
-	}(message.(string))
+	level, ents, err := loader.LoadBspMap(s.fileSystem, s.eventBus, e.MapName)
+	if err != nil {
+		console.PrintString(console.LevelError, err.Error())
+		return
+	}
+	console.PrintString(console.LevelInfo, "Generating Static World...")
+	s.dataScene = scene2.LoadStaticSceneFromBsp(s.fileSystem, level, ents)
+	s.sceneManager.SetCurrentScene(s.dataScene)
+	console.PrintString(console.LevelInfo, "Complete!")
+	// Change level: we must clear the current event queue
+	s.eventBus.CancelPending()
+	// Use typed event dispatch (Phase 3)
+	event.DispatchTyped(s.eventBus, messages.LoadingLevelParsedEvent{Level: s.dataScene})
+	event.DispatchTyped(s.eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateFinished})
 }
 
-func (s *Scene) onKeyRelease(message interface{}) {
-	key := message.(input.Key)
-	if key == input.KeyEscape {
+func (s *Scene) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
+	if e.Key == input.KeyEscape {
 		s.listenToInput = !s.listenToInput
 	}
 }
 
-func (s *Scene) onMouseMove(message interface{}) {
+func (s *Scene) onMouseMoveTyped(e messages.MouseMoveEvent) {
 	if s.dataScene == nil || s.dataScene.Camera == nil || !s.listenToInput {
 		return
 	}
-	msg := message.(mgl32.Vec2)
-	s.dataScene.Camera.Rotate(msg[0], 0, msg[1])
+	s.dataScene.Camera.Rotate(e.Position[0], 0, e.Position[1])
 }
 
 // NewScene creates a new scene with explicit dependencies

@@ -21,7 +21,8 @@ func (s *Input) Poll() {
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {
 	switch action {
 	case input.KeyPress:
-		s.eventBus.Dispatch(messages.TypeKeyPress, key)
+		// Use typed event dispatch (Phase 3)
+		event.DispatchTyped(s.eventBus, messages.KeyPressEvent{Key: key})
 		if key == input.KeyEscape {
 			s.shouldLockMouse = !s.shouldLockMouse
 			if s.shouldLockMouse {
@@ -31,12 +32,18 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 			}
 		}
 	case input.KeyRelease:
-		s.eventBus.Dispatch(messages.TypeKeyRelease, key)
+		// Use typed event dispatch (Phase 3)
+		event.DispatchTyped(s.eventBus, messages.KeyReleaseEvent{Key: key})
 	}
 }
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
-	s.eventBus.Dispatch(messages.TypeMouseMove, mgl32.Vec2{float32(x), float32(y)})
+	// Use typed event dispatch (Phase 3)
+	// Note: Delta calculation can be added later by tracking previous position
+	event.DispatchTyped(s.eventBus, messages.MouseMoveEvent{
+		Position: mgl32.Vec2{float32(x), float32(y)},
+		Delta:    mgl32.Vec2{0, 0}, // TODO: Calculate delta from previous position
+	})
 }
 
 // NewInput creates a new Input middleware with explicit dependencies.

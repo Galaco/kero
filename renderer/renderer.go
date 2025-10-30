@@ -45,9 +45,9 @@ func (s *Renderer) Initialize() {
 	adapter.EnableDepthTesting()
 	adapter.EnableBackFaceCulling()
 
-	s.eventBus.AddListener(messages.TypeLoadingLevelParsed, s.onLoadingLevelParsed)
-
-	s.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+	// Register typed event listeners (Phase 3)
+	event.RegisterTypedEvent(s.eventBus, s.onLoadingLevelParsedTyped)
+	event.RegisterTypedEvent(s.eventBus, func(e messages.EngineDisconnectEvent) {
 		s.Cleanup()
 	})
 	s.bindConVars()
@@ -134,8 +134,8 @@ func (s *Renderer) FinishFrame() {
 	adapter.ClearAll()
 }
 
-func (s *Renderer) onLoadingLevelParsed(message interface{}) {
-	s.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene2.StaticScene)
+func (s *Renderer) onLoadingLevelParsedTyped(e messages.LoadingLevelParsedEvent) {
+	s.dataScene = e.Level
 	s.gpuScene = *scene.GpuSceneFromFrameworkScene(s.dataScene, s.fileSystem)
 }
 

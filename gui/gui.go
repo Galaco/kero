@@ -42,23 +42,23 @@ func (s *Gui) Initialize() {
 	console.DisableBufferedLogs()
 
 	s.uiContext = context.NewContext(window.CurrentWindow())
-	s.inputMiddleware.EventBus().AddListener(messages.TypeKeyRelease, s.onKeyRelease)
-	s.eventBus.AddListener(messages.TypeLoadingLevelProgress, s.onLoadingLevelProgress)
+
+	// Register typed event listeners (Phase 3)
+	event.RegisterTypedEvent(s.inputMiddleware.EventBus(), s.onKeyReleaseTyped)
+	event.RegisterTypedEvent(s.eventBus, s.onLoadingLevelProgressTyped)
 
 }
 
-func (s *Gui) onKeyRelease(message interface{}) {
-	key := message.(input.Key)
-	if key == input.KeyEscape {
+func (s *Gui) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
+	if e.Key == input.KeyEscape {
 		s.shouldDisplayMenu = !s.shouldDisplayMenu
 	}
 }
 
-func (s *Gui) onLoadingLevelProgress(message interface{}) {
-	stage := message.(int)
-	s.loadingView.UpdateProgress(stage)
-	if stage == messages.LoadingProgressStateError ||
-		stage == messages.LoadingProgressStateFinished {
+func (s *Gui) onLoadingLevelProgressTyped(e messages.LoadingLevelProgressEvent) {
+	s.loadingView.UpdateProgress(e.State)
+	if e.State == messages.LoadingProgressStateError ||
+		e.State == messages.LoadingProgressStateFinished {
 		s.shouldDisplayLoadingScreen = false
 	} else {
 		s.shouldDisplayLoadingScreen = true

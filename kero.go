@@ -80,13 +80,18 @@ func (kero *Kero) Start(gameDir string) error {
 	renderer.Initialize()
 	ui.Initialize()
 
-	eventBus.AddListener(messages.TypeEngineQuit, kero.onQuit)
+	// Register typed event listeners (Phase 3)
+	event.RegisterTypedEvent(eventBus, kero.onQuitTyped)
 
 	kero.mainLoop()
 
 	kero.exit()
 
 	return nil
+}
+
+func (kero *Kero) onQuitTyped(e messages.EngineQuitEvent) {
+	window.CurrentWindow().Close()
 }
 
 func (kero *Kero) mainLoop() {
@@ -115,6 +120,9 @@ func (kero *Kero) mainLoop() {
 		// Input processing (once per frame)
 		kero.engine.Input().Poll()
 
+		// Phase 1: Pre-Update (process events queued before game logic)
+		kero.engine.EventBus().ProcessPhase(event.PhasePreUpdate)
+
 		// Fixed timestep physics (may run 0, 1, or multiple times per frame)
 		physicsSteps := 0
 		for accumulator >= FixedDt {
@@ -132,6 +140,12 @@ func (kero *Kero) mainLoop() {
 		// Variable timestep updates (scene logic, rendering)
 		kero.engine.Scene().Update(frameDt)
 
+		// Phase 2: Post-Update (process events after game logic, before rendering)
+		kero.engine.EventBus().ProcessPhase(event.PhasePostUpdate)
+
+		// Phase 3: Pre-Render (process events before rendering begins)
+		kero.engine.EventBus().ProcessPhase(event.PhasePreRender)
+
 		// Render (interpolation factor for future use)
 		// interpolation := float32(accumulator / FixedDt)
 		kero.engine.Renderer().Render()
@@ -139,11 +153,10 @@ func (kero *Kero) mainLoop() {
 
 		window.CurrentWindow().SwapBuffers()
 		kero.engine.Renderer().FinishFrame()
-	}
-}
 
-func (kero *Kero) onQuit(e interface{}) {
-	window.CurrentWindow().Close()
+		// Phase 4: Post-Render (process events after frame completes)
+		kero.engine.EventBus().ProcessPhase(event.PhasePostRender)
+	}
 }
 
 func (kero *Kero) exit() {

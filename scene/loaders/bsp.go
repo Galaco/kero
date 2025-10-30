@@ -33,10 +33,11 @@ import (
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
-	eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStarted)
+	// Use typed event dispatch (Phase 3)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStarted})
 	file, err := bsp.ReadFromFile(filename)
 	if err != nil {
-		eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
+		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
 		return nil, nil, err
 	}
 	bspNameParts := strings.Split(filename, "/")
@@ -45,23 +46,23 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
 	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
 
-	eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateBSPParsed)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
 	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
 	// Load the static bsp world
 	level, err := loadBSPWorld(fs, file)
 
 	if err != nil {
-		eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
+		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
 		return nil, nil, err
 	}
 	level.SetCamera(graphics.NewCamera(
 		mgl32.DegToRad(90),
 		float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())))
-	eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateGeometryLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateGeometryLoaded})
 
 	// Load staticprops
 	level.StaticPropDictionary, level.StaticProps = LoadStaticProps(fs, file)
-	eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStaticPropsLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStaticPropsLoaded})
 
 	// Load entities
 	ents, err := entity.LoadEntdata(fs, file)
@@ -71,7 +72,7 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 
 	level.EntityPropDictionary = LoadEntityProps(fs, ents)
 
-	eventBus.Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateEntitiesLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateEntitiesLoaded})
 
 	return level, ents, err
 }

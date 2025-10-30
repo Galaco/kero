@@ -34,10 +34,10 @@ type PhysicsSystem struct {
 }
 
 func (system *PhysicsSystem) Initialize() {
-	system.eventBus.AddListener(messages.TypeChangeLevel, system.onChangeLevel)
-	system.eventBus.AddListener(messages.TypeLoadingLevelParsed, system.onLoadingLevelParsed)
-
-	system.eventBus.AddListener(messages.TypeEngineDisconnect, func(e interface{}) {
+	// Register typed event listeners (Phase 3)
+	event.RegisterTypedEvent(system.eventBus, system.onChangeLevelTyped)
+	event.RegisterTypedEvent(system.eventBus, system.onLoadingLevelParsedTyped)
+	event.RegisterTypedEvent(system.eventBus, func(e messages.EngineDisconnectEvent) {
 		system.Cleanup()
 	})
 
@@ -128,15 +128,15 @@ func (system *PhysicsSystem) drawDebug() {
 	adapter.EnableBackFaceCulling()
 }
 
-func (system *PhysicsSystem) onChangeLevel(message interface{}) {
+func (system *PhysicsSystem) onChangeLevelTyped(e messages.ChangeLevelEvent) {
 	if system.dataScene == nil {
 		return
 	}
 	system.Cleanup()
 }
 
-func (system *PhysicsSystem) onLoadingLevelParsed(message interface{}) {
-	system.dataScene = message.(*messages.LoadingLevelParsed).Level().(*scene.StaticScene)
+func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelParsedEvent) {
+	system.dataScene = e.Level
 
 	// create an sdk handle
 	system.sdk = bullet.BulletNewPhysicsSDK()
