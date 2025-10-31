@@ -1,8 +1,9 @@
 module github.com/galaco/kero
 
-go 1.19
+go 1.24.0
 
 require (
+	github.com/AllenDang/cimgui-go v1.4.0
 	github.com/galaco/KeyValues v1.4.1
 	github.com/galaco/bsp v0.3.0
 	github.com/galaco/filesystem v0.1.4
@@ -17,7 +18,6 @@ require (
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
 	github.com/go-gl/mathgl v1.0.0
-	github.com/inkyblackness/imgui-go/v4 v4.5.0
 	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
 )
 

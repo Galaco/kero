@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/inkyblackness/imgui-go/v4"
+import "github.com/AllenDang/cimgui-go/imgui"
 
 type Button struct {
 	id      string

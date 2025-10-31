@@ -1,6 +1,6 @@
 package gui
 
-import "github.com/inkyblackness/imgui-go/v4"
+import "github.com/AllenDang/cimgui-go/imgui"
 
 func StartPanel(name string) bool {
 	return imgui.Begin(name)

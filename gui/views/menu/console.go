@@ -1,10 +1,9 @@
 package menu
 
 import (
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/gui"
-	"github.com/inkyblackness/imgui-go/v4"
-	"log"
 	"sort"
 )
 
@@ -43,18 +42,6 @@ type Console struct {
 	commandInput string
 }
 
-func (view *Console) commandInputCallback(data imgui.InputTextCallbackData) int32 {
-	log.Println(data.EventKey())
-	if data.EventKey() == imgui.KeyEnter {
-		console.PrintString(console.LevelInfo, view.commandInput)
-	}
-	if data.EventFlag()&imgui.InputTextFlagsEnterReturnsTrue != 0 {
-		console.PrintString(console.LevelInfo, view.commandInput)
-	}
-
-	return 0
-}
-
 // getAutocompleteOptions returns up to 5 commands/convars that match the current input
 func (view *Console) getAutocompleteOptions() []string {
 	if view.commandInput == "" {
@@ -89,9 +76,9 @@ func (view *Console) Render() {
 		}
 
 		// Messages area (subtract space for input box and autocomplete)
-		imgui.BeginChildV("ConsoleMessages", imgui.Vec2{X: -1, Y: -(24 + autocompleteHeight)}, false, 0)
+		imgui.BeginChildStrV("ConsoleMessages", imgui.Vec2{X: -1, Y: -(24 + autocompleteHeight)}, 0, 0)
 		for _, s := range view.messages {
-			imgui.PushStyleColor(imgui.StyleColorText, s.Color)
+			imgui.PushStyleColorVec4(imgui.ColText, s.Color)
 			s.Text.Render()
 			imgui.PopStyleColor()
 		}
@@ -99,8 +86,8 @@ func (view *Console) Render() {
 
 		// Render autocomplete suggestions above input box
 		if len(autocompleteOptions) > 0 {
-			imgui.BeginChildV("AutocompleteArea", imgui.Vec2{X: -1, Y: autocompleteHeight}, false, 0)
-			imgui.PushStyleColor(imgui.StyleColorText, imgui.Vec4{X: 0.7, Y: 0.7, Z: 0.7, W: 1})
+			imgui.BeginChildStrV("AutocompleteArea", imgui.Vec2{X: -1, Y: autocompleteHeight}, 0, 0)
+			imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 0.7, Y: 0.7, Z: 0.7, W: 1})
 			for _, option := range autocompleteOptions {
 				imgui.Text(option)
 			}
@@ -108,9 +95,9 @@ func (view *Console) Render() {
 			imgui.EndChild()
 		}
 
-		// Input box
+		// Input box - using InputTextWithHint with no callback (Enter key returns true)
 		imgui.PushItemWidth(-1)
-		if imgui.InputTextV("", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, view.commandInputCallback) {
+		if imgui.InputTextWithHint("##console_input", "", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, nil) {
 			err := console.ExecuteCommand(view.commandInput)
 			if err != nil {
 				console.PrintString(console.LevelError, err.Error())

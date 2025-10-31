@@ -2,7 +2,6 @@ package gui
 
 import (
 	"github.com/galaco/kero/framework/gui/context"
-	"github.com/inkyblackness/imgui-go/v4"
 )
 
 func BeginFrame(ctx *context.Context) {
@@ -12,8 +11,8 @@ func BeginFrame(ctx *context.Context) {
 func EndFrame(ctx *context.Context) {
 	//app.GraphicsAdapter.Viewport(0, 0, 640, 480)
 
-	imgui.Render()
-	ctx.Imgui().Render(imgui.RenderedDrawData())
+	// Backend Render() handles both imgui.Render() and OpenGL rendering
+	ctx.Imgui().Render()
 
 	//ctx.DrawContext().Stack.Execute()
 }

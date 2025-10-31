@@ -2,8 +2,8 @@ package menu
 
 import (
 	"fmt"
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/galaco/kero/framework/metrics"
-	"github.com/inkyblackness/imgui-go/v4"
 )
 
 // Performance displays real-time performance metrics
@@ -56,7 +56,7 @@ func (p *Performance) SetGraphWidth(width float32) {
 
 // Render draws the performance panel
 func (p *Performance) Render() {
-	if !imgui.CollapsingHeader("Performance Metrics") {
+	if !imgui.CollapsingHeaderTreeNodeFlags("Performance Metrics") {
 		return
 	}
 
@@ -160,15 +160,17 @@ func (p *Performance) plotMetric(label string, metricName string, allMetrics map
 	}
 
 	// Plot the line
-	imgui.PushStyleColor(imgui.StyleColorPlotLines, color)
-	imgui.PlotLinesV(
+	imgui.PushStyleColorVec4(imgui.ColPlotLines, color)
+	imgui.PlotLinesFloatPtrV(
 		label,
-		values,
+		&values[0],
+		int32(len(values)),
 		0,
 		"",
 		0,
 		0, // Auto scale
 		imgui.Vec2{X: p.graphWidth, Y: p.graphHeight},
+		4, // stride (sizeof(float32))
 	)
 	imgui.PopStyleColor()
 }
@@ -241,7 +243,7 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 		}
 
 		// Plot the line with color
-		imgui.PushStyleColor(imgui.StyleColorPlotLines, config.color)
+		imgui.PushStyleColorVec4(imgui.ColPlotLines, config.color)
 
 		// Use SetCursorPos to overlay graphs
 		if label[:2] == "##" {
@@ -250,14 +252,16 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 			imgui.SetCursorPos(imgui.Vec2{X: cursorPos.X, Y: cursorPos.Y - p.graphHeight - imgui.CurrentStyle().ItemSpacing().Y})
 		}
 
-		imgui.PlotLinesV(
+		imgui.PlotLinesFloatPtrV(
 			label,
-			values,
+			&values[0],
+			int32(len(values)),
 			0,
 			"",
 			0,
 			maxValue,
 			imgui.Vec2{X: p.graphWidth, Y: p.graphHeight},
+			4, // stride (sizeof(float32))
 		)
 		imgui.PopStyleColor()
 	}
@@ -269,7 +273,7 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 		if !*config.enabled {
 			continue
 		}
-		imgui.PushStyleColor(imgui.StyleColorText, config.color)
+		imgui.PushStyleColorVec4(imgui.ColText, config.color)
 		imgui.Text(config.label)
 		imgui.PopStyleColor()
 		imgui.SameLine()
