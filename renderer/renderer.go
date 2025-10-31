@@ -211,13 +211,16 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 }
 
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
-	indices := make([]uint32, 0, 256)
-	for _, face := range faces {
-		indices = append(indices, s.dataScene.BspMesh.Indices()[face.Offset():face.Offset()+(face.Length())]...)
+	// Build offset/count arrays for multi-draw (no index array allocation/upload needed)
+	counts := make([]int32, len(faces))
+	offsets := make([]int, len(faces))
+	for i, face := range faces {
+		counts[i] = int32(face.Length())
+		offsets[i] = face.Offset()
 	}
-	adapter.UpdateIndexArrayBuffer(indices)
+
 	adapter.BindTexture(mat.Diffuse)
-	adapter.DrawIndexedArray(len(indices), 0, nil)
+	adapter.DrawMultiIndexedArray(counts, offsets)
 	if err := adapter.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())
 	}
@@ -234,9 +237,20 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	}
 }
 
+// propRenderInfo holds prop render data for sorting
+type propRenderInfo struct {
+	prop         *graphics.StaticProp
+	modelId      string
+	materialIdx  int
+	materialHash uint32 // for sorting by material
+}
+
 func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
 	viewPosition := camera.Transform().Translation
+	viewFrustum := graphics.FrustumFromCamera(camera)
 
+	// Collect all visible props with their render info
+	var visibleProps []propRenderInfo
 	for _, cluster := range clusters {
 		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
 			math.Pow(float64(cluster.Origin.Y()-viewPosition.Y()), 2) +
@@ -247,15 +261,68 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
-			adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, prop.Transform.TransformationMatrix())
+
+			// Per-prop frustum culling
+			// Compute a conservative bounding box around the prop
+			// Using a fixed radius of 200 units (adjust based on typical prop sizes)
+			propPos := prop.Transform.Translation
+			propRadius := float32(200.0) // Conservative estimate for prop bounds
+			propMins := mgl32.Vec3{propPos.X() - propRadius, propPos.Y() - propRadius, propPos.Z() - propRadius}
+			propMaxs := mgl32.Vec3{propPos.X() + propRadius, propPos.Y() + propRadius, propPos.Z() + propRadius}
+
+			// Skip if prop is outside the frustum
+			if !viewFrustum.IsCuboidInFrustum(propMins, propMaxs) {
+				continue
+			}
+
+			// Add each mesh of the prop to the render list
 			if gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Model.Id]; ok {
 				for idx := range gpuProp.Id {
-					adapter.BindMesh(&gpuProp.Id[idx])
-					adapter.BindTexture(gpuProp.Material[idx].Diffuse)
-					adapter.DrawIndexedArray(len(prop.Model().Model.Meshes()[idx].Indices()), 0, nil)
+					visibleProps = append(visibleProps, propRenderInfo{
+						prop:         prop,
+						modelId:      prop.Model().Model.Id,
+						materialIdx:  idx,
+						materialHash: gpuProp.Material[idx].Diffuse, // Use texture ID as material hash
+					})
 				}
 			}
 		}
+	}
+
+	// Sort by material first (to reduce texture binds), then by model (to reduce mesh binds)
+	// Using a simple bubble sort since we want to minimize state changes more than sort time
+	for i := 0; i < len(visibleProps); i++ {
+		for j := i + 1; j < len(visibleProps); j++ {
+			// Sort primarily by material, secondarily by model
+			if visibleProps[j].materialHash < visibleProps[i].materialHash ||
+				(visibleProps[j].materialHash == visibleProps[i].materialHash && visibleProps[j].modelId < visibleProps[i].modelId) {
+				visibleProps[i], visibleProps[j] = visibleProps[j], visibleProps[i]
+			}
+		}
+	}
+
+	// Render sorted props
+	var lastMaterialHash uint32
+	var lastMesh adapter.GpuMesh
+	for _, info := range visibleProps {
+		gpuProp := s.gpuScene.GpuStaticProps[info.modelId]
+
+		// Only bind material if it changed
+		if info.materialHash != lastMaterialHash {
+			adapter.BindTexture(gpuProp.Material[info.materialIdx].Diffuse)
+			lastMaterialHash = info.materialHash
+		}
+
+		// Only bind mesh if it changed (GpuMesh is already a pointer type)
+		mesh := gpuProp.Id[info.materialIdx]
+		if mesh != lastMesh {
+			adapter.BindMesh(&mesh)
+			lastMesh = mesh
+		}
+
+		// Update model matrix and draw
+		adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, info.prop.Transform.TransformationMatrix())
+		adapter.DrawIndexedArray(len(info.prop.Model().Model.Meshes()[info.materialIdx].Indices()), 0, nil)
 	}
 }
 

@@ -188,6 +188,21 @@ func DrawIndexedArray(num int, offset int, indices []uint32) {
 	gosigl.DrawElements(num, offset, indices)
 }
 
+// DrawMultiIndexedArray draws multiple ranges from the same index buffer
+// offsets and counts must be the same length
+// This avoids index buffer uploads by using offsets into the existing buffer
+func DrawMultiIndexedArray(counts []int32, offsets []int) {
+	if len(counts) == 0 || len(counts) != len(offsets) {
+		return
+	}
+
+	// Draw each range using glDrawElements with byte offset into the index buffer
+	for i := range counts {
+		// offset in bytes = offset in indices * 4 (sizeof uint32)
+		gl.DrawElements(gl.TRIANGLES, counts[i], gl.UNSIGNED_INT, gl.PtrOffset(offsets[i]*4))
+	}
+}
+
 func UpdateIndexArrayBuffer(indices []uint32) {
 	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices)*4, gl.Ptr(indices))
 }
