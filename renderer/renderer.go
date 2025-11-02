@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"errors"
+	"fmt"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
@@ -237,88 +238,112 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	}
 }
 
-// propRenderInfo holds prop render data for sorting
-type propRenderInfo struct {
-	prop         *graphics.StaticProp
-	modelId      string
-	materialIdx  int
-	materialHash uint32 // for sorting by material
-}
-
 func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
-	viewPosition := camera.Transform().Translation
 	viewFrustum := graphics.FrustumFromCamera(camera)
 
-	// Collect all visible props with their render info
-	var visibleProps []propRenderInfo
+	// Build list of visible instance data per batch
+	// Key = batch key, Value = flat array of instance data (mat4 + vec2 fade)
+	batchVisibleData := make(map[string][]float32)
+
+	// Iterate visible clusters and props to determine which instances are visible
 	for _, cluster := range clusters {
-		distToCluster := math.Pow(float64(cluster.Origin.X()-viewPosition.X()), 2) +
-			math.Pow(float64(cluster.Origin.Y()-viewPosition.Y()), 2) +
-			math.Pow(float64(cluster.Origin.Z()-viewPosition.Z()), 2)
+		distToCluster := math.Pow(float64(cluster.Origin.X()-camera.Transform().Translation.X()), 2) +
+			math.Pow(float64(cluster.Origin.Y()-camera.Transform().Translation.Y()), 2) +
+			math.Pow(float64(cluster.Origin.Z()-camera.Transform().Translation.Z()), 2)
 
 		for _, prop := range cluster.StaticProps {
-			//  Skip render if staticProp is fully faded
+			// Fade distance check
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
 
 			// Per-prop frustum culling using accurate transformed bounds
 			propMins, propMaxs := prop.GetTransformedBounds()
-
-			// Skip if prop is outside the frustum
 			if !viewFrustum.IsCuboidInFrustum(propMins, propMaxs) {
 				continue
 			}
 
-			// Add each mesh of the prop to the render list
-			if gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Model.Id]; ok {
-				for idx := range gpuProp.Id {
-					visibleProps = append(visibleProps, propRenderInfo{
-						prop:         prop,
-						modelId:      prop.Model().Model.Id,
-						materialIdx:  idx,
-						materialHash: gpuProp.Material[idx].Diffuse, // Use texture ID as material hash
-					})
+			// Add visible prop to its batch(es)
+			gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Model.Id]
+			if !ok {
+				continue
+			}
+
+			for meshIdx := range gpuProp.Id {
+				materialHash := gpuProp.Material[meshIdx].Diffuse
+				batchKey := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
+
+				// Pack instance data: mat4 (16 floats) + vec2 fade (2 floats) = 18 floats
+				transform := prop.Transform.TransformationMatrix()
+				instanceData := make([]float32, 18)
+
+				// Copy matrix (16 floats, column-major order)
+				for i := 0; i < 16; i++ {
+					instanceData[i] = transform[i]
 				}
+
+				// Add fade distances (2 floats)
+				instanceData[16] = prop.FadeMinDistance()
+				instanceData[17] = prop.FadeMaxDistance()
+
+				// Append to batch's data array
+				batchVisibleData[batchKey] = append(batchVisibleData[batchKey], instanceData...)
 			}
 		}
 	}
 
-	// Sort by material first (to reduce texture binds), then by model (to reduce mesh binds)
-	// Using a simple bubble sort since we want to minimize state changes more than sort time
-	for i := 0; i < len(visibleProps); i++ {
-		for j := i + 1; j < len(visibleProps); j++ {
-			// Sort primarily by material, secondarily by model
-			if visibleProps[j].materialHash < visibleProps[i].materialHash ||
-				(visibleProps[j].materialHash == visibleProps[i].materialHash && visibleProps[j].modelId < visibleProps[i].modelId) {
-				visibleProps[i], visibleProps[j] = visibleProps[j], visibleProps[i]
-			}
+	// Switch to instanced shader
+	instancedShader := s.shaderCache.Find("LightMappedGenericInstanced")
+	if instancedShader == nil {
+		console.PrintString(console.LevelError, "Failed to find LightMappedGenericInstanced shader")
+		return
+	}
+	instancedShader.Bind()
+	adapter.PushMat4(instancedShader.GetUniform("projection"), 1, false, camera.ProjectionMatrix())
+	adapter.PushMat4(instancedShader.GetUniform("view"), 1, false, camera.ViewMatrix())
+	adapter.PushVec3(instancedShader.GetUniform("cameraPosition"), camera.Transform().Translation)
+	adapter.PushInt32(instancedShader.GetUniform("albedoSampler"), 0)
+	adapter.PushInt32(instancedShader.GetUniform("lightmapSampler"), 4)
+	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
+
+	if err := adapter.GpuError(); err != nil {
+		console.PrintString(console.LevelError, fmt.Sprintf("GL error after instanced shader setup: %s", err.Error()))
+	}
+
+	// Render each batch that has visible instances
+	for batchKey, data := range batchVisibleData {
+		batch, exists := s.gpuScene.InstanceBatches[batchKey]
+		if !exists {
+			continue
+		}
+
+		instanceCount := len(data) / 18 // 18 floats per instance
+
+		// Skip if no instances (shouldn't happen, but safety check)
+		if instanceCount == 0 {
+			continue
+		}
+
+		// Update persistent VBO with visible instances only
+		adapter.UpdateInstanceBuffer(batch.InstanceVBO, data)
+
+		// Bind mesh and material
+		adapter.BindMesh(&batch.Mesh)
+		adapter.BindTexture(batch.Material)
+		adapter.SetupInstanceAttributes(batch.InstanceVBO)
+
+		// Draw all visible instances with one call!
+		adapter.DrawIndexedArrayInstanced(batch.IndexCount, instanceCount)
+
+		// Check for GL errors after draw
+		if err := adapter.GpuError(); err != nil {
+			console.PrintString(console.LevelError, fmt.Sprintf("GL error drawing batch %s: %s", batchKey, err.Error()))
 		}
 	}
 
-	// Render sorted props
-	var lastMaterialHash uint32
-	var lastMesh adapter.GpuMesh
-	for _, info := range visibleProps {
-		gpuProp := s.gpuScene.GpuStaticProps[info.modelId]
-
-		// Only bind material if it changed
-		if info.materialHash != lastMaterialHash {
-			adapter.BindTexture(gpuProp.Material[info.materialIdx].Diffuse)
-			lastMaterialHash = info.materialHash
-		}
-
-		// Only bind mesh if it changed (GpuMesh is already a pointer type)
-		mesh := gpuProp.Id[info.materialIdx]
-		if mesh != lastMesh {
-			adapter.BindMesh(&mesh)
-			lastMesh = mesh
-		}
-
-		// Update model matrix and draw
-		adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, info.prop.Transform.TransformationMatrix())
-		adapter.DrawIndexedArray(len(info.prop.Model().Model.Meshes()[info.materialIdx].Indices()), 0, nil)
-	}
+	// IMPORTANT: Disable instance attributes before switching to non-instanced rendering
+	// Entity props reuse the same mesh VAOs but don't provide instance data
+	adapter.DisableInstanceAttributes()
 }
 
 // renderEntityProps renders entities using ECS queries
@@ -333,6 +358,17 @@ func (s *Renderer) renderEntityProps() {
 	if len(entities) == 0 {
 		return
 	}
+
+	// Switch back to non-instanced shader for entity rendering
+	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
+	s.activeShader.Bind()
+
+	// Re-set uniforms for non-instanced shader (uniforms are per-program)
+	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, s.dataScene.Camera.ProjectionMatrix())
+	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
+	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+	adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
 
 	// Render each entity
 	for _, entity := range entities {
@@ -398,6 +434,11 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 
 func (s *Renderer) Cleanup() {
 	// Release GPU resources
+
+	// Delete instance buffers
+	for _, batch := range s.gpuScene.InstanceBatches {
+		adapter.DeleteInstanceBuffer(batch.InstanceVBO)
+	}
 
 	for _, s := range s.gpuScene.GpuStaticProps {
 		for _, id := range s.Id {

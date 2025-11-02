@@ -14,6 +14,20 @@ import (
 	"strings"
 )
 
+// InstanceBatch represents a group of static props that share the same model+mesh+material
+// and can be rendered together using GPU instancing
+type InstanceBatch struct {
+	Key          string                   // Unique identifier: "modelId_meshIdx_materialHash"
+	ModelId      string                   // Model identifier
+	MeshIdx      int                      // Index of mesh within model
+	Mesh         adapter.GpuMesh          // GPU mesh handle
+	Material     uint32                   // Texture ID
+	IndexCount   int                      // Number of indices in mesh
+	Props        []*graphics.StaticProp   // All props in this batch (for reverse lookup)
+	InstanceVBO  uint32                   // Persistent GPU buffer for instance data
+	MaxInstances int                      // VBO capacity
+}
+
 type EntityPropCacheItem struct {
 	Id       string
 	Entities []entity.IEntity
@@ -27,6 +41,7 @@ type GPUScene struct {
 	GpuMaterialCache          cache.Material
 	GpuStaticProps            map[string]cache.GpuProp
 	GpuRenderablePropEntities []EntityPropCacheItem
+	InstanceBatches           map[string]*InstanceBatch  // Pre-built instance batches for static props
 }
 
 func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem) *GPUScene {
@@ -35,6 +50,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		GpuMaterialCache:          cache.NewMaterialCache(),
 		GpuStaticProps:            map[string]cache.GpuProp{},
 		GpuRenderablePropEntities: []EntityPropCacheItem{},
+		InstanceBatches:           map[string]*InstanceBatch{},
 	}
 
 	console.PrintString(console.LevelInfo, "Submitting BSP texture data to GPU...")
@@ -109,6 +125,10 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		tex.Release()
 	}
 
+	// Build instance batches for static props
+	console.PrintString(console.LevelInfo, "Building static prop instance batches...")
+	s.buildInstanceBatches(frameworkScene)
+
 	return s
 }
 
@@ -150,4 +170,64 @@ func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.Static
 
 		s.GpuStaticProps[prop.Id] = gpuProp
 	}
+}
+
+// buildInstanceBatches groups all static props into instance batches for efficient rendering
+// Called once at scene load time
+func (s *GPUScene) buildInstanceBatches(frameworkScene *scene.StaticScene) {
+	batches := make(map[string]*InstanceBatch)
+
+	// Iterate ALL static props in the scene across all clusters
+	for _, cluster := range frameworkScene.ClusterLeafs {
+		for _, prop := range cluster.StaticProps {
+			gpuProp, ok := s.GpuStaticProps[prop.Model().Model.Id]
+			if !ok {
+				continue
+			}
+
+			// Each mesh in the prop might need a separate batch
+			for meshIdx := range gpuProp.Id {
+				// Create batch key (same as runtime sorting key)
+				materialHash := gpuProp.Material[meshIdx].Diffuse
+				key := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
+
+				if batch, exists := batches[key]; exists {
+					// Add to existing batch
+					batch.Props = append(batch.Props, prop)
+				} else {
+					// Create new batch
+					batches[key] = &InstanceBatch{
+						Key:        key,
+						ModelId:    prop.Model().Model.Id,
+						MeshIdx:    meshIdx,
+						Mesh:       gpuProp.Id[meshIdx],
+						Material:   materialHash,
+						IndexCount: len(prop.Model().Model.Meshes()[meshIdx].Indices()),
+						Props:      []*graphics.StaticProp{prop},
+					}
+				}
+			}
+		}
+	}
+
+	// Create persistent VBOs for each batch
+	const floatsPerInstance = 18 // 16 (mat4) + 2 (fade min/max)
+
+	for _, batch := range batches {
+		batch.MaxInstances = len(batch.Props)
+
+		// Pre-allocate VBO with max capacity (but don't fill with data yet)
+		batch.InstanceVBO = adapter.CreateEmptyInstanceBuffer(batch.MaxInstances, floatsPerInstance)
+
+		if console.GetConvarBoolean("developer") {
+			console.PrintString(console.LevelInfo,
+				fmt.Sprintf("  Batch %s: %d instances, VBO %d",
+					batch.Key, batch.MaxInstances, batch.InstanceVBO))
+		}
+	}
+
+	s.InstanceBatches = batches
+
+	console.PrintString(console.LevelInfo,
+		fmt.Sprintf("Created %d instance batches", len(batches)))
 }

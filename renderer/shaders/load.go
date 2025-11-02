@@ -28,5 +28,16 @@ func LoadShaders() (*cache.Shader, error) {
 	skyboxShader.Finish()
 	shaderCache.Add("Skybox", skyboxShader)
 
+	// Instanced version of LightMappedGeneric for static props
+	lightmappedGenericInstancedShader := adapter.NewShader()
+	if err := lightmappedGenericInstancedShader.Add(adapter.ShaderTypeVertex, LightMappedGenericInstancedVertex); err != nil {
+		return nil, err
+	}
+	if err := lightmappedGenericInstancedShader.Add(adapter.ShaderTypeFragment, LightMappedGenericInstancedFragment); err != nil {
+		return nil, err
+	}
+	lightmappedGenericInstancedShader.Finish()
+	shaderCache.Add("LightMappedGenericInstanced", lightmappedGenericInstancedShader)
+
 	return shaderCache, nil
 }
