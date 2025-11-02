@@ -1,7 +1,7 @@
 package graphics
 
 import (
-	"github.com/galaco/bsp/primitives/game"
+	"github.com/galaco/bsp/lump/primitive/game"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -33,6 +33,64 @@ func (prop *StaticProp) FadeMinDistance() float32 {
 
 func (prop *StaticProp) FadeMaxDistance() float32 {
 	return prop.fadeMaxDistance
+}
+
+// GetTransformedBounds returns the world-space axis-aligned bounding box for this prop
+// by transforming the model's local bounds by the prop's transform
+func (prop *StaticProp) GetTransformedBounds() (mgl32.Vec3, mgl32.Vec3) {
+	if prop.model.Model == nil {
+		// Return a small default box if model not loaded
+		pos := prop.Transform.Translation
+		return pos.Sub(mgl32.Vec3{10, 10, 10}), pos.Add(mgl32.Vec3{10, 10, 10})
+	}
+
+	// Get model-space bounds
+	modelMins, modelMaxs := prop.model.Model.Bounds()
+
+	// Transform all 8 corners of the bounding box
+	transformMatrix := prop.Transform.TransformationMatrix()
+	corners := [8]mgl32.Vec3{
+		modelMins,
+		{modelMaxs.X(), modelMins.Y(), modelMins.Z()},
+		{modelMins.X(), modelMaxs.Y(), modelMins.Z()},
+		{modelMaxs.X(), modelMaxs.Y(), modelMins.Z()},
+		{modelMins.X(), modelMins.Y(), modelMaxs.Z()},
+		{modelMaxs.X(), modelMins.Y(), modelMaxs.Z()},
+		{modelMins.X(), modelMaxs.Y(), modelMaxs.Z()},
+		modelMaxs,
+	}
+
+	// Initialize world-space mins/maxs with transformed first corner
+	firstCorner := transformMatrix.Mul4x1(corners[0].Vec4(1)).Vec3()
+	worldMins := firstCorner
+	worldMaxs := firstCorner
+
+	// Transform remaining corners and expand bounds
+	for i := 1; i < 8; i++ {
+		transformed := transformMatrix.Mul4x1(corners[i].Vec4(1)).Vec3()
+
+		if transformed.X() < worldMins.X() {
+			worldMins[0] = transformed.X()
+		}
+		if transformed.Y() < worldMins.Y() {
+			worldMins[1] = transformed.Y()
+		}
+		if transformed.Z() < worldMins.Z() {
+			worldMins[2] = transformed.Z()
+		}
+
+		if transformed.X() > worldMaxs.X() {
+			worldMaxs[0] = transformed.X()
+		}
+		if transformed.Y() > worldMaxs.Y() {
+			worldMaxs[1] = transformed.Y()
+		}
+		if transformed.Z() > worldMaxs.Z() {
+			worldMaxs[2] = transformed.Z()
+		}
+	}
+
+	return worldMins, worldMaxs
 }
 
 // NewStaticProp returns new StaticProp

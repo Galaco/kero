@@ -1,31 +1,31 @@
 package physics
 
 import (
+	"math"
+	"sync"
+
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/bsp/primitives/brush"
-	"github.com/galaco/bsp/primitives/plane"
+	"github.com/galaco/bsp/lump"
+	"github.com/galaco/bsp/lump/primitive/brush"
+	"github.com/galaco/bsp/lump/primitive/plane"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
 	"github.com/galaco/studiomodel/mdl"
 	"github.com/galaco/studiomodel/phy"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
-	"sync"
 )
 
 type bspCollisionMesh struct {
 	vertices          []mgl32.Vec3
-	indices []bullet.BulletPhysicsIndice
+	indices           []bullet.BulletPhysicsIndice
 	childShapeHandles bullet.BulletCollisionShapeHandle
 	RigidBodyHandles  bullet.BulletRigidBodyHandle
 }
 
 func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
-	brushes := scene.RawBsp.File().Lump(bsp.LumpBrushes).(*lumps.Brush).GetData()
-	brushSides := scene.RawBsp.File().Lump(bsp.LumpBrushSides).(*lumps.BrushSide).GetData()
-	planes := scene.RawBsp.File().Lump(bsp.LumpPlanes).(*lumps.Planes).GetData()
-
+	brushes := scene.RawBsp.File().Lumps[bsp.LumpBrushes].(*lump.Brush).Data
+	brushSides := scene.RawBsp.File().Lumps[bsp.LumpBrushSides].(*lump.BrushSide).Data
+	planes := scene.RawBsp.File().Lumps[bsp.LumpPlanes].(*lump.Planes).Data
 
 	wg := sync.WaitGroup{}
 
@@ -33,7 +33,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	wg.Add(len(brushes))
 
 	asyncVertsFromPlanes := func(b *brush.Brush, idx int) {
-		if b.Contents & bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
+		if b.Contents&bsp.ContentsSolid <= 0 || b.NumSides < 1 {
 			wg.Done()
 			return
 		}
@@ -64,18 +64,17 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 		vertices = append(vertices, verts[idx]...)
 
 		for faceIndex := 0; faceIndex < len(verts[idx]); faceIndex++ {
-			indices = append(indices, bullet.BulletPhysicsIndice(faceIndex + idxBase))
+			indices = append(indices, bullet.BulletPhysicsIndice(faceIndex+idxBase))
 		}
 
 		idxBase = len(vertices)
 	}
 
-
 	childShapeHandle := bullet.BulletNewStaticTriangleShape(indices, vertices, len(indices)/3, len(vertices))
 
 	return &bspCollisionMesh{
 		vertices:          vertices,
-		indices: indices,
+		indices:           indices,
 		childShapeHandles: childShapeHandle,
 		RigidBodyHandles:  bullet.NewRigidBody(0, childShapeHandle),
 	}
@@ -99,7 +98,7 @@ func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacement
 	idxBase := 0
 	for _, face := range scene.DisplacementFaces {
 		for idx, i := range scene.RawBsp.Mesh().Indices()[face.Offset() : face.Offset()+face.Length()] {
-			indices = append(indices, bullet.BulletPhysicsIndice(idxBase + idx))
+			indices = append(indices, bullet.BulletPhysicsIndice(idxBase+idx))
 			vertices = append(vertices,
 				mgl32.Vec3{
 					scene.RawBsp.Mesh().Vertices()[(i * 3)],

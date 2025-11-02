@@ -2,7 +2,7 @@ package scene
 
 import (
 	"fmt"
-	"github.com/galaco/bsp/primitives/leaf"
+	"github.com/galaco/bsp/lump/primitive/leaf"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"

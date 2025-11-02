@@ -2,11 +2,11 @@ package vis
 
 import (
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/bsp/primitives/leaf"
-	"github.com/galaco/bsp/primitives/node"
-	"github.com/galaco/bsp/primitives/plane"
-	"github.com/galaco/bsp/primitives/visibility"
+	"github.com/galaco/bsp/lump"
+	"github.com/galaco/bsp/lump/primitive/leaf"
+	"github.com/galaco/bsp/lump/primitive/node"
+	"github.com/galaco/bsp/lump/primitive/plane"
+	"github.com/galaco/bsp/lump/primitive/visibility"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -125,11 +125,11 @@ func (vis *Vis) findCurrentLeafIndex(position mgl32.Vec3) int32 {
 
 func NewVisFromBSP(file *bsp.Bsp) *Vis {
 	return &Vis{
-		VisibilityLump: file.Lump(bsp.LumpVisibility).(*lumps.Visibility).GetData(),
+		VisibilityLump: &file.Lumps[bsp.LumpVisibility].(*lump.Visibility).Data,
 		viewPosition:   mgl32.Vec3{65536, 65536, 65536},
-		Leafs:          file.Lump(bsp.LumpLeafs).(*lumps.Leaf).GetData(),
-		LeafFaces:      file.Lump(bsp.LumpLeafFaces).(*lumps.LeafFace).GetData(),
-		Nodes:          file.Lump(bsp.LumpNodes).(*lumps.Node).GetData(),
-		Planes:         file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
+		Leafs:          file.Lumps[bsp.LumpLeafs].(*lump.Leaf).Data,
+		LeafFaces:      file.Lumps[bsp.LumpLeafFaces].(*lump.LeafFace).Data,
+		Nodes:          file.Lumps[bsp.LumpNodes].(*lump.Node).Data,
+		Planes:         file.Lumps[bsp.LumpPlanes].(*lump.Planes).Data,
 	}
 }

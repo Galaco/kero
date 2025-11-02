@@ -2,8 +2,8 @@ package graphics
 
 import (
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/primitives/face"
-	"github.com/galaco/bsp/primitives/texinfo"
+	"github.com/galaco/bsp/lump/primitive/face"
+	"github.com/galaco/bsp/lump/primitive/texinfo"
 	mesh2 "github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
 )

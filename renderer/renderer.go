@@ -262,13 +262,8 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 				continue
 			}
 
-			// Per-prop frustum culling
-			// Compute a conservative bounding box around the prop
-			// Using a fixed radius of 200 units (adjust based on typical prop sizes)
-			propPos := prop.Transform.Translation
-			propRadius := float32(200.0) // Conservative estimate for prop bounds
-			propMins := mgl32.Vec3{propPos.X() - propRadius, propPos.Y() - propRadius, propPos.Z() - propRadius}
-			propMaxs := mgl32.Vec3{propPos.X() + propRadius, propPos.Y() + propRadius, propPos.Z() + propRadius}
+			// Per-prop frustum culling using accurate transformed bounds
+			propMins, propMaxs := prop.GetTransformedBounds()
 
 			// Skip if prop is outside the frustum
 			if !viewFrustum.IsCuboidInFrustum(propMins, propMaxs) {

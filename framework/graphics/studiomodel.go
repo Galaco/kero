@@ -111,6 +111,9 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel)
 		outModel.AddMesh(smMesh)
 	}
 
+	// Compute bounding box now that all meshes are added
+	outModel.ComputeBounds()
+
 	return outModel, nil
 }
 

@@ -2,14 +2,19 @@ package loader
 
 import (
 	"fmt"
+	"math"
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/bsp/primitives/common"
-	"github.com/galaco/bsp/primitives/dispinfo"
-	"github.com/galaco/bsp/primitives/dispvert"
-	"github.com/galaco/bsp/primitives/face"
-	"github.com/galaco/bsp/primitives/plane"
-	"github.com/galaco/bsp/primitives/texinfo"
+	"github.com/galaco/bsp/lump"
+	"github.com/galaco/bsp/lump/primitive/common"
+	"github.com/galaco/bsp/lump/primitive/dispinfo"
+	"github.com/galaco/bsp/lump/primitive/dispvert"
+	"github.com/galaco/bsp/lump/primitive/face"
+	"github.com/galaco/bsp/lump/primitive/plane"
+	"github.com/galaco/bsp/lump/primitive/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -21,9 +26,6 @@ import (
 	"github.com/galaco/stringtable"
 	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
-	"strings"
-	"sync"
 )
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -35,7 +37,12 @@ import (
 func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
 	// Use typed event dispatch (Phase 3)
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStarted})
-	file, err := bsp.ReadFromFile(filename)
+	handle, err := os.Open(filename)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer handle.Close()
+	file, err := bsp.NewReader().Read(handle)
 	if err != nil {
 		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
 		return nil, nil, err
@@ -44,10 +51,10 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 	bspName := bspNameParts[len(bspNameParts)-1]
 
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
-	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header.Version))
 
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
-	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
+	fs.RegisterPakFile(file.Lumps[bsp.LumpPakfile].(*lump.Pakfile))
 	// Load the static bsp world
 	level, err := loadBSPWorld(fs, file)
 
@@ -65,7 +72,7 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStaticPropsLoaded})
 
 	// Load entities
-	ents, err := entity.LoadEntdata(fs, file)
+	ents, err := entity.LoadEntdata(file)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,22 +105,22 @@ type bspstructs struct {
 // StaticProps (materials loaded as required)
 func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error) {
 	bspStructure := bspstructs{
-		faces:       file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
-		planes:      file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
-		vertexes:    file.Lump(bsp.LumpVertexes).(*lumps.Vertex).GetData(),
-		surfEdges:   file.Lump(bsp.LumpSurfEdges).(*lumps.Surfedge).GetData(),
-		edges:       file.Lump(bsp.LumpEdges).(*lumps.Edge).GetData(),
-		texInfos:    file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
-		dispInfos:   file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
-		dispVerts:   file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
-		lightmap:    file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
-		lightmapHDR: file.Lump(bsp.LumpLightingHDR).(*lumps.Lighting).GetData(),
+		faces:       file.Lumps[bsp.LumpFaces].(*lump.Face).Data,
+		planes:      file.Lumps[bsp.LumpPlanes].(*lump.Planes).Data,
+		vertexes:    file.Lumps[bsp.LumpVertexes].(*lump.Vertex).Data,
+		surfEdges:   file.Lumps[bsp.LumpSurfEdges].(*lump.Surfedge).Data,
+		edges:       file.Lumps[bsp.LumpEdges].(*lump.Edge).Data,
+		texInfos:    file.Lumps[bsp.LumpTexInfo].(*lump.TexInfo).Data,
+		dispInfos:   file.Lumps[bsp.LumpDispInfo].(*lump.DispInfo).Data,
+		dispVerts:   file.Lumps[bsp.LumpDispVerts].(*lump.DispVert).Data,
+		lightmap:    file.Lumps[bsp.LumpLighting].(*lump.Lighting).Data,
+		lightmapHDR: file.Lumps[bsp.LumpLightingHDR].(*lump.Lighting).Data,
 	}
 
 	//MATERIALS
 	stringTable := stringtable.NewFromExistingStringTableData(
-		file.Lump(bsp.LumpTexDataStringData).(*lumps.TexDataStringData).GetData(),
-		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable).GetData())
+		file.Lumps[bsp.LumpTexDataStringData].(*lump.TexDataStringData).Data,
+		file.Lumps[bsp.LumpTexDataStringTable].(*lump.TexDataStringTable).Data)
 	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos)
 
 	materialDictionary := buildMaterialDictionary(fs, materials)
