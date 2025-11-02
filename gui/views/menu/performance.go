@@ -187,4 +187,13 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 	if frameTotal, exists := allMetrics["frame_total"]; exists {
 		imgui.Text(fmt.Sprintf("Frame Total: %.2f ms", frameTotal.CurrentValue))
 	}
+
+	// Display RAM usage
+	if memHeap, exists := allMetrics["memory_heap"]; exists {
+		imgui.Text(fmt.Sprintf("RAM (Heap): %.1f MB", memHeap.CurrentValue))
+	}
+
+	if memSys, exists := allMetrics["memory_sys"]; exists {
+		imgui.Text(fmt.Sprintf("RAM (System): %.1f MB", memSys.CurrentValue))
+	}
 }
