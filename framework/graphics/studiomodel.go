@@ -90,25 +90,51 @@ func loadProp(filePath string, fs virtualFileSystem) (*studiomodel.StudioModel, 
 }
 
 func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel) (*mesh.Model, error) {
-	verts, normals, textureCoordinates, indices, err := VertexDataForModel(studioModel, 0)
+	verts, normals, textureCoordinates, err := vertexDataForMesh(studioModel.Vvd)
 	if err != nil {
 		return nil, err
 	}
+
 	outModel := mesh.NewModel(filename, studioModel)
 	mats := materialsForStudioModel(studioModel.Mdl)
-	for i := 0; i < len(indices); i++ { //indices is a slice of slices, (ie len(indices) = num_meshes)
-		smMesh := mesh.NewMesh()
-		smMesh.AddVertex(verts...)
-		smMesh.AddNormal(normals...)
-		smMesh.AddUV(textureCoordinates...)
-		smMesh.AddIndice(indices[i]...)
 
-		//@TODO Map ALL materials to mesh data
-		outModel.AddMaterial(mats[0])
+	// Iterate through VTX body parts (matches MDL hierarchy 1:1)
+	for bodyPartIdx, bodyPart := range studioModel.Vtx.BodyParts {
+		for modelIdx, model := range bodyPart.Models {
+			for meshIdx, vtxMesh := range model.LODS[0].Meshes {
+				// Extract indices for this mesh
+				indices := indicesForMesh(&vtxMesh)
+				if len(indices) == 0 {
+					continue
+				}
 
-		// @TODO Tangents already exist in props. Use those instead
-		smMesh.GenerateTangents()
-		outModel.AddMesh(smMesh)
+				// Get material index from MDL for this mesh
+				materialIdx := int32(0) // Default to first material
+				if len(studioModel.Mdl.BodyParts) > 0 {
+					if matIdx, err := studioModel.Mdl.GetMaterialIndexForMesh(bodyPartIdx, modelIdx, meshIdx); err == nil {
+						materialIdx = matIdx
+					}
+				}
+
+				// Validate material index and fallback if out of bounds
+				if int(materialIdx) >= len(mats) || materialIdx < 0 {
+					materialIdx = 0 // Fallback to first material
+				}
+
+				// Create mesh with correct material
+				smMesh := mesh.NewMesh()
+				smMesh.AddVertex(verts...)
+				smMesh.AddNormal(normals...)
+				smMesh.AddUV(textureCoordinates...)
+				smMesh.AddIndice(indices...)
+
+				// @TODO Tangents already exist in props. Use those instead
+				smMesh.GenerateTangents()
+
+				outModel.AddMesh(smMesh)
+				outModel.AddMaterial(mats[materialIdx]) // Use correct material!
+			}
+		}
 	}
 
 	// Compute bounding box now that all meshes are added
