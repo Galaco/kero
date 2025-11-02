@@ -10,8 +10,7 @@ import (
 var inputMiddleware *Input
 
 type Input struct {
-	eventBus        *event.Dispatcher
-	shouldLockMouse bool
+	eventBus *event.Dispatcher
 }
 
 func (s *Input) Poll() {
@@ -23,14 +22,6 @@ func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods
 	case input.KeyPress:
 		// Use typed event dispatch (Phase 3)
 		event.DispatchTyped(s.eventBus, messages.KeyPressEvent{Key: key})
-		if key == input.KeyEscape {
-			s.shouldLockMouse = !s.shouldLockMouse
-			if s.shouldLockMouse {
-				input.Mouse().LockMousePosition()
-			} else {
-				input.Mouse().UnlockMousePosition()
-			}
-		}
 	case input.KeyRelease:
 		// Use typed event dispatch (Phase 3)
 		event.DispatchTyped(s.eventBus, messages.KeyReleaseEvent{Key: key})

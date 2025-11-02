@@ -19,6 +19,7 @@ import (
 // ISceneManager interface for scene management operations
 type ISceneManager interface {
 	CancelLoading()
+	IsLevelLoaded() bool
 }
 
 type Gui struct {
@@ -69,7 +70,17 @@ func (s *Gui) Initialize() {
 
 func (s *Gui) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
 	if e.Key == input.KeyEscape {
-		s.shouldDisplayMenu = !s.shouldDisplayMenu
+		// Only allow closing the menu if a level is loaded
+		// Menu can always be opened, but closing requires a loaded level
+		if !s.shouldDisplayMenu {
+			// Opening the menu - always allowed
+			s.shouldDisplayMenu = true
+		} else {
+			// Trying to close the menu - only allowed if level is loaded
+			if s.sceneManager != nil && s.sceneManager.IsLevelLoaded() {
+				s.shouldDisplayMenu = false
+			}
+		}
 	}
 }
 

@@ -45,6 +45,12 @@ func (s *Scene) Initialize() {
 	event.RegisterTypedEvent(s.eventBus, s.onChangeLevelTyped)
 	event.RegisterTypedEvent(s.eventBus, func(e messages.EngineDisconnectEvent) {
 		s.sceneManager.CloseCurrentScene()
+		s.dataScene = nil // Clear the scene reference so IsLevelLoaded() returns false
+
+		// Reset input capture state and unlock mouse
+		s.listenToInput = false
+		input.Mouse().UnlockMousePosition()
+
 		runtime.GC()
 	})
 }
@@ -171,9 +177,27 @@ func (s *Scene) CancelLoading() {
 	}
 }
 
+// IsLevelLoaded returns true if a level is currently loaded
+func (s *Scene) IsLevelLoaded() bool {
+	return s.dataScene != nil
+}
+
 func (s *Scene) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
 	if e.Key == input.KeyEscape {
+		// Only allow toggling input capture if a level is loaded
+		if s.dataScene == nil {
+			return
+		}
+
+		// Toggle input capture state
 		s.listenToInput = !s.listenToInput
+
+		// Synchronize mouse lock state with input listening state
+		if s.listenToInput {
+			input.Mouse().LockMousePosition()
+		} else {
+			input.Mouse().UnlockMousePosition()
+		}
 	}
 }
 
