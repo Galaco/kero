@@ -39,7 +39,8 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 type Console struct {
 	messages []consoleMessage
 
-	commandInput string
+	commandInput              string
+	autocompleteSelectedIndex int
 }
 
 // getAutocompleteOptions returns up to 5 commands/convars that match the current input
@@ -69,6 +70,17 @@ func (view *Console) Render() {
 		// Get autocomplete options
 		autocompleteOptions := view.getAutocompleteOptions()
 
+		// Manage autocomplete selection index
+		if len(autocompleteOptions) == 0 {
+			view.autocompleteSelectedIndex = -1
+		} else if view.autocompleteSelectedIndex == -1 {
+			// First time showing autocomplete, select first option
+			view.autocompleteSelectedIndex = 0
+		} else if view.autocompleteSelectedIndex >= len(autocompleteOptions) {
+			// Options changed, clamp to valid range
+			view.autocompleteSelectedIndex = len(autocompleteOptions) - 1
+		}
+
 		// Calculate height for autocomplete area (each option is ~20px, plus some padding)
 		autocompleteHeight := float32(0)
 		if len(autocompleteOptions) > 0 {
@@ -87,23 +99,61 @@ func (view *Console) Render() {
 		// Render autocomplete suggestions above input box
 		if len(autocompleteOptions) > 0 {
 			imgui.BeginChildStrV("AutocompleteArea", imgui.Vec2{X: -1, Y: autocompleteHeight}, 0, 0)
-			imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 0.7, Y: 0.7, Z: 0.7, W: 1})
-			for _, option := range autocompleteOptions {
+			for i, option := range autocompleteOptions {
+				// Highlight the selected option
+				if i == view.autocompleteSelectedIndex {
+					imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 1, Y: 1, Z: 0, W: 1}) // Yellow for selected
+				} else {
+					imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 0.7, Y: 0.7, Z: 0.7, W: 1}) // Gray for unselected
+				}
 				imgui.Text(option)
+				imgui.PopStyleColor()
 			}
-			imgui.PopStyleColor()
 			imgui.EndChild()
 		}
 
-		// Input box - using InputTextWithHint with no callback (Enter key returns true)
+		// Input box - standard InputTextWithHint
 		imgui.PushItemWidth(-1)
+
+		// Use standard input text (Enter returns true to submit)
 		if imgui.InputTextWithHint("##console_input", "", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, nil) {
-			err := console.ExecuteCommand(view.commandInput)
-			if err != nil {
-				console.PrintString(console.LevelError, err.Error())
+			// Enter was pressed - either submit command or accept autocomplete
+			if len(autocompleteOptions) > 0 && view.autocompleteSelectedIndex >= 0 {
+				// Autocomplete is active - select the highlighted option
+				view.commandInput = autocompleteOptions[view.autocompleteSelectedIndex]
+				view.autocompleteSelectedIndex = -1
+			} else {
+				// No autocomplete - submit the command
+				err := console.ExecuteCommand(view.commandInput)
+				if err != nil {
+					console.PrintString(console.LevelError, err.Error())
+				}
+				view.commandInput = ""
 			}
-			view.commandInput = ""
 		}
+
+		// Check for autocomplete navigation keys AFTER rendering the input
+		// This only works when the input text is active/focused
+		if imgui.IsItemActive() && len(autocompleteOptions) > 0 {
+			// Handle Up arrow - navigate up in autocomplete
+			if imgui.IsKeyPressedBool(imgui.KeyUpArrow) {
+				if view.autocompleteSelectedIndex > 0 {
+					view.autocompleteSelectedIndex--
+				} else {
+					view.autocompleteSelectedIndex = len(autocompleteOptions) - 1
+				}
+			}
+
+			// Handle Down arrow - navigate down in autocomplete
+			if imgui.IsKeyPressedBool(imgui.KeyDownArrow) {
+				if view.autocompleteSelectedIndex < len(autocompleteOptions)-1 {
+					view.autocompleteSelectedIndex++
+				} else {
+					view.autocompleteSelectedIndex = 0
+				}
+			}
+		}
+
 		imgui.PopItemWidth()
 
 		gui.EndPanel()
