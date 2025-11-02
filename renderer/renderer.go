@@ -3,6 +3,9 @@ package renderer
 import (
 	"errors"
 	"fmt"
+	"math"
+
+	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
@@ -22,7 +25,6 @@ import (
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/utils"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
 )
 
 type Renderer struct {
@@ -273,12 +275,92 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.B
 
 func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	var mat *cache.GpuMaterial
+	var currentShader *adapter.Shader
+
+	// Group displacements by shader type (blend vs non-blend)
+	blendDisplacements := make([]*graphics.BspFace, 0)
+	regularDisplacements := make([]*graphics.BspFace, 0)
+
 	for _, displacement := range displacements {
 		mat = s.gpuScene.GpuMaterialCache.Find(displacement.Material())
-		adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
-		if err := adapter.GpuError(); err != nil {
-			console.PrintString(console.LevelError, err.Error())
+		if mat != nil && mat.Properties.IsBlendMaterial() {
+			blendDisplacements = append(blendDisplacements, displacement)
+		} else {
+			regularDisplacements = append(regularDisplacements, displacement)
 		}
+	}
+
+	// ALL displacements are in the displacement mesh, so bind it first
+	adapter.BindMesh(&s.gpuScene.GpuDisplacementMesh)
+
+	// Render regular displacements with LightMappedGeneric shader (blend weights ignored)
+	if len(regularDisplacements) > 0 {
+		// LightMappedGeneric is already bound from startFrame, just ensure uniforms are set
+		adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
+		adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+		adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
+
+		for _, displacement := range regularDisplacements {
+			mat = s.gpuScene.GpuMaterialCache.Find(displacement.Material())
+			adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
+			if err := adapter.GpuError(); err != nil {
+				console.PrintString(console.LevelError, err.Error())
+			}
+		}
+	}
+
+	// Render blend displacements with WorldVertexTransition
+	if len(blendDisplacements) > 0 {
+		currentShader = s.shaderCache.Find("WorldVertexTransition")
+		if currentShader == nil {
+			console.PrintString(console.LevelError, "WorldVertexTransition shader not found")
+			return
+		}
+
+		currentShader.Bind()
+		// Displacement mesh already bound above, no need to re-bind
+
+		adapter.PushMat4(currentShader.GetUniform("projection"), 1, false, s.dataScene.Camera.ProjectionMatrix())
+		adapter.PushMat4(currentShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
+		adapter.PushMat4(currentShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
+		adapter.PushInt32(currentShader.GetUniform("basetextureSampler"), 0)
+		adapter.PushInt32(currentShader.GetUniform("basetexture2Sampler"), 1)
+		adapter.PushInt32(currentShader.GetUniform("lightmapSampler"), 2)
+
+		if console.GetConvarBoolean("r_drawlightmaps") == true {
+			adapter.PushInt32(currentShader.GetUniform("renderLightmapsAsAlbedo"), 1)
+		} else {
+			adapter.PushInt32(currentShader.GetUniform("renderLightmapsAsAlbedo"), 0)
+		}
+
+		adapter.PushInt32(currentShader.GetUniform("hasTranslucentProperty"), 0)
+		adapter.PushFloat32(currentShader.GetUniform("alpha"), 0)
+		adapter.PushInt32(currentShader.GetUniform("translucent"), 0)
+
+		for _, displacement := range blendDisplacements {
+			mat = s.gpuScene.GpuMaterialCache.Find(displacement.Material())
+
+			// Bind first texture to texture unit 0
+			adapter.BindTexture(mat.Diffuse)
+
+			// Bind second texture to texture unit 1
+			if mat.Diffuse2 != 0 {
+				gosigl.BindTexture2D(gosigl.TextureSlot(1), gosigl.TextureBindingId(mat.Diffuse2))
+			} else if console.GetConvarBoolean("developer") {
+				console.PrintString(console.LevelWarning, "  Blend displacement has no second texture!")
+			}
+
+			// Bind lightmap to texture unit 2
+			gosigl.BindTexture2D(gosigl.TextureSlot(2), gosigl.TextureBindingId(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath)))
+
+			adapter.DrawArray(displacement.Offset(), displacement.Length())
+			if err := adapter.GpuError(); err != nil {
+				console.PrintString(console.LevelError, err.Error())
+			}
+		}
+
+		// Restore LightMappedGeneric shader for subsequent rendering
+		s.activeShader.Bind()
 	}
 }
 

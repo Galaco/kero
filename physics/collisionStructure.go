@@ -95,15 +95,22 @@ func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacement
 	indices := make([]bullet.BulletPhysicsIndice, 0)
 	vertices := make([]mgl32.Vec3, 0)
 
+	// Displacements are now stored in a separate mesh (DisplacementBspMesh)
+	dispMesh := scene.DisplacementBspMesh
+	if dispMesh == nil {
+		return nil
+	}
+
 	idxBase := 0
 	for _, face := range scene.DisplacementFaces {
-		for idx, i := range scene.RawBsp.Mesh().Indices()[face.Offset() : face.Offset()+face.Length()] {
+		// Extract vertices from the displacement mesh using face offset and length
+		for idx, i := range dispMesh.Indices()[face.Offset() : face.Offset()+face.Length()] {
 			indices = append(indices, bullet.BulletPhysicsIndice(idxBase+idx))
 			vertices = append(vertices,
 				mgl32.Vec3{
-					scene.RawBsp.Mesh().Vertices()[(i * 3)],
-					scene.RawBsp.Mesh().Vertices()[(i*3)+1],
-					scene.RawBsp.Mesh().Vertices()[(i*3)+2],
+					dispMesh.Vertices()[(i * 3)],
+					dispMesh.Vertices()[(i*3)+1],
+					dispMesh.Vertices()[(i*3)+2],
 				})
 		}
 		idxBase += face.Length()

@@ -39,6 +39,17 @@ func LoadShaders() (*cache.Shader, error) {
 	lightmappedGenericInstancedShader.Finish()
 	shaderCache.Add("LightMappedGenericInstanced", lightmappedGenericInstancedShader)
 
+	// WorldVertexTransition shader for 2-texture displacement blending
+	worldVertexTransitionShader := adapter.NewShader()
+	if err := worldVertexTransitionShader.Add(adapter.ShaderTypeVertex, WorldVertexTransitionVertex); err != nil {
+		return nil, err
+	}
+	if err := worldVertexTransitionShader.Add(adapter.ShaderTypeFragment, WorldVertexTransitionFragment); err != nil {
+		return nil, err
+	}
+	worldVertexTransitionShader.Finish()
+	shaderCache.Add("WorldVertexTransition", worldVertexTransitionShader)
+
 	// Debug shader for debug primitives (physics, vis, etc.)
 	debugShader := adapter.NewShader()
 	if err := debugShader.Add(adapter.ShaderTypeVertex, DebugVertex); err != nil {

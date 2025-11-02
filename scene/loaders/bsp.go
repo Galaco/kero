@@ -160,7 +160,8 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	materialDictionary := buildMaterialDictionary(fs, materials)
 
 	// BSP FACES
-	bspMesh := mesh.NewMesh()
+	bspMesh := mesh.NewMesh()              // Regular BSP geometry (no blend weights)
+	displacementMesh := mesh.NewMesh()     // Displacement surfaces (with blend weights)
 	bspFaces := make([]graphics.BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
@@ -180,10 +181,11 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 
 	for idx, f := range bspStructure.faces {
 		if f.DispInfo > -1 {
-			// This face is a displacement
-			bspFaces[idx] = generateDisplacementFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
+			// This face is a displacement - add to displacement mesh
+			bspFaces[idx] = generateDisplacementFace(&bspStructure.faces[idx], &bspStructure, displacementMesh)
 			dispFaces = append(dispFaces, idx)
 		} else {
+			// Regular BSP face - add to regular mesh
 			bspFaces[idx] = generateBspFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
 		}
 
@@ -199,7 +201,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", lightmapAtlas.Width(), lightmapAtlas.Height()))
 	}
 
-	return graphics.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
+	return graphics.NewBsp(file, bspMesh, displacementMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
 }
 
 // SortUnique builds a unique list of materials in a StringTable
@@ -326,18 +328,44 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 
 	for x := 0; x < size; x++ {
 		for y := 0; y < size; y++ {
+			// Calculate vertex indices for this quad
+			idxA := int(info.DispVertStart) + x + y*(size+1)
+			idxB := int(info.DispVertStart) + x + (y+1)*(size+1)
+			idxC := int(info.DispVertStart) + (x + 1) + (y+1)*(size+1)
+			idxD := int(info.DispVertStart) + (x + 1) + y*(size+1)
+
+			// Generate vertex positions
 			a := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
 			b := generateDispVert(int(info.DispVertStart), x, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
 			c := generateDispVert(int(info.DispVertStart), x+1, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
 			d := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
 
-			// Split into triangles
+			// Get blend alpha from DispVert for 2-texture blending
+			// Alpha ranges from 0-255, normalize to 0.0-1.0
+			rawAlphaA := bspStructure.dispVerts[idxA].Alpha
+			rawAlphaB := bspStructure.dispVerts[idxB].Alpha
+			rawAlphaC := bspStructure.dispVerts[idxC].Alpha
+			rawAlphaD := bspStructure.dispVerts[idxD].Alpha
+
+			alphaA := rawAlphaA / 255.0
+			alphaB := rawAlphaB / 255.0
+			alphaC := rawAlphaC / 255.0
+			alphaD := rawAlphaD / 255.0
+
+			// Split into triangles (ABC, ACD)
 			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), b.X(), b.Y(), b.Z(), c.X(), c.Y(), c.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
+			bspMesh.AddBlendWeight(alphaA)
+			bspMesh.AddBlendWeight(alphaB)
+			bspMesh.AddBlendWeight(alphaC)
+
 			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z(), d.X(), d.Y(), d.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
+			bspMesh.AddBlendWeight(alphaA)
+			bspMesh.AddBlendWeight(alphaC)
+			bspMesh.AddBlendWeight(alphaD)
 
 			length += 6 // 6 b/c quad = 2*triangle
 		}

@@ -11,6 +11,8 @@ type Material struct {
 	ShaderName string
 	// BaseTextureName
 	BaseTextureName string
+	// BaseTexture2Name - for 2-texture blend materials (WorldVertexTransition)
+	BaseTexture2Name string
 	// Skip
 	Skip bool
 	// Alpha
@@ -23,6 +25,11 @@ type Material struct {
 // filesystem it was found
 func (mat *Material) FilePath() string {
 	return mat.filePath
+}
+
+// IsBlendMaterial returns true if this material uses 2-texture blending (WorldVertexTransition)
+func (mat *Material) IsBlendMaterial() bool {
+	return mat.BaseTexture2Name != ""
 }
 
 func NewMaterial(filePath string) *Material {
@@ -43,7 +50,9 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err err
 	}
 	props := rawProps.(*vmt.Properties)
 	mat = NewMaterial(filePath)
+	mat.ShaderName = props.ShaderName
 	mat.BaseTextureName = props.BaseTexture
+	mat.BaseTexture2Name = props.BaseTexture2
 
 	mat.Alpha = props.Alpha
 	if props.Translucent == 1 {

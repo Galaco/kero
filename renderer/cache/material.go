@@ -10,12 +10,14 @@ const (
 
 type GpuMaterial struct {
 	Diffuse    uint32
+	Diffuse2   uint32 // Second texture for blend materials (WorldVertexTransition)
 	Properties *graphics.Material
 }
 
 func NewGpuMaterial(diffuse uint32, mat *graphics.Material) *GpuMaterial {
 	return &GpuMaterial{
 		Diffuse:    diffuse,
+		Diffuse2:   0, // Will be set if this is a blend material
 		Properties: mat,
 	}
 }

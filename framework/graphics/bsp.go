@@ -106,9 +106,10 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 type Bsp struct {
 	file *bsp.Bsp
 
-	mesh      *mesh2.BasicMesh
-	faces     []BspFace
-	dispFaces []int
+	mesh             *mesh2.BasicMesh // Regular BSP faces (no blend weights)
+	displacementMesh *mesh2.BasicMesh // Displacement surfaces (with blend weights)
+	faces            []BspFace
+	dispFaces        []int
 
 	materialDictionary map[string]*Material
 	textureInfos       []texinfo.TexInfo
@@ -123,9 +124,14 @@ type Bsp struct {
 	lightmapAtlas *TextureAtlas
 }
 
-// BasicMesh
+// BasicMesh returns the regular BSP mesh (no displacements)
 func (bsp *Bsp) Mesh() *mesh2.BasicMesh {
 	return bsp.mesh
+}
+
+// DisplacementMesh returns the displacement mesh (with blend weights)
+func (bsp *Bsp) DisplacementMesh() *mesh2.BasicMesh {
+	return bsp.displacementMesh
 }
 
 // Faces
@@ -167,6 +173,7 @@ func (bsp *Bsp) LightmapAtlas() *TextureAtlas {
 func NewBsp(
 	file *bsp.Bsp,
 	mesh *mesh2.BasicMesh,
+	displacementMesh *mesh2.BasicMesh,
 	faces []BspFace,
 	dispFaces []int,
 	materialDictionary map[string]*Material,
@@ -175,6 +182,7 @@ func NewBsp(
 	return &Bsp{
 		file:               file,
 		mesh:               mesh,
+		displacementMesh:   displacementMesh,
 		faces:              faces,
 		dispFaces:          dispFaces,
 		materialDictionary: materialDictionary,

@@ -18,6 +18,7 @@ import (
 	"github.com/galaco/kero/physics"
 	"github.com/galaco/kero/renderer"
 	"github.com/galaco/kero/scene"
+	"runtime"
 	"time"
 )
 
@@ -109,6 +110,20 @@ func (kero *Kero) Start(gameDir string) error {
 
 func (kero *Kero) onQuitTyped(e messages.EngineQuitEvent) {
 	window.CurrentWindow().Close()
+}
+
+// collectMemoryStats collects RAM usage statistics
+func (kero *Kero) collectMemoryStats() {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	// Record heap allocated memory in MB
+	heapAllocMB := float64(memStats.Alloc) / 1024.0 / 1024.0
+	kero.engine.Metrics().RecordValue("memory_heap", heapAllocMB)
+
+	// Record total system memory in MB
+	sysTotalMB := float64(memStats.Sys) / 1024.0 / 1024.0
+	kero.engine.Metrics().RecordValue("memory_sys", sysTotalMB)
 }
 
 func (kero *Kero) mainLoop() {
@@ -213,6 +228,9 @@ func (kero *Kero) mainLoop() {
 			fps := 1.0 / frameTotalTime.Seconds()
 			kero.engine.Metrics().RecordValue("fps", fps)
 		}
+
+		// Collect memory statistics
+		kero.collectMemoryStats()
 	}
 }
 

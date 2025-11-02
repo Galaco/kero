@@ -9,12 +9,13 @@ type Mesh adapter.Mesh
 
 // BasicMesh
 type BasicMesh struct {
-	vertices    []float32
-	normals     []float32
-	uvs         []float32
-	lightmapUVs []float32
-	tangents    []float32
-	indices     []uint32
+	vertices     []float32
+	normals      []float32
+	uvs          []float32
+	lightmapUVs  []float32
+	tangents     []float32
+	blendWeights []float32 // 1 float per vertex for 2-texture displacement blending
+	indices      []uint32
 }
 
 // AddVertex
@@ -70,6 +71,18 @@ func (mesh *BasicMesh) LightmapUVs() []float32 {
 // Tangents
 func (mesh *BasicMesh) Tangents() []float32 {
 	return mesh.tangents
+}
+
+// AddBlendWeight adds a single blend weight for a vertex (for 2-texture displacement blending)
+// The weight represents the alpha value for blending between basetexture and basetexture2
+// 0.0 = full basetexture, 1.0 = full basetexture2
+func (mesh *BasicMesh) AddBlendWeight(weight float32) {
+	mesh.blendWeights = append(mesh.blendWeights, weight)
+}
+
+// BlendWeights returns the blend weight data
+func (mesh *BasicMesh) BlendWeights() []float32 {
+	return mesh.blendWeights
 }
 
 // Indices

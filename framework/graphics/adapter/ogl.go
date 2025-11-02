@@ -26,6 +26,7 @@ type Mesh interface {
 	UVs() []float32
 	Tangents() []float32
 	LightmapUVs() []float32
+	BlendWeights() []float32
 	Indices() []uint32
 }
 
@@ -169,6 +170,18 @@ func UploadMesh(mesh Mesh) GpuMesh {
 		gosigl.CreateVertexAttribute(gpuResource, defaultUVs, 2)
 	} else {
 		gosigl.CreateVertexAttribute(gpuResource, mesh.LightmapUVs(), 2)
+	}
+
+	// Add blend weights for displacement blending (WorldVertexTransition)
+	// If no blend weights, use default of 0.0 (full basetexture, no blending)
+	if mesh.BlendWeights() == nil || len(mesh.BlendWeights()) == 0 {
+		// Create default blend weights (0.0 = no blending)
+		numVerts := len(mesh.Vertices()) / 3
+		defaultBlendWeights := make([]float32, numVerts)
+		// Already zeroed by make()
+		gosigl.CreateVertexAttribute(gpuResource, defaultBlendWeights, 1)
+	} else {
+		gosigl.CreateVertexAttribute(gpuResource, mesh.BlendWeights(), 1)
 	}
 
 	if len(mesh.Indices()) > 0 {

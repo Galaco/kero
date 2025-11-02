@@ -46,6 +46,7 @@ func AddInitialConvars() {
 		return nil
 	})
 
+	console.AddConvarBool("developer", "Enable developer mode (more verbose logging)", false)
 	console.AddConvarBool("hdr_enable", "Use HDR by default", true)
 
 	// Performance metrics ConVars
