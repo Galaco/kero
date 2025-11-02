@@ -2,6 +2,7 @@ module github.com/galaco/kero
 
 go 1.24.0
 
+replace github.com/galaco/studiomodel => ../studiomodel
 
 require (
 	github.com/AllenDang/cimgui-go v1.4.0

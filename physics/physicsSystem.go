@@ -7,7 +7,6 @@ import (
 	"github.com/galaco/kero/framework/ecs/components"
 	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/event"
-	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
@@ -117,11 +116,6 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 
 	// Sync ECS changes back to legacy entities for systems that still use them
 	system.legacyBridge.SyncAllECSToLegacy()
-
-	// Debug visualization
-	if console.GetConvarBoolean("r_drawcollisionmodels") {
-		system.drawDebug()
-	}
 }
 
 // Update is a wrapper around FixedUpdate for backward compatibility.
@@ -131,19 +125,27 @@ func (system *PhysicsSystem) Update(dt float64) {
 	system.FixedUpdate(dt)
 }
 
-func (system *PhysicsSystem) drawDebug() {
-	if adapter.CurrentShader() == nil {
+// PrepareDebug populates the debug buffer with collision mesh visualization
+// This method should be called before rendering to allow the renderer to display physics debug info
+func (system *PhysicsSystem) PrepareDebug(buffer interface{}) {
+	// Type assert to the debug buffer interface
+	type debugBuffer interface {
+		AddLines(vertices []mgl32.Vec3, color mgl32.Vec3, transform mgl32.Mat4)
+	}
+
+	debugBuf, ok := buffer.(debugBuffer)
+	if !ok || debugBuf == nil {
 		return
 	}
-	adapter.EnableFrontFaceCulling()
-	adapter.DisableDepthTesting()
 
-	adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, mgl32.Ident4())
-	verts := make([]float32, 0)
-	for _, vert := range system.bspRigidBody.vertices {
-		verts = append(verts, vert[0], vert[1], vert[2])
+	// Convert BSP collision mesh vertices to Vec3 format
+	if system.bspRigidBody != nil && len(system.bspRigidBody.vertices) > 0 {
+		verts := make([]mgl32.Vec3, 0, len(system.bspRigidBody.vertices))
+		for _, vert := range system.bspRigidBody.vertices {
+			verts = append(verts, mgl32.Vec3{vert[0], vert[1], vert[2]})
+		}
+		debugBuf.AddLines(verts, mgl32.Vec3{1, 0, 1}, mgl32.Ident4())
 	}
-	adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
 
 	// Draw collision meshes for physics entities
 	query := system.ecsWorld.Query().
@@ -164,18 +166,15 @@ func (system *PhysicsSystem) drawDebug() {
 		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
 			Mul4(transform.Orientation.Mat4())
 
-		adapter.PushMat4(adapter.CurrentShader().GetUniform("model"), 1, false, transformMatrix)
+		// Add collision mesh for each part of the studiomodel
 		for _, r := range system.studiomodelCollisionMeshes[legacyEntity.Model().Model.Id].vertices {
-			verts := make([]float32, 0)
+			verts := make([]mgl32.Vec3, 0, len(r))
 			for _, v := range r {
-				verts = append(verts, v[0], v[1], v[2])
+				verts = append(verts, mgl32.Vec3{v[0], v[1], v[2]})
 			}
-			adapter.DrawDebugLines(verts, mgl32.Vec3{255, 0, 255})
+			debugBuf.AddLines(verts, mgl32.Vec3{1, 0, 1}, transformMatrix)
 		}
 	}
-
-	adapter.EnableDepthTesting()
-	adapter.EnableBackFaceCulling()
 }
 
 func (system *PhysicsSystem) onChangeLevelTyped(e messages.ChangeLevelEvent) {

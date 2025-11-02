@@ -11,11 +11,13 @@ import (
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/adapter"
+	gfxdebug "github.com/galaco/kero/framework/graphics/debug"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/scene/vis"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/renderer/cache"
+	renderdebug "github.com/galaco/kero/renderer/debug"
 	"github.com/galaco/kero/renderer/scene"
 	"github.com/galaco/kero/renderer/shaders"
 	"github.com/galaco/kero/utils"
@@ -37,6 +39,10 @@ type Renderer struct {
 
 	activeShader *adapter.Shader
 
+	// Debug rendering system
+	debugRenderer *renderdebug.DebugRenderer
+	debugBuffer   *gfxdebug.DebugDrawBuffer
+
 	flags struct {
 		matLeafvis int32
 	}
@@ -52,6 +58,13 @@ func (s *Renderer) Initialize() {
 	adapter.EnableBlending()
 	adapter.EnableDepthTesting()
 	adapter.EnableBackFaceCulling()
+
+	// Initialize debug rendering system
+	s.debugBuffer = gfxdebug.NewDebugDrawBuffer()
+	debugShader := s.shaderCache.Find("Debug")
+	if debugShader != nil {
+		s.debugRenderer = renderdebug.NewDebugRenderer(debugShader, s.debugBuffer)
+	}
 
 	// Register typed event listeners (Phase 3)
 	event.RegisterTypedEvent(s.eventBus, s.onLoadingLevelParsedTyped)
@@ -105,19 +118,36 @@ func (s *Renderer) Render() {
 	// Render entity props using ECS
 	s.renderEntityProps()
 
-	s.DrawDebug()
+	// Render debug primitives using new debug system
+	if s.debugRenderer != nil {
+		s.DrawDebug()
+		projection := s.dataScene.Camera.ProjectionMatrix()
+		view := s.dataScene.Camera.ViewMatrix()
+		s.debugRenderer.Render(projection, view)
+		s.debugBuffer.Clear()
+	}
 }
 
 func (s *Renderer) DrawDebug() {
-	debugPoints := make([]float32, 0)
+	if s.debugBuffer == nil {
+		return
+	}
+
+	// Leafvis debug visualization
 	switch console.GetConvarInt("mat_leafvis") {
 	case 1:
+		// All cluster leafs
 		for _, l := range s.dataScene.ClusterLeafs {
-			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
+			verts := s.convertCuboidToVec3(mesh.NewCuboidFromMinMaxs(
+				mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()},
+				mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()},
+			))
+			s.debugBuffer.AddLines(verts, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
 		}
 	case 2:
+		// Current leaf only
 		if s.dataScene.CurrentLeaf != nil {
-			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(
+			verts := s.convertCuboidToVec3(mesh.NewCuboidFromMinMaxs(
 				mgl32.Vec3{
 					float32(s.dataScene.CurrentLeaf.Mins[0]),
 					float32(s.dataScene.CurrentLeaf.Mins[1]),
@@ -128,15 +158,29 @@ func (s *Renderer) DrawDebug() {
 					float32(s.dataScene.CurrentLeaf.Maxs[1]),
 					float32(s.dataScene.CurrentLeaf.Maxs[2]),
 				},
-			).Vertices()...)
+			))
+			s.debugBuffer.AddLines(verts, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
 		}
 	case 3:
+		// Visible cluster leafs
 		for _, l := range s.dataScene.VisibleClusterLeafs {
-			debugPoints = append(debugPoints, mesh.NewCuboidFromMinMaxs(mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()}, mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()}).Vertices()...)
+			verts := s.convertCuboidToVec3(mesh.NewCuboidFromMinMaxs(
+				mgl32.Vec3{l.Mins.X(), l.Mins.Y(), l.Mins.Z()},
+				mgl32.Vec3{l.Maxs.X(), l.Maxs.Y(), l.Maxs.Z()},
+			))
+			s.debugBuffer.AddLines(verts, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
 		}
 	}
-	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
-	adapter.DrawDebugLines(debugPoints, mgl32.Vec3{0, 255, 0})
+}
+
+// convertCuboidToVec3 converts a cuboid mesh to Vec3 vertices for debug rendering
+func (s *Renderer) convertCuboidToVec3(cuboid *mesh.Cube) []mgl32.Vec3 {
+	verts := cuboid.Vertices()
+	result := make([]mgl32.Vec3, 0, len(verts)/3)
+	for i := 0; i < len(verts); i += 3 {
+		result = append(result, mgl32.Vec3{verts[i], verts[i+1], verts[i+2]})
+	}
+	return result
 }
 
 func (s *Renderer) FinishFrame() {
@@ -450,6 +494,11 @@ func (s *Renderer) Cleanup() {
 		adapter.DeleteTextureResource(id)
 	}
 
+	// Cleanup debug renderer
+	if s.debugRenderer != nil {
+		s.debugRenderer.Cleanup()
+	}
+
 	s.gpuScene = scene.GPUScene{}
 	s.dataScene = nil
 }
@@ -485,6 +534,11 @@ func (s *Renderer) bindConVars() {
 		}
 		return nil
 	})
+}
+
+// GetDebugBuffer returns the debug draw buffer for external systems to populate
+func (s *Renderer) GetDebugBuffer() *gfxdebug.DebugDrawBuffer {
+	return s.debugBuffer
 }
 
 // NewRenderer creates a new renderer with explicit dependencies

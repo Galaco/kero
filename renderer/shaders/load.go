@@ -39,5 +39,16 @@ func LoadShaders() (*cache.Shader, error) {
 	lightmappedGenericInstancedShader.Finish()
 	shaderCache.Add("LightMappedGenericInstanced", lightmappedGenericInstancedShader)
 
+	// Debug shader for debug primitives (physics, vis, etc.)
+	debugShader := adapter.NewShader()
+	if err := debugShader.Add(adapter.ShaderTypeVertex, DebugVertex); err != nil {
+		return nil, err
+	}
+	if err := debugShader.Add(adapter.ShaderTypeFragment, DebugFragment); err != nil {
+		return nil, err
+	}
+	debugShader.Finish()
+	shaderCache.Add("Debug", debugShader)
+
 	return shaderCache, nil
 }

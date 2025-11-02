@@ -2,6 +2,7 @@ package kero
 
 import (
 	"github.com/galaco/kero/engine"
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
@@ -177,6 +178,11 @@ func (kero *Kero) mainLoop() {
 		kero.engine.Metrics().StartTiming("event_prerender")
 		kero.engine.EventBus().ProcessPhase(event.PhasePreRender)
 		kero.engine.Metrics().EndTiming("event_prerender")
+
+		// Prepare debug visualization (populate debug buffer)
+		if console.GetConvarBoolean("r_drawcollisionmodels") {
+			kero.engine.Physics().PrepareDebug(kero.engine.Renderer().GetDebugBuffer())
+		}
 
 		// Render (interpolation factor for future use)
 		// interpolation := float32(accumulator / FixedDt)

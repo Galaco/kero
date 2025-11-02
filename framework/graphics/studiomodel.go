@@ -159,24 +159,23 @@ func VertexDataForModel(studioModel *studiomodel.StudioModel, lodIdx int) ([]flo
 }
 
 // indicesForMesh get indices for mesh
+// Processes ALL stripgroups within the mesh to extract complete geometry
 func indicesForMesh(mesh *vtx.Mesh) []uint32 {
 	meshIndices := make([]uint32, 0)
 
-	// @TODO Use all strip groups
-	if len(mesh.StripGroups) > 1 {
-		return meshIndices
-	}
-	stripGroup := mesh.StripGroups[0]
+	// Process ALL stripgroups (not just the first one)
+	// Complex models have multiple stripgroups for hardware skinning, flexed geometry, etc.
+	for _, stripGroup := range mesh.StripGroups {
+		var vert vtx.Vertex
+		for _, strip := range stripGroup.Strips {
+			if strip.Flags & stripIsTriangleList == 0 {
+				continue
+			}
+			for i := int32(0); i < strip.NumIndices; i++ {
+				vert = stripGroup.Vertexes[stripGroup.Indices[strip.IndexOffset + i]]
 
-	var vert vtx.Vertex
-	for _, strip := range stripGroup.Strips {
-		if strip.Flags & stripIsTriangleList == 0 {
-			continue
-		}
-		for i := int32(0); i < strip.NumIndices; i++ {
-			vert = stripGroup.Vertexes[stripGroup.Indices[strip.IndexOffset + i]]
-
-			meshIndices = append(meshIndices, uint32(vert.OriginalMeshVertexID) + uint32(strip.VertOffset))
+				meshIndices = append(meshIndices, uint32(vert.OriginalMeshVertexID) + uint32(strip.VertOffset))
+			}
 		}
 	}
 
