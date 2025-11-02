@@ -38,11 +38,14 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 	}
 }
 
+const maxConsoleMessages = 1000
+
 type Console struct {
 	messages []consoleMessage
 
 	commandInput              string
 	autocompleteSelectedIndex int
+	shouldRefocus             bool
 }
 
 // getAutocompleteOptions returns up to 5 commands/convars that match the current input
@@ -119,6 +122,12 @@ func (view *Console) Render() {
 		// Input box - standard InputTextWithHint
 		imgui.PushItemWidth(-1)
 
+		// Set focus if needed (must be called before the input field)
+		if view.shouldRefocus {
+			imgui.SetKeyboardFocusHere()
+			view.shouldRefocus = false
+		}
+
 		// Use standard input text (Enter returns true to submit)
 		if imgui.InputTextWithHint("##console_input", "", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, nil) {
 			// Enter was pressed - either submit command or accept autocomplete
@@ -126,6 +135,7 @@ func (view *Console) Render() {
 				// Autocomplete is active - select the highlighted option
 				view.commandInput = autocompleteOptions[view.autocompleteSelectedIndex]
 				view.autocompleteSelectedIndex = -1
+				view.shouldRefocus = true
 			} else {
 				// No autocomplete - submit the command
 				err := console.ExecuteCommand(view.commandInput)
@@ -133,6 +143,7 @@ func (view *Console) Render() {
 					console.PrintString(console.LevelError, err.Error())
 				}
 				view.commandInput = ""
+				view.shouldRefocus = true
 			}
 		}
 
@@ -165,8 +176,18 @@ func (view *Console) Render() {
 }
 
 func (view *Console) AddMessage(level console.LogLevel, message string) {
+	// Initialize with pre-allocated capacity to avoid early reallocations
 	if view.messages == nil {
-		view.messages = make([]consoleMessage, 0)
+		view.messages = make([]consoleMessage, 0, maxConsoleMessages)
 	}
+
+	// If at capacity, remove oldest message(s) to maintain limit
+	if len(view.messages) >= maxConsoleMessages {
+		// Shift slice to remove oldest message (index 0)
+		// This is more efficient than multiple individual removals
+		copy(view.messages, view.messages[1:])
+		view.messages = view.messages[:len(view.messages)-1]
+	}
+
 	view.messages = append(view.messages, newConsoleMessage(level, message))
 }
