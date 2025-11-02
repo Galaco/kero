@@ -38,7 +38,14 @@ func (view *Loading) Update(dt float32) {
 	view.animationTime += dt
 }
 
-func (view *Loading) Render() {
+func (view *Loading) Render(dt float32) {
+	// Update animation before rendering
+	view.Update(dt)
+
+	view.render()
+}
+
+func (view *Loading) render() {
 	// Center the loading panel on screen
 	viewport := imgui.MainViewport()
 	displaySize := viewport.WorkSize()

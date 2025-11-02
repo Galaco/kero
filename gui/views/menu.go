@@ -11,22 +11,20 @@ import (
 )
 
 type Menu struct {
-	Console     menu.Console
-	Performance *menu.Performance
-	eventBus    *event.Dispatcher
-	fileSystem  filesystem.FileSystem
+	Console    menu.Console
+	eventBus   *event.Dispatcher
+	fileSystem filesystem.FileSystem
 }
 
 // NewMenu creates a new menu view with explicit dependencies
-func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, performance *menu.Performance) *Menu {
+func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Menu {
 	return &Menu{
-		eventBus:    eventBus,
-		fileSystem:  fileSystem,
-		Performance: performance,
+		eventBus:   eventBus,
+		fileSystem: fileSystem,
 	}
 }
 
-func (view *Menu) Render() {
+func (view *Menu) Render(dt float32) {
 	// StartPanel always requires a matching EndPanel, regardless of return value
 	// Use NoCollapse flag to prevent the panel from being collapsed
 	if gui.StartPanelV("Menu", nil, imgui.WindowFlagsNoCollapse) {
@@ -60,9 +58,4 @@ func (view *Menu) Render() {
 	gui.EndPanel()
 
 	view.Console.Render()
-
-	// Render performance metrics
-	if view.Performance != nil {
-		view.Performance.Render()
-	}
 }

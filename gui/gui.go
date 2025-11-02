@@ -10,6 +10,7 @@ import (
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/metrics"
 	"github.com/galaco/kero/framework/window"
+	"github.com/galaco/kero/gui/layer"
 	"github.com/galaco/kero/gui/views"
 	"github.com/galaco/kero/gui/views/menu"
 	"github.com/galaco/kero/messages"
@@ -30,19 +31,39 @@ type Gui struct {
 	uiContext        *context.Context
 	sceneManager     ISceneManager
 
-	loadingView *views.Loading
-	menuView    *views.Menu
+	// Layer system
+	layers map[layer.Layer]*layer.Config
 
-	shouldDisplayMenu          bool
-	shouldDisplayLoadingScreen bool
+	// Views organized by layer
+	hudView     *views.HUD
+	menuView    *views.Menu
+	loadingView *views.Loading
 }
 
 func (s *Gui) Initialize() {
-	// Initialize menu view with dependencies
-	performanceView := menu.NewPerformance(s.metricsCollector)
-	s.menuView = views.NewMenu(s.eventBus, s.fileSystem, performanceView)
+	// Initialize layer configurations
+	s.layers = make(map[layer.Layer]*layer.Config)
+	s.layers[layer.LayerHUD] = layer.NewConfig(layer.LayerHUD)
+	s.layers[layer.LayerMenu] = layer.NewConfig(layer.LayerMenu)
+	s.layers[layer.LayerModal] = layer.NewConfig(layer.LayerModal)
 
-	// Initialize loading view with cancel callback
+	// HUD layer is always visible
+	s.layers[layer.LayerHUD].Visible = true
+
+	// Menu layer starts visible (will be toggled by ESC key)
+	s.layers[layer.LayerMenu].Visible = true
+
+	// Modal layer starts hidden
+	s.layers[layer.LayerModal].Visible = false
+
+	// Initialize HUD view (Layer 0: always visible)
+	performanceView := menu.NewPerformance(s.metricsCollector)
+	s.hudView = views.NewHUD(performanceView)
+
+	// Initialize menu view (Layer 100: toggle-able)
+	s.menuView = views.NewMenu(s.eventBus, s.fileSystem)
+
+	// Initialize loading view (Layer 200: modal)
 	s.loadingView = views.NewLoading(func() {
 		// Cancel button callback - trigger scene to cancel loading
 		if s.sceneManager != nil {
@@ -72,13 +93,14 @@ func (s *Gui) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
 	if e.Key == input.KeyEscape {
 		// Only allow closing the menu if a level is loaded
 		// Menu can always be opened, but closing requires a loaded level
-		if !s.shouldDisplayMenu {
+		menuLayer := s.layers[layer.LayerMenu]
+		if !menuLayer.Visible {
 			// Opening the menu - always allowed
-			s.shouldDisplayMenu = true
+			menuLayer.Visible = true
 		} else {
 			// Trying to close the menu - only allowed if level is loaded
 			if s.sceneManager != nil && s.sceneManager.IsLevelLoaded() {
-				s.shouldDisplayMenu = false
+				menuLayer.Visible = false
 			}
 		}
 	}
@@ -86,11 +108,12 @@ func (s *Gui) onKeyReleaseTyped(e messages.KeyReleaseEvent) {
 
 func (s *Gui) onLoadingLevelProgressTyped(e messages.LoadingLevelProgressEvent) {
 	s.loadingView.UpdateProgress(e.State)
+	modalLayer := s.layers[layer.LayerModal]
 	if e.State == messages.LoadingProgressStateError ||
 		e.State == messages.LoadingProgressStateFinished {
-		s.shouldDisplayLoadingScreen = false
+		modalLayer.Visible = false
 	} else {
-		s.shouldDisplayLoadingScreen = true
+		modalLayer.Visible = true
 	}
 }
 
@@ -100,23 +123,50 @@ func (s *Gui) Render(dt float32) {
 	// Apply performance ConVars
 	s.applyPerformanceConVars()
 
-	// Do rendering
-	if s.shouldDisplayLoadingScreen {
-		// Update loading animation
-		s.loadingView.Update(dt)
-		s.loadingView.Render()
-	} else {
-		if s.shouldDisplayMenu {
-			s.menuView.Render()
-		}
+	// Check if modal layer is active (blocks lower layers)
+	modalActive := s.layers[layer.LayerModal].Visible
+
+	// Render layers in order (lowest to highest z-order)
+	// Layer 0: HUD (always visible, never blocked)
+	s.renderLayer(layer.LayerHUD, dt)
+
+	// Layer 100: Menu (toggle-able, hidden when modal is active)
+	if !modalActive {
+		s.renderLayer(layer.LayerMenu, dt)
 	}
+
+	// Layer 200: Modal (loading screen, dialogs - blocks all lower interactive layers)
+	s.renderLayer(layer.LayerModal, dt)
 
 	gui.EndFrame(s.uiContext)
 }
 
+// renderLayer renders a specific layer if it's visible
+func (s *Gui) renderLayer(l layer.Layer, dt float32) {
+	layerConfig := s.layers[l]
+	if !layerConfig.Visible {
+		return
+	}
+
+	switch l {
+	case layer.LayerHUD:
+		if s.hudView != nil {
+			s.hudView.Render(dt)
+		}
+	case layer.LayerMenu:
+		if s.menuView != nil {
+			s.menuView.Render(dt)
+		}
+	case layer.LayerModal:
+		if s.loadingView != nil {
+			s.loadingView.Render(dt)
+		}
+	}
+}
+
 // applyPerformanceConVars checks and applies performance-related ConVars
 func (s *Gui) applyPerformanceConVars() {
-	if s.metricsCollector == nil || s.menuView == nil || s.menuView.Performance == nil {
+	if s.metricsCollector == nil || s.hudView == nil || s.hudView.Performance == nil {
 		return
 	}
 
@@ -133,23 +183,22 @@ func (s *Gui) applyPerformanceConVars() {
 	// Apply graph dimensions to performance view
 	height := console.GetConvarInt("r_perfgraphheight")
 	if height > 0 {
-		s.menuView.Performance.SetGraphHeight(float32(height))
+		s.hudView.Performance.SetGraphHeight(float32(height))
 	}
 
 	width := console.GetConvarInt("r_perfgraphwidth")
 	if width > 0 {
-		s.menuView.Performance.SetGraphWidth(float32(width))
+		s.hudView.Performance.SetGraphWidth(float32(width))
 	}
 }
 
 // NewGui creates a new GUI system with explicit dependencies
 func NewGui(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, inputMiddleware *middleware.Input, metricsCollector *metrics.Collector, sceneManager ISceneManager) *Gui {
 	return &Gui{
-		eventBus:          eventBus,
-		fileSystem:        fileSystem,
-		inputMiddleware:   inputMiddleware,
-		metricsCollector:  metricsCollector,
-		sceneManager:      sceneManager,
-		shouldDisplayMenu: true,
+		eventBus:         eventBus,
+		fileSystem:       fileSystem,
+		inputMiddleware:  inputMiddleware,
+		metricsCollector: metricsCollector,
+		sceneManager:     sceneManager,
 	}
 }
