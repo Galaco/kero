@@ -12,16 +12,6 @@ import (
 type Performance struct {
 	metricsCollector *metrics.Collector
 
-	// Toggles for which metrics to display
-	showInput      bool
-	showPhysics    bool
-	showScene      bool
-	showRender     bool
-	showGUI        bool
-	showEvents     bool
-	showFrameTotal bool
-	showFPS        bool
-
 	// Display settings
 	graphHeight float32
 	graphWidth  float32
@@ -31,18 +21,9 @@ type Performance struct {
 func NewPerformance(metricsCollector *metrics.Collector) *Performance {
 	return &Performance{
 		metricsCollector: metricsCollector,
-		// Default toggles
-		showInput:      true,
-		showPhysics:    true,
-		showScene:      true,
-		showRender:     true,
-		showGUI:        true,
-		showEvents:     false, // Events are usually very fast
-		showFrameTotal: true,
-		showFPS:        true,
 		// Default graph size
-		graphHeight: 200,
-		graphWidth:  600,
+		graphHeight:      200,
+		graphWidth:       600,
 	}
 }
 
@@ -56,151 +37,61 @@ func (p *Performance) SetGraphWidth(width float32) {
 	p.graphWidth = width
 }
 
-// Render draws the performance panel
+// Render draws the performance overlay in the bottom-left corner
 func (p *Performance) Render() {
-	if !imgui.CollapsingHeaderTreeNodeFlags("Performance Metrics") {
-		return
-	}
-
-	// Display settings
-	imgui.Text("Display Options:")
-	imgui.Checkbox("Input", &p.showInput)
-	imgui.SameLine()
-	imgui.Checkbox("Physics", &p.showPhysics)
-	imgui.SameLine()
-	imgui.Checkbox("Scene", &p.showScene)
-	imgui.SameLine()
-	imgui.Checkbox("Render", &p.showRender)
-	imgui.SameLine()
-	imgui.Checkbox("GUI", &p.showGUI)
-
-	imgui.Checkbox("Events", &p.showEvents)
-	imgui.SameLine()
-	imgui.Checkbox("Frame Total", &p.showFrameTotal)
-	imgui.SameLine()
-	imgui.Checkbox("FPS", &p.showFPS)
-
-	imgui.Separator()
-
 	// Get all metrics
 	allMetrics := p.metricsCollector.GetAllMetrics()
 
-	// Display current values
-	imgui.Text("Current Frame Times (ms):")
+	// Create a fixed window in the bottom-left corner
+	// Set window position and size constraints
+	windowFlags := imgui.WindowFlagsNoDecoration |
+		imgui.WindowFlagsNoMove |
+		imgui.WindowFlagsNoSavedSettings |
+		imgui.WindowFlagsNoFocusOnAppearing |
+		imgui.WindowFlagsNoNav |
+		imgui.WindowFlagsAlwaysAutoResize
 
-	if fps, exists := allMetrics["fps"]; exists && p.showFPS {
-		imgui.Text(fmt.Sprintf("FPS: %.1f", fps.CurrentValue))
+	// Position in bottom-left with padding
+	padding := float32(10.0)
+	viewport := imgui.MainViewport()
+	workPos := viewport.WorkPos()
+	workSize := viewport.WorkSize()
+
+	windowPos := imgui.Vec2{
+		X: workPos.X + padding,
+		Y: workPos.Y + workSize.Y - padding,
 	}
 
-	if frameTotal, exists := allMetrics["frame_total"]; exists && p.showFrameTotal {
-		imgui.Text(fmt.Sprintf("Frame Total: %.2f ms", frameTotal.CurrentValue))
+	imgui.SetNextWindowPosV(windowPos, imgui.CondAlways, imgui.Vec2{X: 0.0, Y: 1.0})
+	imgui.SetNextWindowBgAlpha(0.35) // Transparent background
+
+	if imgui.BeginV("Performance", nil, windowFlags) {
+		// Plot system times on the same graph
+		p.plotMultipleMetrics(allMetrics)
 	}
-
-	if input, exists := allMetrics["input"]; exists && p.showInput {
-		imgui.Text(fmt.Sprintf("Input: %.2f ms", input.CurrentValue))
-	}
-
-	if physics, exists := allMetrics["physics_total"]; exists && p.showPhysics {
-		steps := allMetrics["physics_steps"]
-		imgui.Text(fmt.Sprintf("Physics: %.2f ms (%.0f steps)", physics.CurrentValue, steps.CurrentValue))
-	}
-
-	if scene, exists := allMetrics["scene_update"]; exists && p.showScene {
-		imgui.Text(fmt.Sprintf("Scene: %.2f ms", scene.CurrentValue))
-	}
-
-	if render, exists := allMetrics["render"]; exists && p.showRender {
-		imgui.Text(fmt.Sprintf("Render: %.2f ms", render.CurrentValue))
-	}
-
-	if gui, exists := allMetrics["gui"]; exists && p.showGUI {
-		imgui.Text(fmt.Sprintf("GUI: %.2f ms", gui.CurrentValue))
-	}
-
-	if p.showEvents {
-		if preUpdate, exists := allMetrics["event_preupdate"]; exists {
-			imgui.Text(fmt.Sprintf("Event PreUpdate: %.2f ms", preUpdate.CurrentValue))
-		}
-		if postUpdate, exists := allMetrics["event_postupdate"]; exists {
-			imgui.Text(fmt.Sprintf("Event PostUpdate: %.2f ms", postUpdate.CurrentValue))
-		}
-		if preRender, exists := allMetrics["event_prerender"]; exists {
-			imgui.Text(fmt.Sprintf("Event PreRender: %.2f ms", preRender.CurrentValue))
-		}
-		if postRender, exists := allMetrics["event_postrender"]; exists {
-			imgui.Text(fmt.Sprintf("Event PostRender: %.2f ms", postRender.CurrentValue))
-		}
-	}
-
-	imgui.Separator()
-	imgui.Text("Performance History:")
-
-	// Plot frame time graph
-	p.plotMetric("Frame Time (ms)", "frame_total", allMetrics, theme.ColorGraphGreen)
-
-	// Plot FPS graph
-	if p.showFPS {
-		p.plotMetric("FPS", "fps", allMetrics, theme.ColorGraphYellow)
-	}
-
-	// Plot system times on the same graph
-	imgui.Text("System Times:")
-	p.plotMultipleMetrics(allMetrics)
-}
-
-// plotMetric draws a single metric as a line graph
-func (p *Performance) plotMetric(label string, metricName string, allMetrics map[string]*metrics.SystemMetrics, color imgui.Vec4) {
-	metric, exists := allMetrics[metricName]
-	if !exists || metric.History == nil || len(metric.History) == 0 {
-		return
-	}
-
-	// Convert to float32 for ImGui
-	values := make([]float32, len(metric.History))
-	for i, v := range metric.History {
-		values[i] = float32(v)
-	}
-
-	// Plot the line
-	imgui.PushStyleColorVec4(imgui.ColPlotLines, color)
-	imgui.PlotLinesFloatPtrV(
-		label,
-		&values[0],
-		int32(len(values)),
-		0,
-		"",
-		0,
-		0, // Auto scale
-		imgui.Vec2{X: p.graphWidth, Y: p.graphHeight},
-		4, // stride (sizeof(float32))
-	)
-	imgui.PopStyleColor()
+	imgui.End()
 }
 
 // plotMultipleMetrics draws multiple metrics on overlapping graphs
 func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemMetrics) {
 	// Define system names and colors
 	type MetricConfig struct {
-		name    string
-		label   string
-		color   imgui.Vec4
-		enabled *bool
+		name  string
+		label string
+		color imgui.Vec4
 	}
 
 	configs := []MetricConfig{
-		{"input", "Input", theme.ColorGraphRed, &p.showInput},
-		{"physics_total", "Physics", theme.ColorGraphBlue, &p.showPhysics},
-		{"scene_update", "Scene", theme.ColorGraphOrange, &p.showScene},
-		{"render", "Render", theme.ColorGraphCyan, &p.showRender},
-		{"gui", "GUI", theme.ColorGraphMagenta, &p.showGUI},
+		{"input", "Input", theme.ColorGraphRed},
+		{"physics_total", "Physics", theme.ColorGraphBlue},
+		{"scene_update", "Scene", theme.ColorGraphOrange},
+		{"render", "Render", theme.ColorGraphCyan},
+		{"gui", "GUI", theme.ColorGraphMagenta},
 	}
 
 	// Calculate max value for consistent scaling
 	maxValue := float32(0.0)
 	for _, config := range configs {
-		if !*config.enabled {
-			continue
-		}
 		if metric, exists := allMetrics[config.name]; exists && metric.History != nil {
 			for _, v := range metric.History {
 				if float32(v) > maxValue {
@@ -216,14 +107,10 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 		maxValue = 1.0
 	}
 
-	// Plot each enabled metric
+	// Plot each metric
 	// We need to overlay them, so we use a child window with ImGuiWindowFlags_NoBackground
 	firstPlot := true
 	for _, config := range configs {
-		if !*config.enabled {
-			continue
-		}
-
 		metric, exists := allMetrics[config.name]
 		if !exists || metric.History == nil || len(metric.History) == 0 {
 			continue
@@ -268,17 +155,36 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 		imgui.PopStyleColor()
 	}
 
-	// Legend
+	// Legend with current time values
 	imgui.Separator()
-	imgui.Text("Legend:")
+	imgui.Text("System Times (ms):")
 	for _, config := range configs {
-		if !*config.enabled {
+		metric, exists := allMetrics[config.name]
+		if !exists {
 			continue
 		}
+
 		imgui.PushStyleColorVec4(imgui.ColText, config.color)
-		imgui.Text(config.label)
+		timeText := fmt.Sprintf("%s: %.2f ms", config.label, metric.CurrentValue)
+
+		// Special case for physics to show steps
+		if config.name == "physics_total" {
+			if steps, stepsExist := allMetrics["physics_steps"]; stepsExist {
+				timeText = fmt.Sprintf("%s: %.2f ms (%.0f steps)", config.label, metric.CurrentValue, steps.CurrentValue)
+			}
+		}
+
+		imgui.Text(timeText)
 		imgui.PopStyleColor()
-		imgui.SameLine()
 	}
-	imgui.Text("") // End line after legend
+
+	// Display FPS and frame total
+	imgui.Separator()
+	if fps, exists := allMetrics["fps"]; exists {
+		imgui.Text(fmt.Sprintf("FPS: %.1f", fps.CurrentValue))
+	}
+
+	if frameTotal, exists := allMetrics["frame_total"]; exists {
+		imgui.Text(fmt.Sprintf("Frame Total: %.2f ms", frameTotal.CurrentValue))
+	}
 }

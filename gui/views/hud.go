@@ -1,6 +1,7 @@
 package views
 
 import (
+	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/gui/views/menu"
 )
 
@@ -19,8 +20,8 @@ func NewHUD(performance *menu.Performance) *HUD {
 
 // Render draws the HUD elements
 func (h *HUD) Render(dt float32) {
-	// Render performance metrics if enabled
-	if h.Performance != nil {
+	// Render performance overlay if enabled by ConVar
+	if h.Performance != nil && console.GetConvarBoolean("r_showperf") {
 		h.Performance.Render()
 	}
 
