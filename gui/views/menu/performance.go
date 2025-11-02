@@ -2,7 +2,9 @@ package menu
 
 import (
 	"fmt"
+
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/galaco/kero/framework/gui/theme"
 	"github.com/galaco/kero/framework/metrics"
 )
 
@@ -11,18 +13,18 @@ type Performance struct {
 	metricsCollector *metrics.Collector
 
 	// Toggles for which metrics to display
-	showInput        bool
-	showPhysics      bool
-	showScene        bool
-	showRender       bool
-	showGUI          bool
-	showEvents       bool
-	showFrameTotal   bool
-	showFPS          bool
+	showInput      bool
+	showPhysics    bool
+	showScene      bool
+	showRender     bool
+	showGUI        bool
+	showEvents     bool
+	showFrameTotal bool
+	showFPS        bool
 
 	// Display settings
-	graphHeight      float32
-	graphWidth       float32
+	graphHeight float32
+	graphWidth  float32
 }
 
 // NewPerformance creates a new performance view
@@ -39,8 +41,8 @@ func NewPerformance(metricsCollector *metrics.Collector) *Performance {
 		showFrameTotal: true,
 		showFPS:        true,
 		// Default graph size
-		graphHeight:    200,
-		graphWidth:     600,
+		graphHeight: 200,
+		graphWidth:  600,
 	}
 }
 
@@ -134,11 +136,11 @@ func (p *Performance) Render() {
 	imgui.Text("Performance History:")
 
 	// Plot frame time graph
-	p.plotMetric("Frame Time (ms)", "frame_total", allMetrics, imgui.Vec4{X: 0.0, Y: 1.0, Z: 0.0, W: 1.0})
+	p.plotMetric("Frame Time (ms)", "frame_total", allMetrics, theme.ColorGraphGreen)
 
 	// Plot FPS graph
 	if p.showFPS {
-		p.plotMetric("FPS", "fps", allMetrics, imgui.Vec4{X: 1.0, Y: 1.0, Z: 0.0, W: 1.0})
+		p.plotMetric("FPS", "fps", allMetrics, theme.ColorGraphYellow)
 	}
 
 	// Plot system times on the same graph
@@ -186,11 +188,11 @@ func (p *Performance) plotMultipleMetrics(allMetrics map[string]*metrics.SystemM
 	}
 
 	configs := []MetricConfig{
-		{"input", "Input", imgui.Vec4{X: 1.0, Y: 0.0, Z: 0.0, W: 1.0}, &p.showInput},
-		{"physics_total", "Physics", imgui.Vec4{X: 0.0, Y: 0.0, Z: 1.0, W: 1.0}, &p.showPhysics},
-		{"scene_update", "Scene", imgui.Vec4{X: 1.0, Y: 0.5, Z: 0.0, W: 1.0}, &p.showScene},
-		{"render", "Render", imgui.Vec4{X: 0.0, Y: 1.0, Z: 1.0, W: 1.0}, &p.showRender},
-		{"gui", "GUI", imgui.Vec4{X: 1.0, Y: 0.0, Z: 1.0, W: 1.0}, &p.showGUI},
+		{"input", "Input", theme.ColorGraphRed, &p.showInput},
+		{"physics_total", "Physics", theme.ColorGraphBlue, &p.showPhysics},
+		{"scene_update", "Scene", theme.ColorGraphOrange, &p.showScene},
+		{"render", "Render", theme.ColorGraphCyan, &p.showRender},
+		{"gui", "GUI", theme.ColorGraphMagenta, &p.showGUI},
 	}
 
 	// Calculate max value for consistent scaling

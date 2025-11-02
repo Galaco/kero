@@ -1,6 +1,7 @@
 package views
 
 import (
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/gui"
@@ -26,7 +27,9 @@ func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, perfo
 }
 
 func (view *Menu) Render() {
-	if gui.StartPanel("Menu") {
+	// StartPanel always requires a matching EndPanel, regardless of return value
+	// Use NoCollapse flag to prevent the panel from being collapsed
+	if gui.StartPanelV("Menu", nil, imgui.WindowFlagsNoCollapse) {
 		gui.NewButton("menu_open_map", "Open map", func() {
 			// Get game base path from filesystem
 			gameBasePath := ""
@@ -52,8 +55,9 @@ func (view *Menu) Render() {
 			// Use typed event dispatch (Phase 3)
 			event.DispatchTyped(view.eventBus, messages.EngineQuitEvent{})
 		}).Draw()
-		gui.EndPanel()
 	}
+	// ALWAYS call EndPanel after StartPanel, even if StartPanel returns false
+	gui.EndPanel()
 
 	view.Console.Render()
 

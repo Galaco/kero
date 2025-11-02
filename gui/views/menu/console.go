@@ -1,10 +1,12 @@
 package menu
 
 import (
+	"sort"
+
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/gui"
-	"sort"
+	"github.com/galaco/kero/framework/gui/theme"
 )
 
 type consoleMessage struct {
@@ -17,17 +19,17 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 
 	switch logLevel {
 	case console.LevelUnknown:
-		color = imgui.Vec4{X: 1, Y: 1, Z: 1, W: 1}
+		color = theme.ColorLogUnknown
 	case console.LevelFatal:
-		color = imgui.Vec4{X: 1, Y: 0, Z: 0, W: 1}
+		color = theme.ColorLogFatal
 	case console.LevelError:
-		color = imgui.Vec4{X: 1, Y: 0, Z: 0, W: 1}
+		color = theme.ColorLogError
 	case console.LevelWarning:
-		color = imgui.Vec4{X: 1, Y: 1, Z: 0, W: 1}
+		color = theme.ColorLogWarning
 	case console.LevelInfo:
-		color = imgui.Vec4{X: 1, Y: 1, Z: 1, W: 1}
+		color = theme.ColorLogInfo
 	case console.LevelSuccess:
-		color = imgui.Vec4{X: 0, Y: 1, Z: 0, W: 1}
+		color = theme.ColorLogSuccess
 	}
 
 	return consoleMessage{
@@ -66,7 +68,9 @@ func (view *Console) getAutocompleteOptions() []string {
 }
 
 func (view *Console) Render() {
-	if gui.StartPanel("Console") {
+	// StartPanel always requires a matching EndPanel, regardless of return value
+	// Use NoCollapse flag to prevent the panel from being collapsed
+	if gui.StartPanelV("Console", nil, imgui.WindowFlagsNoCollapse) {
 		// Get autocomplete options
 		autocompleteOptions := view.getAutocompleteOptions()
 
@@ -102,9 +106,9 @@ func (view *Console) Render() {
 			for i, option := range autocompleteOptions {
 				// Highlight the selected option
 				if i == view.autocompleteSelectedIndex {
-					imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 1, Y: 1, Z: 0, W: 1}) // Yellow for selected
+					imgui.PushStyleColorVec4(imgui.ColText, theme.ColorHighlight) // Highlighted
 				} else {
-					imgui.PushStyleColorVec4(imgui.ColText, imgui.Vec4{X: 0.7, Y: 0.7, Z: 0.7, W: 1}) // Gray for unselected
+					imgui.PushStyleColorVec4(imgui.ColText, theme.ColorMuted) // Muted
 				}
 				imgui.Text(option)
 				imgui.PopStyleColor()
@@ -155,9 +159,9 @@ func (view *Console) Render() {
 		}
 
 		imgui.PopItemWidth()
-
-		gui.EndPanel()
 	}
+	// ALWAYS call EndPanel after StartPanel, even if StartPanel returns false
+	gui.EndPanel()
 }
 
 func (view *Console) AddMessage(level console.LogLevel, message string) {

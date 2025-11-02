@@ -2,6 +2,7 @@ package context
 
 import (
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/galaco/kero/framework/gui/theme"
 	"github.com/galaco/tinygametools"
 )
 
@@ -28,6 +29,9 @@ func NewContext(window ContextBindable) *Context {
 		imguiContext: imgui.CreateContext(),
 		imguiBind:    imguiGlfw3Init(window.Handle().Handle()),
 	}
+
+	// Apply the modern theme to all UI components
+	theme.Apply()
 
 	return ctx
 }

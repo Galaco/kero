@@ -61,6 +61,7 @@ func (view *Loading) Render() {
 	         imgui.WindowFlagsNoCollapse |
 	         imgui.WindowFlagsNoTitleBar
 
+	// Begin always requires a matching End, regardless of return value
 	if imgui.BeginV("Loading Map", nil, flags) {
 		// Title
 		titleSize := imgui.CalcTextSize("Loading Map...")
@@ -88,9 +89,9 @@ func (view *Loading) Render() {
 		buttonWidth := float32(120)
 		imgui.SetCursorPosX((windowWidth - buttonWidth) / 2)
 		view.cancelButton.Draw()
-
-		imgui.End()
 	}
+	// ALWAYS call End after Begin, even if Begin returns false
+	imgui.End()
 }
 
 // getLoadingStateMessage returns a user-friendly message for each loading state
