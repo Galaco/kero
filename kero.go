@@ -80,11 +80,11 @@ func (kero *Kero) Start(gameDir string) error {
 	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld, legacyBridge)
 	kero.engine.SetRenderer(renderer)
 
-	ui := gui.NewGui(eventBus, fs, input, metricsCollector)
-	kero.engine.SetGUI(ui)
-
 	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input)
 	kero.engine.SetScene(sceneSystem)
+
+	ui := gui.NewGui(eventBus, fs, input, metricsCollector, sceneSystem)
+	kero.engine.SetGUI(ui)
 
 	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
 	kero.engine.SetPhysics(physicsSystem)
@@ -191,7 +191,7 @@ func (kero *Kero) mainLoop() {
 		kero.engine.Metrics().EndTiming("render")
 
 		kero.engine.Metrics().StartTiming("gui")
-		kero.engine.GUI().Render()
+		kero.engine.GUI().Render(float32(frameDt))
 		kero.engine.Metrics().EndTiming("gui")
 
 		kero.engine.Metrics().StartTiming("swap_buffers")

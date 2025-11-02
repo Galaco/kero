@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -35,8 +36,20 @@ import (
 // BSP Materials
 // StaticProps (materials loaded as required)
 func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
+	return LoadBspMapWithContext(context.Background(), fs, eventBus, filename)
+}
+
+// LoadBspMapWithContext loads a BSP map with cancellation support via context
+// This is the async-safe version that checks for cancellation at key points
+func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
 	// Use typed event dispatch (Phase 3)
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStarted})
+
+	// Check cancellation before starting
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+
 	handle, err := os.Open(filename)
 	if err != nil {
 		return nil, nil, err
@@ -54,6 +67,12 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header.Version))
 
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
+
+	// Check cancellation after BSP parse
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+
 	fs.RegisterPakFile(file.Lumps[bsp.LumpPakfile].(*lump.Pakfile))
 	// Load the static bsp world
 	level, err := loadBSPWorld(fs, file)
@@ -67,9 +86,19 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 		float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())))
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateGeometryLoaded})
 
+	// Check cancellation after geometry load
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+
 	// Load staticprops
 	level.StaticPropDictionary, level.StaticProps = LoadStaticProps(fs, file)
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStaticPropsLoaded})
+
+	// Check cancellation after static props
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
 
 	// Load entities
 	ents, err := entity.LoadEntdata(file)
@@ -80,6 +109,11 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 	level.EntityPropDictionary = LoadEntityProps(fs, ents)
 
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateEntitiesLoaded})
+
+	// Final cancellation check
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
 
 	return level, ents, err
 }

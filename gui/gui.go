@@ -16,14 +16,20 @@ import (
 	"github.com/galaco/kero/middleware"
 )
 
+// ISceneManager interface for scene management operations
+type ISceneManager interface {
+	CancelLoading()
+}
+
 type Gui struct {
 	eventBus         *event.Dispatcher
 	fileSystem       filesystem.FileSystem
 	inputMiddleware  *middleware.Input
 	metricsCollector *metrics.Collector
 	uiContext        *context.Context
+	sceneManager     ISceneManager
 
-	loadingView views.Loading
+	loadingView *views.Loading
 	menuView    *views.Menu
 
 	shouldDisplayMenu          bool
@@ -34,6 +40,14 @@ func (s *Gui) Initialize() {
 	// Initialize menu view with dependencies
 	performanceView := menu.NewPerformance(s.metricsCollector)
 	s.menuView = views.NewMenu(s.eventBus, s.fileSystem, performanceView)
+
+	// Initialize loading view with cancel callback
+	s.loadingView = views.NewLoading(func() {
+		// Cancel button callback - trigger scene to cancel loading
+		if s.sceneManager != nil {
+			s.sceneManager.CancelLoading()
+		}
+	})
 
 	console.AddOutputPipe(func(level console.LogLevel, message interface{}) {
 		switch v := message.(type) {
@@ -69,7 +83,7 @@ func (s *Gui) onLoadingLevelProgressTyped(e messages.LoadingLevelProgressEvent) 
 	}
 }
 
-func (s *Gui) Render() {
+func (s *Gui) Render(dt float32) {
 	gui.BeginFrame(s.uiContext)
 
 	// Apply performance ConVars
@@ -77,6 +91,8 @@ func (s *Gui) Render() {
 
 	// Do rendering
 	if s.shouldDisplayLoadingScreen {
+		// Update loading animation
+		s.loadingView.Update(dt)
 		s.loadingView.Render()
 	} else {
 		if s.shouldDisplayMenu {
@@ -116,12 +132,13 @@ func (s *Gui) applyPerformanceConVars() {
 }
 
 // NewGui creates a new GUI system with explicit dependencies
-func NewGui(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, inputMiddleware *middleware.Input, metricsCollector *metrics.Collector) *Gui {
+func NewGui(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, inputMiddleware *middleware.Input, metricsCollector *metrics.Collector, sceneManager ISceneManager) *Gui {
 	return &Gui{
 		eventBus:          eventBus,
 		fileSystem:        fileSystem,
 		inputMiddleware:   inputMiddleware,
 		metricsCollector:  metricsCollector,
+		sceneManager:      sceneManager,
 		shouldDisplayMenu: true,
 	}
 }
