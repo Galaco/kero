@@ -60,6 +60,18 @@ plCollisionShapeHandle btNewBvhTriangleMeshShape(plCollisionShapeHandle indexVer
 	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(reinterpret_cast<btTriangleIndexVertexArray*>(indexVertexArrays), true, true);
 }
 
+void plSetActivationState(plRigidBodyHandle object, int state) {
+  btRigidBody* body = reinterpret_cast<btRigidBody*>(object);
+  btAssert(body);
+  body->setActivationState(state);
+}
+
+void plForceActivationState(plRigidBodyHandle object, int state) {
+  btRigidBody* body = reinterpret_cast<btRigidBody*>(object);
+  btAssert(body);
+  body->forceActivationState(state);
+}
+
 #ifdef __cplusplus
 }
 #endif

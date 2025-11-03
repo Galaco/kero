@@ -10,6 +10,8 @@ void plSetGravity(plDynamicsWorldHandle world, plReal x, plReal y, plReal z);
 void plApplyImpulse(plRigidBodyHandle object, const plVector3 impulse, const plVector3 relativePos);
 plCollisionShapeHandle btNewBvhTriangleIndexVertexArray(int* indices, plVector3* vertices, int totalTriangles, int totalVerts);
 plCollisionShapeHandle btNewBvhTriangleMeshShape(plCollisionShapeHandle indexVertexArrays);
+void plSetActivationState(plRigidBodyHandle object, int state);
+void plForceActivationState(plRigidBodyHandle object, int state);
 
 #endif
 

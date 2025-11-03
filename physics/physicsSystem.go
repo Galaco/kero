@@ -254,6 +254,14 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 	}
 
 	model.RigidBody.SetTransform(initialTransformation)
+
+	// For dynamic objects (mass > 0), start in sleeping state to prevent
+	// violent ejection if spawned slightly penetrating static geometry.
+	// They will wake naturally when physics updates and settle via gravity.
+	if !isStatic && mass > 0 {
+		bullet.BulletForceActivationState(model.RigidBody.BulletHandle(), bullet.ActivationStateIslandSleeping)
+	}
+
 	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
 }
 
