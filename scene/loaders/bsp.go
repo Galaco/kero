@@ -415,11 +415,32 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 	width := f.LightmapTextureSizeInLuxels[0] + 1
 	height := f.LightmapTextureSizeInLuxels[1] + 1
 	numLuxels := width * height
+
 	firstSampleIdx := f.Lightofs / 4 // 4 = size of ColorRGBExponent32
+
+	// For basic rendering, we only use the first lightstyle's first bumpmap
+	// The samples are stored as: [lightstyle0_bump0, lightstyle0_bump1, lightstyle0_bump2, lightstyle0_bump3, lightstyle1_bump0, ...]
+	// For non-bumpmapped faces, there's just one set per lightstyle
+	// We use the first set (bump0 or the only set)
+	sampleOffset := firstSampleIdx
 
 	raw := make([]uint8, (numLuxels)*4)
 
-	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
+	// Bounds check
+	if sampleOffset < 0 || int(sampleOffset)+int(numLuxels) > len(samples) {
+		console.PrintString(console.LevelWarning, fmt.Sprintf("Lightmap out of bounds for face: offset=%d, numLuxels=%d, totalSamples=%d", sampleOffset, numLuxels, len(samples)))
+		// Return white texture on error
+		for i := 0; i < int(numLuxels); i++ {
+			raw[i*4] = 255
+			raw[i*4+1] = 255
+			raw[i*4+2] = 255
+			raw[i*4+3] = 255
+		}
+		return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
+	}
+
+	// Read the first lightstyle's first bump sample set (or only sample set for non-bumpmapped)
+	for idx, sample := range samples[sampleOffset : sampleOffset+int32(numLuxels)] {
 		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R)*math.Pow(2, float64(sample.Exponent))))
 		raw[(idx*4)+1] = uint8(math.Min(255, float64(sample.G)*math.Pow(2, float64(sample.Exponent))))
 		raw[(idx*4)+2] = uint8(math.Min(255, float64(sample.B)*math.Pow(2, float64(sample.Exponent))))

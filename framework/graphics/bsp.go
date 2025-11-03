@@ -53,13 +53,14 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 
 	uvs := make([]float32, (len(vertexes)/3)*2)
 
+	// Scale calculation uses actual texture dimensions (luxels + 1)
 	sScale := 1 / lightmapWidth
 	sOffset := lightmapOffsetX * sScale
-	sScale = float32(faceInfo.LightmapTextureSizeInLuxels[0]) * sScale
+	sScale = float32(faceInfo.LightmapTextureSizeInLuxels[0] + 1) * sScale
 
 	tScale := 1 / lightmapHeight
 	tOffset := lightmapOffsetY * tScale
-	tScale = float32(faceInfo.LightmapTextureSizeInLuxels[1]) * tScale
+	tScale = float32(faceInfo.LightmapTextureSizeInLuxels[1] + 1) * tScale
 
 	// 0x00000001 = SURFDRAW_NOLIGHT
 	if tx.Flags&0x00000001 != 0 {
@@ -85,7 +86,8 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 				tx.LightmapVecsLuxelsPerWorldUnits[0][3]
 		uvs[(idx*2)+0] -= float32(faceInfo.LightmapTextureMinsInLuxels[0])
 		uvs[(idx*2)+0] += 0.5
-		uvs[(idx*2)+0] /= float32(faceInfo.LightmapTextureSizeInLuxels[0])
+		// Divide by actual texture dimensions (luxels + 1), not luxel count
+		uvs[(idx*2)+0] /= float32(faceInfo.LightmapTextureSizeInLuxels[0] + 1)
 
 		uvs[(idx*2)+1] =
 			(mgl32.Vec3{vertexes[(idx*3)+0], vertexes[(idx*3)+1], vertexes[(idx*3)+2]}).Dot(
@@ -93,7 +95,8 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 				tx.LightmapVecsLuxelsPerWorldUnits[1][3]
 		uvs[(idx*2)+1] -= float32(faceInfo.LightmapTextureMinsInLuxels[1])
 		uvs[(idx*2)+1] += 0.5
-		uvs[(idx*2)+1] /= float32(faceInfo.LightmapTextureSizeInLuxels[1])
+		// Divide by actual texture dimensions (luxels + 1), not luxel count
+		uvs[(idx*2)+1] /= float32(faceInfo.LightmapTextureSizeInLuxels[1] + 1)
 
 		uvs[(idx*2)+0] = sOffset + uvs[(idx*2)+0]*sScale
 		uvs[(idx*2)+1] = tOffset + uvs[(idx*2)+1]*tScale
