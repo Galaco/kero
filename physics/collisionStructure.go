@@ -184,10 +184,6 @@ func transformPhyVertex(bone *mdl.Bone, vertex mgl32.Vec3) (out mgl32.Vec3) {
 	out[2] = 1 / 0.0254 * -vertex[1]
 	if bone != nil {
 		out = vectorITransform(out, bone.PoseToBone)
-	} else {
-		out[0] = 1 / 0.0254 * vertex[2]
-		out[1] = 1 / 0.0254 * -vertex[0]
-		out[2] = 1 / 0.0254 * -vertex[1]
 	}
 	return out
 }
