@@ -1,6 +1,9 @@
 package kero
 
 import (
+	"runtime"
+	"time"
+
 	"github.com/galaco/kero/engine"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
@@ -18,8 +21,6 @@ import (
 	"github.com/galaco/kero/physics"
 	"github.com/galaco/kero/renderer"
 	"github.com/galaco/kero/scene"
-	"runtime"
-	"time"
 )
 
 // Kero provides a game loop with explicit dependency injection
@@ -92,14 +93,16 @@ func (kero *Kero) Start(gameDir string) error {
 	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld, legacyBridge)
 	kero.engine.SetRenderer(renderer)
 
-	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input)
+	// Create physics system before scene (scene needs physics reference for player registration)
+	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
+	kero.engine.SetPhysics(physicsSystem)
+
+	// Create scene system with physics reference
+	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input, physicsSystem)
 	kero.engine.SetScene(sceneSystem)
 
 	ui := gui.NewGui(eventBus, fs, input, metricsCollector, sceneSystem)
 	kero.engine.SetGUI(ui)
-
-	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
-	kero.engine.SetPhysics(physicsSystem)
 
 	kero.isRunning = true
 
@@ -140,9 +143,9 @@ func (kero *Kero) collectMemoryStats() {
 func (kero *Kero) mainLoop() {
 	// Fixed timestep configuration
 	const PhysicsHz = 60.0
-	const FixedDt = 1.0 / PhysicsHz      // 16.67ms per physics step
-	const MaxAccumulator = 0.25          // Cap at 250ms (prevents spiral of death)
-	const MaxPhysicsSteps = 5            // Max physics iterations per frame
+	const FixedDt = 1.0 / PhysicsHz // 16.67ms per physics step
+	const MaxAccumulator = 0.25     // Cap at 250ms (prevents spiral of death)
+	const MaxPhysicsSteps = 5       // Max physics iterations per frame
 
 	accumulator := 0.0
 	currentTime := time.Now()

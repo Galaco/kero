@@ -143,6 +143,12 @@ func BulletNewSphericalHullShape(radius float64) BulletCollisionShapeHandle {
 	}
 }
 
+func BulletNewCapsuleShapeZ(radius, height float64) BulletCollisionShapeHandle {
+	return BulletCollisionShapeHandle{
+		handle: C.plNewCapsuleShapeZ(C.plReal(radius), C.plReal(height)),
+	}
+}
+
 func BulletNewCompoundShape() BulletCollisionShapeHandle {
 	return BulletCollisionShapeHandle{
 		handle: C.plNewCompoundShape(),
@@ -234,4 +240,55 @@ func BulletSetActivationState(handle BulletRigidBodyHandle, state int) {
 
 func BulletForceActivationState(handle BulletRigidBodyHandle, state int) {
 	C.plForceActivationState(handle.handle, C.int(state))
+}
+
+// SweepResult represents the result of a convex sweep test
+type SweepResult struct {
+	HasHit      bool
+	HitPoint    mgl32.Vec3
+	HitNormal   mgl32.Vec3
+	HitFraction float32
+}
+
+// RaycastResult represents the result of a raycast
+type RaycastResult struct {
+	HasHit      bool
+	HitPoint    mgl32.Vec3
+	HitNormal   mgl32.Vec3
+	HitFraction float32
+}
+
+// BulletConvexSweepTest sweeps a convex shape from one position to another
+func BulletConvexSweepTest(world BulletDynamicWorldHandle, shape BulletCollisionShapeHandle, from, to mgl32.Vec3) SweepResult {
+	fromVec := Vec3ToBullet(from)
+	toVec := Vec3ToBullet(to)
+
+	var result C.plSweepResult
+	C.plConvexSweepTest(world, shape.handle, &fromVec[0], &toVec[0], &result)
+
+	// Debug: log raw C result
+	// fmt.Printf("C sweep result: hasHit=%d, fraction=%.3f\n", result.hasHit, result.hitFraction)
+
+	return SweepResult{
+		HasHit:      result.hasHit != 0,
+		HitPoint:    vec3FromBullet(BulletVec3(result.hitPoint)),
+		HitNormal:   vec3FromBullet(BulletVec3(result.hitNormal)),
+		HitFraction: float32(result.hitFraction),
+	}
+}
+
+// BulletRayTest performs a raycast test
+func BulletRayTest(world BulletDynamicWorldHandle, from, to mgl32.Vec3) RaycastResult {
+	fromVec := Vec3ToBullet(from)
+	toVec := Vec3ToBullet(to)
+
+	var result C.plRaycastResult
+	C.plRayTest(world, &fromVec[0], &toVec[0], &result)
+
+	return RaycastResult{
+		HasHit:      result.hasHit != 0,
+		HitPoint:    vec3FromBullet(BulletVec3(result.hitPoint)),
+		HitNormal:   vec3FromBullet(BulletVec3(result.hitNormal)),
+		HitFraction: float32(result.hitFraction),
+	}
 }

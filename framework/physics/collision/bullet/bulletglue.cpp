@@ -1,5 +1,6 @@
 #include <btBulletDynamicsCommon.h>
 #include "Bullet-C-Api.h"
+#include "bulletglue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,6 +71,88 @@ void plForceActivationState(plRigidBodyHandle object, int state) {
   btRigidBody* body = reinterpret_cast<btRigidBody*>(object);
   btAssert(body);
   body->forceActivationState(state);
+}
+
+plCollisionShapeHandle plNewCapsuleShapeZ(plReal radius, plReal height) {
+  void *mem = btAlignedAlloc(sizeof(btCapsuleShapeZ),16);
+  return (plCollisionShapeHandle) new (mem)btCapsuleShapeZ(radius, height);
+}
+
+// Callback class for convex sweep test
+struct SweepResultCallback : public btCollisionWorld::ClosestConvexResultCallback {
+  SweepResultCallback(const btVector3& from, const btVector3& to)
+    : btCollisionWorld::ClosestConvexResultCallback(from, to) {}
+};
+
+void plConvexSweepTest(plDynamicsWorldHandle world, plCollisionShapeHandle shape,
+                       const plVector3 from, const plVector3 to, plSweepResult* result) {
+  btDynamicsWorld* dynamicsWorld = reinterpret_cast<btDynamicsWorld*>(world);
+  btConvexShape* convexShape = reinterpret_cast<btConvexShape*>(shape);
+
+  btVector3 fromVec(from[0], from[1], from[2]);
+  btVector3 toVec(to[0], to[1], to[2]);
+
+  btTransform fromTrans;
+  fromTrans.setIdentity();
+  fromTrans.setOrigin(fromVec);
+
+  btTransform toTrans;
+  toTrans.setIdentity();
+  toTrans.setOrigin(toVec);
+
+  SweepResultCallback callback(fromVec, toVec);
+
+  dynamicsWorld->convexSweepTest(convexShape, fromTrans, toTrans, callback);
+
+  // Check if there was a hit (m_closestHitFraction < 1.0 means hit)
+  bool hasHit = callback.m_closestHitFraction < btScalar(1.0);
+  result->hasHit = hasHit ? 1 : 0;
+
+  if (hasHit) {
+    result->hitPoint[0] = callback.m_hitPointWorld.getX();
+    result->hitPoint[1] = callback.m_hitPointWorld.getY();
+    result->hitPoint[2] = callback.m_hitPointWorld.getZ();
+
+    result->hitNormal[0] = callback.m_hitNormalWorld.getX();
+    result->hitNormal[1] = callback.m_hitNormalWorld.getY();
+    result->hitNormal[2] = callback.m_hitNormalWorld.getZ();
+
+    result->hitFraction = callback.m_closestHitFraction;
+  }
+}
+
+// Callback class for raycast
+struct RayResultCallback : public btCollisionWorld::ClosestRayResultCallback {
+  RayResultCallback(const btVector3& from, const btVector3& to)
+    : btCollisionWorld::ClosestRayResultCallback(from, to) {}
+};
+
+void plRayTest(plDynamicsWorldHandle world, const plVector3 from, const plVector3 to,
+               plRaycastResult* result) {
+  btDynamicsWorld* dynamicsWorld = reinterpret_cast<btDynamicsWorld*>(world);
+
+  btVector3 fromVec(from[0], from[1], from[2]);
+  btVector3 toVec(to[0], to[1], to[2]);
+
+  RayResultCallback callback(fromVec, toVec);
+
+  dynamicsWorld->rayTest(fromVec, toVec, callback);
+
+  // Check if there was a hit (m_closestHitFraction < 1.0 means hit)
+  bool hasHit = callback.m_closestHitFraction < btScalar(1.0);
+  result->hasHit = hasHit ? 1 : 0;
+
+  if (hasHit) {
+    result->hitPoint[0] = callback.m_hitPointWorld.getX();
+    result->hitPoint[1] = callback.m_hitPointWorld.getY();
+    result->hitPoint[2] = callback.m_hitPointWorld.getZ();
+
+    result->hitNormal[0] = callback.m_hitNormalWorld.getX();
+    result->hitNormal[1] = callback.m_hitNormalWorld.getY();
+    result->hitNormal[2] = callback.m_hitNormalWorld.getZ();
+
+    result->hitFraction = callback.m_closestHitFraction;
+  }
 }
 
 #ifdef __cplusplus

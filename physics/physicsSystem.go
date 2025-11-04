@@ -2,29 +2,29 @@ package physics
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
 	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/physics/collision"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/messages"
 	"github.com/go-gl/mathgl/mgl32"
-	"strings"
 )
 
 type PhysicsSystem struct {
-	eventBus      *event.Dispatcher
-	sceneManager  *scene.Manager
-	dataScene     *scene.StaticScene
+	eventBus     *event.Dispatcher
+	sceneManager *scene.Manager
+	dataScene    *scene.StaticScene
 
 	// Phase 4: ECS integration
-	ecsWorld      *ecs.World
-	legacyBridge  *legacy.Bridge
+	ecsWorld     *ecs.World
+	legacyBridge *legacy.Bridge
 
 	// Bullet
 	sdk   bullet.BulletPhysicsSDKHandle
@@ -33,6 +33,10 @@ type PhysicsSystem struct {
 	bspRigidBody               *bspCollisionMesh
 	displacementRigidBody      *displacementCollisionMesh
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
+
+	// Player physics
+	player             interface{} // Stored as interface{} to avoid import cycle
+	playerCapsuleShape bullet.BulletCollisionShapeHandle
 }
 
 func (system *PhysicsSystem) Initialize() {
@@ -58,9 +62,9 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 		return
 	}
 
-	if !input.Keyboard().IsKeyPressed(input.KeyQ) {
-		return
-	}
+	//if !input.Keyboard().IsKeyPressed(input.KeyQ) {
+	//	return
+	//}
 
 	// Debug logging
 	if console.GetConvarBoolean("physics_debug") {
@@ -231,6 +235,11 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 		}
 	}
 	console.PrintString(console.LevelSuccess, "Collision structures ready!")
+
+	// Initialize player physics if player was registered
+	if system.player != nil {
+		system.initializePlayerPhysics()
+	}
 }
 
 func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {
@@ -265,6 +274,53 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
 }
 
+// RegisterPlayer adds the player to the physics world and sets up collision.
+// The player parameter should be a *gameEntity.Player (from game/entity package).
+// We use interface{} to avoid import cycles.
+func (system *PhysicsSystem) RegisterPlayer(player interface{}) {
+	// Store the player reference
+	system.player = player
+
+	// If physics world already exists, initialize player physics immediately
+	if system.dataScene != nil {
+		system.initializePlayerPhysics()
+	}
+	// Otherwise, it will be initialized in onLoadingLevelParsedTyped
+}
+
+// initializePlayerPhysics creates the character controller for the player.
+// This is called after the physics world is created.
+func (system *PhysicsSystem) initializePlayerPhysics() {
+	if system.player == nil || system.dataScene == nil {
+		return
+	}
+
+	// Create capsule shape for player character controller
+	// Player dimensions: radius=16, total height=72
+	// Capsule height = total height - (2 * radius) = 72 - 32 = 40
+	playerRadius := float64(16)
+	playerHeight := float64(72)
+	capsuleHeight := playerHeight - (2 * playerRadius)
+
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Creating player capsule: radius=%.1f, height=%.1f, totalHeight=%.1f",
+		playerRadius, capsuleHeight, playerHeight))
+
+	system.playerCapsuleShape = bullet.BulletNewCapsuleShapeZ(playerRadius, capsuleHeight)
+
+	// Call InitializePhysics on the player via reflection (interface{} method call)
+	// We expect the player to have a method: InitializePhysics(world interface{}, capsuleShape interface{})
+	type physicsInitializer interface {
+		InitializePhysics(world interface{}, capsuleShape interface{})
+	}
+
+	if playerWithPhysics, ok := system.player.(physicsInitializer); ok {
+		playerWithPhysics.InitializePhysics(system.world, system.playerCapsuleShape)
+		console.PrintString(console.LevelSuccess, "Player physics initialized!")
+	} else {
+		console.PrintString(console.LevelWarning, "Player does not implement InitializePhysics method")
+	}
+}
+
 func (system *PhysicsSystem) Cleanup() {
 	if system.dataScene == nil {
 		return
@@ -274,6 +330,11 @@ func (system *PhysicsSystem) Cleanup() {
 	if system.legacyBridge != nil {
 		system.legacyBridge.Clear()
 	}
+
+	// Cleanup player physics
+	// Note: Collision shapes are owned by Bullet and cleaned up when the world is deleted
+	system.playerCapsuleShape = bullet.BulletCollisionShapeHandle{}
+	system.player = nil
 
 	bullet.BulletDeleteDynamicWorld(system.world)
 	bullet.BulletDeletePhysicsSDK(system.sdk)
