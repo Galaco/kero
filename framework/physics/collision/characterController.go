@@ -221,7 +221,9 @@ func (cc *CharacterController) CheckGround(position mgl32.Vec3) bool {
 	// Raycast from slightly below capsule center down
 	// Use a small offset to start inside the capsule bottom
 	rayStart := position.Sub(mgl32.Vec3{0, 0, float32(cc.height/2 - cc.radius)})
-	rayEnd := rayStart.Sub(mgl32.Vec3{0, 0, 2.0}) // Check 2 units down
+	// Check stepHeight units down (18 units in Source Engine) to stay attached to slopes
+	// This matches Source Engine's StayOnGround behavior
+	rayEnd := rayStart.Sub(mgl32.Vec3{0, 0, float32(cc.stepHeight)})
 
 	result := bullet.BulletRayTest(cc.world, rayStart, rayEnd)
 
@@ -238,9 +240,9 @@ func (cc *CharacterController) CheckGround(position mgl32.Vec3) bool {
 		return false
 	}
 
-	// Check distance to ground
+	// Check distance to ground (within stepHeight range)
 	distToGround := rayStart.Z() - result.HitPoint.Z()
-	return distToGround < 2.0 // Within 2 units of ground
+	return distToGround < float32(cc.stepHeight)
 }
 
 // GetWorld returns the physics world handle

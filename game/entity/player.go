@@ -270,8 +270,10 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 
 	// Update camera to follow player (position only, rotation handled above)
 	if p.camera != nil {
-		// Camera position at eye height
-		eyePos := newPos.Add(mgl32.Vec3{0, 0, float32(PlayerEyeHeight)})
+		// Camera position at eye height (64 units from feet)
+		// newPos is capsule center (feet + 36), so eye offset from center = 64 - 36 = 28
+		eyeOffsetFromCenter := float32(PlayerEyeHeight - PlayerHeight/2) // 64 - 36 = 28
+		eyePos := newPos.Add(mgl32.Vec3{0, 0, eyeOffsetFromCenter})
 		p.camera.Transform().Translation = eyePos
 	}
 }
