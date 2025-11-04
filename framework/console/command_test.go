@@ -55,17 +55,35 @@ func TestBuiltinCommands(t *testing.T) {
 		log.Println(sut)
 	})
 
+	// Reset sut to clear any buffered entries from previous tests
+	sut = make([]string, 0)
+
 	err := ExecuteCommand("listcommands")
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(sut) < 3 {
-		t.Error("unexpected number of lines printed by listcommands")
+	// Commands are sorted alphabetically, so we should have:
+	// 0: "> listcommands"
+	// 1: "  describe: Explains a specific command"
+	// 2: "  exec: Execute a config file from cfg/ directory"
+	// 3: "  foo: bar"
+	// 4: "  listcommands: Displays a list of all available commands"
+	if len(sut) < 5 {
+		t.Errorf("unexpected number of lines printed by listcommands: got %d, want at least 5", len(sut))
 		return
 	}
 
-	if sut[0] != "> listcommands" || sut[1] != "  describe: Explains a specific command" || sut[2] != "  foo: bar" {
-		t.Error("unexpected output from listcommands")
+	if sut[0] != "> listcommands" {
+		t.Errorf("sut[0] = %q, want \"> listcommands\"", sut[0])
+	}
+	if sut[1] != "  describe: Explains a specific command" {
+		t.Errorf("sut[1] = %q, want \"  describe: Explains a specific command\"", sut[1])
+	}
+	if sut[2] != "  exec: Execute a config file from cfg/ directory" {
+		t.Errorf("sut[2] = %q, want \"  exec: Execute a config file from cfg/ directory\"", sut[2])
+	}
+	if sut[3] != "  foo: bar" {
+		t.Errorf("sut[3] = %q, want \"  foo: bar\"", sut[3])
 	}
 }

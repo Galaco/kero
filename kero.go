@@ -48,6 +48,17 @@ func (kero *Kero) Start(gameDir string) error {
 	}
 	kero.engine.SetFileSystem(fs)
 
+	// Set filesystem provider for console exec command
+	console.SetFileSystemProvider(fs)
+
+	// Execute autoexec.cfg if it exists
+	if err := console.ExecFile("autoexec.cfg"); err != nil {
+		// autoexec.cfg is optional, so just log if not found
+		console.PrintString(console.LevelWarning, "autoexec.cfg not found")
+	} else {
+		console.PrintString(console.LevelSuccess, "Executed autoexec.cfg")
+	}
+
 	// Initialize event bus
 	eventBus := event.NewDispatcher()
 	eventBus.Initialize()
