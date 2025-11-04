@@ -138,17 +138,43 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 		return // No movement without time
 	}
 
-	// Calculate forward and right vectors from yaw (horizontal movement only)
-	// Match camera's coordinate system: -Y is forward at yaw=0
-	forward := mgl32.Vec3{
-		-float32(math.Sin(float64(p.yaw))),
-		-float32(math.Cos(float64(p.yaw))),
-		0, // Horizontal movement only
-	}
-	right := mgl32.Vec3{
-		float32(math.Sin(float64(p.yaw) - math.Pi/2)),
-		float32(math.Cos(float64(p.yaw) - math.Pi/2)),
-		0,
+	// Check for noclip mode
+	noclipEnabled := console.GetConvarBoolean("sv_noclip")
+
+	// Calculate forward and right vectors based on camera orientation
+	var forward, right mgl32.Vec3
+
+	if noclipEnabled {
+		// Noclip: Move in camera direction (includes vertical component from pitch)
+		// Convert pitch from camera space (centered at π) to standard space
+		actualPitch := p.pitch - CameraPitchCenter
+
+		// Forward vector includes vertical component
+		forward = mgl32.Vec3{
+			-float32(math.Sin(float64(p.yaw)) * math.Cos(float64(actualPitch))),
+			-float32(math.Cos(float64(p.yaw)) * math.Cos(float64(actualPitch))),
+			float32(math.Sin(float64(actualPitch))),
+		}
+
+		// Right vector is always horizontal (perpendicular to yaw)
+		right = mgl32.Vec3{
+			-float32(math.Cos(float64(p.yaw))),
+			float32(math.Sin(float64(p.yaw))),
+			0,
+		}
+	} else {
+		// Normal movement: Horizontal only
+		// Match camera's coordinate system: -Y is forward at yaw=0
+		forward = mgl32.Vec3{
+			-float32(math.Sin(float64(p.yaw))),
+			-float32(math.Cos(float64(p.yaw))),
+			0, // Horizontal movement only
+		}
+		right = mgl32.Vec3{
+			float32(math.Sin(float64(p.yaw) - math.Pi/2)),
+			float32(math.Cos(float64(p.yaw) - math.Pi/2)),
+			0,
+		}
 	}
 
 	// Build desired movement direction from input
@@ -164,11 +190,42 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 	wishSpeed := float32(0)
 	if wishDir.Len() > 0.01 {
 		wishDir = wishDir.Normalize()
-		if p.movement.OnGround {
+		if noclipEnabled {
+			wishSpeed = console.GetConvarFloat("sv_noclip_speed")
+		} else if p.movement.OnGround {
 			wishSpeed = p.movement.GroundSpeed
 		} else {
 			wishSpeed = p.movement.AirSpeed
 		}
+	}
+
+	// Noclip mode: Direct movement without physics
+	if noclipEnabled {
+		// Simple velocity-based movement in noclip
+		// Direct velocity toward wish direction
+		p.movement.Velocity = wishDir.Mul(wishSpeed)
+
+		// Apply movement directly without collision detection
+		desiredMove := p.movement.Velocity.Mul(float32(dt))
+		currentPos := p.physics.RigidBody.GetTranslation()
+		newPos := currentPos.Add(desiredMove)
+
+		// Update physics body transform
+		transform := mgl32.Translate3D(newPos.X(), newPos.Y(), newPos.Z())
+		p.physics.RigidBody.SetTransform(transform)
+
+		// Update entity transform
+		p.Transform().Translation = newPos
+		p.Transform().Orientation = mgl32.AnglesToQuat(0, 0, p.yaw, mgl32.ZYX)
+
+		// Update camera position
+		if p.camera != nil {
+			eyeOffsetFromCenter := float32(PlayerEyeHeight - PlayerHeight/2)
+			eyePos := newPos.Add(mgl32.Vec3{0, 0, eyeOffsetFromCenter})
+			p.camera.Transform().Translation = eyePos
+		}
+
+		return // Skip normal physics processing
 	}
 
 	// Apply movement (simple velocity-based for Phase 1)
@@ -187,6 +244,10 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 			}
 			p.movement.Velocity = p.movement.Velocity.Mul(friction)
 		}
+
+		// Flatten velocity on ground (Source Engine behavior)
+		// Keep movement horizontal - no vertical component when on ground
+		p.movement.Velocity[2] = 0
 	} else {
 		// Air movement: limited air control
 		airAccel := p.movement.Acceleration * 0.2 // Reduced air control

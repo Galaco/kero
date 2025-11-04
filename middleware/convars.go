@@ -62,4 +62,20 @@ func AddInitialConvars() {
 
 	// Mouse sensitivity ConVar
 	console.AddConvarFloat("m_sensitivity", "Mouse sensitivity multiplier", 1.0)
+
+	// Player movement ConVars
+	console.AddConvarBool("sv_noclip", "Enable noclip mode (fly through walls)", false)
+	console.AddConvarFloat("sv_noclip_speed", "Noclip movement speed (units/second)", 500.0)
+
+	// Noclip toggle command
+	console.AddCommand("noclip", "Toggle noclip mode", "", func(options string) error {
+		current := console.GetConvarBoolean("sv_noclip")
+		console.SetConvarBoolean("sv_noclip", !current)
+		if !current {
+			console.PrintString(console.LevelSuccess, "noclip ON")
+		} else {
+			console.PrintString(console.LevelInfo, "noclip OFF")
+		}
+		return nil
+	})
 }
