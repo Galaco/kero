@@ -53,13 +53,14 @@ const (
 // PlayerMovement handles movement physics and state.
 // This component is responsible for velocity, ground detection, and movement calculation.
 type PlayerMovement struct {
-	Velocity     mgl32.Vec3 // Current velocity (units/second)
-	GroundSpeed  float32    // Maximum ground movement speed
-	AirSpeed     float32    // Maximum air movement speed
-	JumpVelocity float32    // Upward velocity applied on jump
-	Friction     float32    // Ground friction coefficient
-	Acceleration float32    // Ground acceleration (units/sec^2)
-	OnGround     bool       // Whether player is on ground
+	Velocity       mgl32.Vec3 // Current velocity (units/second)
+	GroundSpeed    float32    // Maximum ground movement speed
+	AirSpeed       float32    // Maximum air movement speed
+	JumpVelocity   float32    // Upward velocity applied on jump
+	Friction       float32    // Ground friction coefficient
+	Acceleration   float32    // Ground acceleration (units/sec^2)
+	OnGround       bool       // Whether player is on ground
+	LastWallNormal mgl32.Vec3 // Normal of wall we're currently against (for preventing re-acceleration into wall)
 }
 
 // PlayerPhysics wraps the physics representation of the player.
@@ -138,6 +139,11 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 		return // No movement without time
 	}
 
+	// Clear previous frame's collision debug data
+	if p.physics.CharacterController != nil {
+		p.physics.CharacterController.ClearDebugHits()
+	}
+
 	// Check for noclip mode
 	noclipEnabled := console.GetConvarBoolean("sv_noclip")
 
@@ -190,6 +196,22 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 	wishSpeed := float32(0)
 	if wishDir.Len() > 0.01 {
 		wishDir = wishDir.Normalize()
+
+		// If we have a wall normal from previous frame, clip wishDir along it
+		// This prevents re-accelerating into walls every frame
+		if p.movement.LastWallNormal.Len() > 0.01 {
+			dotProduct := wishDir.Dot(p.movement.LastWallNormal)
+			// Only clip if moving into the wall (dot < 0)
+			if dotProduct < 0 {
+				// Clip wishDir to be parallel to wall
+				wishDir = wishDir.Sub(p.movement.LastWallNormal.Mul(dotProduct))
+				if wishDir.Len() > 0.01 {
+					wishDir = wishDir.Normalize()
+				}
+				console.PrintInterface(console.LevelInfo, fmt.Sprintf("Clipped wishDir against wall"))
+			}
+		}
+
 		if noclipEnabled {
 			wishSpeed = console.GetConvarFloat("sv_noclip_speed")
 		} else if p.movement.OnGround {
@@ -300,10 +322,15 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 				newPos[0], newPos[1], newPos[2]))
 		}
 
-		// If we hit a wall, zero out horizontal velocity
+		// If we hit a wall, store the wall normal for next frame
+		// This prevents re-accelerating into the wall
 		if moveResult.HitWall {
-			p.movement.Velocity[0] = 0
-			p.movement.Velocity[1] = 0
+			p.movement.LastWallNormal = moveResult.WallNormal
+			console.PrintInterface(console.LevelInfo, fmt.Sprintf("HitWall! Stored wall normal: [%.2f, %.2f, %.2f]",
+				moveResult.WallNormal[0], moveResult.WallNormal[1], moveResult.WallNormal[2]))
+		} else {
+			// Clear wall normal if we're no longer hitting a wall
+			p.movement.LastWallNormal = mgl32.Vec3{0, 0, 0}
 		}
 
 		// If we just landed, zero out vertical velocity
@@ -347,6 +374,19 @@ func (p *Player) SetCamera(camera *graphics.Camera) {
 // GetCamera returns the camera following this player
 func (p *Player) GetCamera() *graphics.Camera {
 	return p.camera
+}
+
+// GetCharacterController returns the character controller for debug visualization
+func (p *Player) GetCharacterController() *collision.CharacterController {
+	return p.physics.CharacterController
+}
+
+// GetPosition returns the current player position (capsule center)
+func (p *Player) GetPosition() mgl32.Vec3 {
+	if p.physics.RigidBody != nil {
+		return p.physics.RigidBody.GetTranslation()
+	}
+	return p.Transform().Translation
 }
 
 // SetPosition sets the player's position in world space

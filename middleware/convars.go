@@ -78,4 +78,21 @@ func AddInitialConvars() {
 		}
 		return nil
 	})
+
+	// Player collision debugging ConVars
+	console.AddConvarBool("r_drawplayercollision", "Draw player collision capsule", false)
+	console.AddConvarBool("r_drawplayerhits", "Draw player collision hit points and normals", false)
+
+	// Toggle command for player debug visuals
+	console.AddCommand("r_toggleplayerdebug", "Toggle all player collision debug visuals", "", func(options string) error {
+		current := console.GetConvarBoolean("r_drawplayercollision")
+		console.SetConvarBoolean("r_drawplayercollision", !current)
+		console.SetConvarBoolean("r_drawplayerhits", !current)
+		if !current {
+			console.PrintString(console.LevelSuccess, "Player collision debug ON")
+		} else {
+			console.PrintString(console.LevelInfo, "Player collision debug OFF")
+		}
+		return nil
+	})
 }

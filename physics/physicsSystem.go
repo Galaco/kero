@@ -179,6 +179,89 @@ func (system *PhysicsSystem) PrepareDebug(buffer interface{}) {
 			debugBuf.AddLines(verts, mgl32.Vec3{1, 0, 1}, transformMatrix)
 		}
 	}
+
+	// Draw player collision capsule
+	if console.GetConvarBoolean("r_drawplayercollision") && system.player != nil {
+		system.drawPlayerCapsule(debugBuf)
+	}
+
+	// Draw player collision hits
+	if console.GetConvarBoolean("r_drawplayerhits") && system.player != nil {
+		system.drawPlayerCollisions(debugBuf)
+	}
+}
+
+// drawPlayerCapsule renders the player's collision capsule wireframe
+func (system *PhysicsSystem) drawPlayerCapsule(debugBuf interface{}) {
+	type debugBuffer interface {
+		AddLines(vertices []mgl32.Vec3, color mgl32.Vec3, transform mgl32.Mat4)
+	}
+
+	buf := debugBuf.(debugBuffer)
+
+	// Get player's CharacterController via type assertion
+	type playerWithController interface {
+		GetCharacterController() *collision.CharacterController
+		GetPosition() mgl32.Vec3
+	}
+
+	if playerCtrl, ok := system.player.(playerWithController); ok {
+		controller := playerCtrl.GetCharacterController()
+		if controller != nil {
+			// Get current position
+			pos := playerCtrl.GetPosition()
+
+			// Generate capsule geometry
+			vertices := controller.GetCapsuleDebugGeometry(pos)
+
+			// Draw in green
+			buf.AddLines(vertices, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
+		}
+	}
+}
+
+// drawPlayerCollisions renders collision hit points and normals
+func (system *PhysicsSystem) drawPlayerCollisions(debugBuf interface{}) {
+	type debugBuffer interface {
+		AddLines(vertices []mgl32.Vec3, color mgl32.Vec3, transform mgl32.Mat4)
+	}
+
+	buf := debugBuf.(debugBuffer)
+
+	// Get player's CharacterController
+	type playerWithController interface {
+		GetCharacterController() *collision.CharacterController
+	}
+
+	if playerCtrl, ok := system.player.(playerWithController); ok {
+		controller := playerCtrl.GetCharacterController()
+		if controller != nil {
+			hits := controller.GetDebugHits()
+
+			for _, hit := range hits {
+				// Draw hit point as a small cross (red)
+				size := float32(2.0)
+				vertices := []mgl32.Vec3{
+					// X axis
+					hit.Point.Add(mgl32.Vec3{-size, 0, 0}),
+					hit.Point.Add(mgl32.Vec3{size, 0, 0}),
+					// Y axis
+					hit.Point.Add(mgl32.Vec3{0, -size, 0}),
+					hit.Point.Add(mgl32.Vec3{0, size, 0}),
+					// Z axis
+					hit.Point.Add(mgl32.Vec3{0, 0, -size}),
+					hit.Point.Add(mgl32.Vec3{0, 0, size}),
+				}
+				buf.AddLines(vertices, mgl32.Vec3{1, 0, 0}, mgl32.Ident4()) // Red
+
+				// Draw normal as a line from hit point (yellow)
+				normalLength := float32(10.0)
+				normalEnd := hit.Point.Add(hit.Normal.Mul(normalLength))
+				normalVerts := []mgl32.Vec3{hit.Point, normalEnd}
+				buf.AddLines(normalVerts, mgl32.Vec3{1, 1, 0}, mgl32.Ident4()) // Yellow
+			}
+		}
+	}
 }
 
 func (system *PhysicsSystem) onChangeLevelTyped(e messages.ChangeLevelEvent) {
