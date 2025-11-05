@@ -112,3 +112,35 @@ func HasListeners[T any](bus *TypedDispatcher) bool {
 	_, ok := bus.listeners.Load(eventType)
 	return ok
 }
+
+// DispatchReflect dispatches an event using reflection instead of generics.
+// This is useful when the concrete event type is not known at compile time,
+// such as when dispatching through an interface{} parameter.
+//
+// Use this for:
+// - Events received through interface{} parameters
+// - Dynamic event routing where type is determined at runtime
+// - Bridging non-generic code to the typed event system
+//
+// For better performance and type safety, prefer Dispatch[T] when the type is known.
+func DispatchReflect(bus *TypedDispatcher, event interface{}) {
+	eventType := reflect.TypeOf(event)
+
+	if listInterface, ok := bus.listeners.Load(eventType); ok {
+		list := listInterface.(*listenerList)
+
+		list.mu.RLock()
+		// Copy handlers to avoid holding lock during callbacks
+		handlers := make([]interface{}, 0, len(list.handlers))
+		for _, h := range list.handlers {
+			handlers = append(handlers, h)
+		}
+		list.mu.RUnlock()
+
+		// Execute handlers with proper type using reflection
+		for _, h := range handlers {
+			handlerValue := reflect.ValueOf(h)
+			handlerValue.Call([]reflect.Value{reflect.ValueOf(event)})
+		}
+	}
+}

@@ -2,6 +2,8 @@ package gui
 
 import (
 	"fmt"
+
+	"github.com/galaco/kero/browser"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -38,6 +40,9 @@ type Gui struct {
 	hudView     *views.HUD
 	menuView    *views.Menu
 	loadingView *views.Loading
+
+	// Browser state (Phase 2)
+	browserState *browser.ServerBrowser
 }
 
 func (s *Gui) Initialize() {
@@ -60,8 +65,13 @@ func (s *Gui) Initialize() {
 	performanceView := menu.NewPerformance(s.metricsCollector)
 	s.hudView = views.NewHUD(performanceView)
 
+	// Initialize browser state (Phase 2)
+	networkAdapter := browser.NewRealNetworkAdapter()
+	eventAdapter := browser.NewEventBusAdapter(s.eventBus)
+	s.browserState = browser.NewServerBrowser(networkAdapter, eventAdapter)
+
 	// Initialize menu view (Layer 100: toggle-able)
-	s.menuView = views.NewMenu(s.eventBus, s.fileSystem)
+	s.menuView = views.NewMenu(s.eventBus, s.fileSystem, s.browserState)
 
 	// Initialize loading view (Layer 200: modal)
 	s.loadingView = views.NewLoading(func() {
@@ -86,6 +96,11 @@ func (s *Gui) Initialize() {
 	// Register typed event listeners (Phase 3)
 	event.RegisterTypedEvent(s.inputMiddleware.EventBus(), s.onKeyReleaseTyped)
 	event.RegisterTypedEvent(s.eventBus, s.onLoadingLevelProgressTyped)
+
+	// Register browser event listeners
+	event.RegisterTypedEvent(s.eventBus, s.onBrowserQueryStarted)
+	event.RegisterTypedEvent(s.eventBus, s.onBrowserQueryCompleted)
+	event.RegisterTypedEvent(s.eventBus, s.onBrowserQueryFailed)
 
 }
 
@@ -114,6 +129,25 @@ func (s *Gui) onLoadingLevelProgressTyped(e messages.LoadingLevelProgressEvent) 
 		modalLayer.Visible = false
 	} else {
 		modalLayer.Visible = true
+	}
+}
+
+func (s *Gui) onBrowserQueryStarted(e messages.BrowserQueryStartedEvent) {
+	// Query started - the server browser UI will show "Querying..." state
+	// No additional action needed here as the UI updates on button press
+}
+
+func (s *Gui) onBrowserQueryCompleted(e messages.BrowserQueryCompletedEvent) {
+	// Query completed successfully - update the UI with results
+	if s.menuView != nil && s.menuView.ServerBrowser != nil {
+		s.menuView.ServerBrowser.UpdateFromBrowserState()
+	}
+}
+
+func (s *Gui) onBrowserQueryFailed(e messages.BrowserQueryFailedEvent) {
+	// Query failed - update the UI with error message
+	if s.menuView != nil && s.menuView.ServerBrowser != nil {
+		s.menuView.ServerBrowser.UpdateFromBrowserState()
 	}
 }
 

@@ -2,6 +2,7 @@ package views
 
 import (
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/galaco/kero/browser"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/gui"
@@ -11,16 +12,18 @@ import (
 )
 
 type Menu struct {
-	Console    menu.Console
-	eventBus   *event.Dispatcher
-	fileSystem filesystem.FileSystem
+	Console       menu.Console
+	ServerBrowser *menu.ServerBrowser
+	eventBus      *event.Dispatcher
+	fileSystem    filesystem.FileSystem
 }
 
 // NewMenu creates a new menu view with explicit dependencies
-func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem) *Menu {
+func NewMenu(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, browserState *browser.ServerBrowser) *Menu {
 	return &Menu{
-		eventBus:   eventBus,
-		fileSystem: fileSystem,
+		eventBus:      eventBus,
+		fileSystem:    fileSystem,
+		ServerBrowser: menu.NewServerBrowser(browserState),
 	}
 }
 
@@ -45,6 +48,10 @@ func (view *Menu) Render(dt float32) {
 			// Use deferred typed event dispatch to prevent mid-frame corruption (Phase 3)
 			event.DispatchTypedDeferred(view.eventBus, event.PhasePostUpdate, messages.ChangeLevelEvent{MapName: name})
 		}).Draw()
+		gui.NewButton("menu_server_browser", "Server Browser", func() {
+			// Open the server browser window
+			view.ServerBrowser.Open()
+		}).Draw()
 		gui.NewButton("menu_disconnect", "Disconnect", func() {
 			// Use typed event dispatch (Phase 3)
 			event.DispatchTyped(view.eventBus, messages.EngineDisconnectEvent{})
@@ -58,4 +65,5 @@ func (view *Menu) Render(dt float32) {
 	gui.EndPanel()
 
 	view.Console.Render()
+	view.ServerBrowser.Render()
 }

@@ -38,6 +38,7 @@ func (kero *Kero) RegisterGameDefinitions(def game.Definition) {
 // Start runs the game loop
 func (kero *Kero) Start(gameDir string) error {
 	middleware.AddInitialConvars()
+	middleware.AddNetworkCommands()
 
 	// Initialize engine context
 	kero.engine = engine.NewEngine()
