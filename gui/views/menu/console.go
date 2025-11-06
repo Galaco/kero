@@ -12,6 +12,7 @@ import (
 type consoleMessage struct {
 	Color imgui.Vec4
 	Text  *gui.Text
+	Level console.LogLevel
 }
 
 func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage {
@@ -35,13 +36,21 @@ func newConsoleMessage(logLevel console.LogLevel, message string) consoleMessage
 	return consoleMessage{
 		Color: color,
 		Text:  gui.NewText(message),
+		Level: logLevel,
 	}
 }
 
 const maxConsoleMessages = 1000
 
+// Special constant for "All" tab
+const allTabValue = console.LogLevel(-1)
+
 type Console struct {
 	messages []consoleMessage
+
+	// Tab management
+	activeTab             console.LogLevel
+	messageIndicesByLevel map[console.LogLevel][]int
 
 	commandInput              string
 	autocompleteSelectedIndex int
@@ -74,6 +83,43 @@ func (view *Console) Render() {
 	// StartPanel always requires a matching EndPanel, regardless of return value
 	// Use NoCollapse flag to prevent the panel from being collapsed
 	if gui.StartPanelV("Console", nil, imgui.WindowFlagsNoCollapse) {
+		// Render tab bar
+		if imgui.BeginTabBar("ConsoleTabs") {
+			// "All" tab (always shown)
+			if imgui.BeginTabItem("All") {
+				view.activeTab = allTabValue
+				imgui.EndTabItem()
+			}
+
+			// Tab for each log level (always shown)
+			if imgui.BeginTabItem("Fatal") {
+				view.activeTab = console.LevelFatal
+				imgui.EndTabItem()
+			}
+
+			if imgui.BeginTabItem("Error") {
+				view.activeTab = console.LevelError
+				imgui.EndTabItem()
+			}
+
+			if imgui.BeginTabItem("Warning") {
+				view.activeTab = console.LevelWarning
+				imgui.EndTabItem()
+			}
+
+			if imgui.BeginTabItem("Info") {
+				view.activeTab = console.LevelInfo
+				imgui.EndTabItem()
+			}
+
+			if imgui.BeginTabItem("Success") {
+				view.activeTab = console.LevelSuccess
+				imgui.EndTabItem()
+			}
+
+			imgui.EndTabBar()
+		}
+
 		// Get autocomplete options
 		autocompleteOptions := view.getAutocompleteOptions()
 
@@ -94,9 +140,12 @@ func (view *Console) Render() {
 			autocompleteHeight = float32(len(autocompleteOptions)*20 + 5)
 		}
 
+		// Get messages for the currently active tab
+		visibleMessages := view.getVisibleMessages()
+
 		// Messages area (subtract space for input box and autocomplete)
 		imgui.BeginChildStrV("ConsoleMessages", imgui.Vec2{X: -1, Y: -(24 + autocompleteHeight)}, 0, 0)
-		for _, s := range view.messages {
+		for _, s := range visibleMessages {
 			imgui.PushStyleColorVec4(imgui.ColText, s.Color)
 			s.Text.Render()
 			imgui.PopStyleColor()
@@ -175,10 +224,49 @@ func (view *Console) Render() {
 	gui.EndPanel()
 }
 
+// getVisibleMessages returns messages for the currently active tab
+func (view *Console) getVisibleMessages() []consoleMessage {
+	// If showing "All" tab or not initialized, return all messages
+	if view.activeTab == allTabValue || view.messageIndicesByLevel == nil {
+		return view.messages
+	}
+
+	// Get indices for active tab
+	indices := view.messageIndicesByLevel[view.activeTab]
+
+	// Build filtered slice
+	filtered := make([]consoleMessage, 0, len(indices))
+	for _, idx := range indices {
+		if idx < len(view.messages) {
+			filtered = append(filtered, view.messages[idx])
+		}
+	}
+	return filtered
+}
+
+// rebuildIndices reconstructs the message indices map after messages have been shifted
+func (view *Console) rebuildIndices() {
+	// Clear existing indices
+	view.messageIndicesByLevel = make(map[console.LogLevel][]int)
+
+	// Rebuild from current messages
+	for i, msg := range view.messages {
+		// Add to "All" tab
+		view.messageIndicesByLevel[allTabValue] = append(
+			view.messageIndicesByLevel[allTabValue], i)
+
+		// Add to specific level tab
+		view.messageIndicesByLevel[msg.Level] = append(
+			view.messageIndicesByLevel[msg.Level], i)
+	}
+}
+
 func (view *Console) AddMessage(level console.LogLevel, message string) {
 	// Initialize with pre-allocated capacity to avoid early reallocations
 	if view.messages == nil {
 		view.messages = make([]consoleMessage, 0, maxConsoleMessages)
+		view.messageIndicesByLevel = make(map[console.LogLevel][]int)
+		view.activeTab = allTabValue // Default to "All" tab
 	}
 
 	// If at capacity, remove oldest message(s) to maintain limit
@@ -187,7 +275,20 @@ func (view *Console) AddMessage(level console.LogLevel, message string) {
 		// This is more efficient than multiple individual removals
 		copy(view.messages, view.messages[1:])
 		view.messages = view.messages[:len(view.messages)-1]
+
+		// Rebuild indices since all indices have shifted
+		view.rebuildIndices()
 	}
 
+	// Add new message
+	newIndex := len(view.messages)
 	view.messages = append(view.messages, newConsoleMessage(level, message))
+
+	// Add index to "All" tab
+	view.messageIndicesByLevel[allTabValue] = append(
+		view.messageIndicesByLevel[allTabValue], newIndex)
+
+	// Add index to specific level tab
+	view.messageIndicesByLevel[level] = append(
+		view.messageIndicesByLevel[level], newIndex)
 }
