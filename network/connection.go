@@ -55,7 +55,8 @@ func (c *Connection) Receive() ([]byte, error) {
 	// Buffer for receiving (max UDP packet size)
 	buffer := make([]byte, 1500)
 
-	n, _, err := c.conn.ReadFromUDP(buffer)
+	// Use Read() for connected UDP sockets (more idiomatic than ReadFromUDP)
+	n, err := c.conn.Read(buffer)
 	if err != nil {
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 			return nil, fmt.Errorf("receive timeout after %v", c.timeout)
