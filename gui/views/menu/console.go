@@ -179,19 +179,28 @@ func (view *Console) Render() {
 
 		// Use standard input text (Enter returns true to submit)
 		if imgui.InputTextWithHint("##console_input", "", &view.commandInput, imgui.InputTextFlagsEnterReturnsTrue, nil) {
+			// Check if input exactly matches a command/convar
+			isExactMatch := false
+			for _, option := range autocompleteOptions {
+				if view.commandInput == option {
+					isExactMatch = true
+					break
+				}
+			}
+
 			// Enter was pressed - either submit command or accept autocomplete
-			if len(autocompleteOptions) > 0 && view.autocompleteSelectedIndex >= 0 {
-				// Autocomplete is active - select the highlighted option
-				view.commandInput = autocompleteOptions[view.autocompleteSelectedIndex]
-				view.autocompleteSelectedIndex = -1
-				view.shouldRefocus = true
-			} else {
-				// No autocomplete - submit the command
+			if isExactMatch || len(autocompleteOptions) == 0 {
+				// Exact match or no autocomplete - submit the command
 				err := console.ExecuteCommand(view.commandInput)
 				if err != nil {
 					console.PrintString(console.LevelError, err.Error())
 				}
 				view.commandInput = ""
+				view.shouldRefocus = true
+			} else {
+				// Partial match - autocomplete to the highlighted option
+				view.commandInput = autocompleteOptions[view.autocompleteSelectedIndex]
+				view.autocompleteSelectedIndex = -1
 				view.shouldRefocus = true
 			}
 		}
