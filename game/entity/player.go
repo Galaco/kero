@@ -156,10 +156,12 @@ func (p *Player) ProcessInput(input PlayerInput, dt float64) {
 		actualPitch := p.pitch - CameraPitchCenter
 
 		// Forward vector includes vertical component
+		// Since actualPitch = pitch - π, we need sin(actualPitch) = -sin(pitch)
+		// This matches the camera's direction vector coordinate system
 		forward = mgl32.Vec3{
 			-float32(math.Sin(float64(p.yaw)) * math.Cos(float64(actualPitch))),
 			-float32(math.Cos(float64(p.yaw)) * math.Cos(float64(actualPitch))),
-			float32(math.Sin(float64(actualPitch))),
+			-float32(math.Sin(float64(actualPitch))),
 		}
 
 		// Right vector is always horizontal (perpendicular to yaw)
