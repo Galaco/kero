@@ -25,5 +25,3 @@ require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d // indirect
 	github.com/galaco/vpk2 v1.0.0 // indirect
 )
-
-replace github.com/galaco/studiomodel => ../studiomodel
