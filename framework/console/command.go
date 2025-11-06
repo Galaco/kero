@@ -111,6 +111,11 @@ func ExecuteCommand(input string) (err error) {
 
 // setConvarFromString attempts to parse and set a convar value from a string
 func setConvarFromString(key, value string) error {
+	convar := GetConvar(key)
+	if convar == nil {
+		return nil
+	}
+
 	// Try to parse as boolean
 	if value == "true" {
 		SetConvarBoolean(key, true)
@@ -125,6 +130,12 @@ func setConvarFromString(key, value string) error {
 
 	// Try to parse as integer
 	if i, err := strconv.Atoi(value); err == nil {
+		// Special case: if the convar is a boolean, treat integers as bool (0=false, 1=true)
+		if convar.Type == ConvarTypeBool {
+			SetConvarBooleanInt(key, i)
+			PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+			return nil
+		}
 		SetConvarInt(key, i)
 		PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
 		return nil

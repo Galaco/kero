@@ -1,8 +1,16 @@
 package console
 
 import (
-	"reflect"
 	"strings"
+)
+
+type ConvarType byte
+
+const (
+	ConvarTypeBool ConvarType = iota
+	ConvarTypeInt
+	ConvarTypeFloat
+	ConvarTypeString
 )
 
 type convarList struct {
@@ -14,6 +22,7 @@ var convarSingleton convarList
 type Convar struct {
 	Key         string
 	Description string
+	Type        ConvarType
 	Value       interface{}
 }
 
@@ -32,7 +41,18 @@ func GetConvarBoolean(key string) bool {
 }
 
 func SetConvarBoolean(key string, value bool) {
-	setConvarAny(key, value)
+	setConvarAny(key, value, ConvarTypeBool)
+}
+
+// SetConvarBooleanInt sets a boolean convar using an integer value.
+// 0 is treated as false, 1 is treated as true, other values are ignored.
+func SetConvarBooleanInt(key string, value int) {
+	if value == 0 {
+		setConvarAny(key, false, ConvarTypeBool)
+	} else if value == 1 {
+		setConvarAny(key, true, ConvarTypeBool)
+	}
+	// Other values are ignored as requested
 }
 
 func GetConvarInt(key string) int {
@@ -43,7 +63,7 @@ func GetConvarInt(key string) int {
 }
 
 func SetConvarInt(key string, value int) {
-	setConvarAny(key, value)
+	setConvarAny(key, value, ConvarTypeInt)
 }
 
 func GetConvarString(key string) string {
@@ -54,7 +74,7 @@ func GetConvarString(key string) string {
 }
 
 func SetConvarString(key string, value string) {
-	setConvarAny(key, value)
+	setConvarAny(key, value, ConvarTypeString)
 }
 
 func GetConvarFloat(key string) float32 {
@@ -65,13 +85,13 @@ func GetConvarFloat(key string) float32 {
 }
 
 func SetConvarFloat(key string, value float32) {
-	setConvarAny(key, value)
+	setConvarAny(key, value, ConvarTypeFloat)
 }
 
-func setConvarAny(key string, value interface{}) {
+func setConvarAny(key string, value interface{}, expectedType ConvarType) {
 	if cv, ok := convarSingleton.convars[key]; ok {
 		// Ensure the original convar type does not change under the hood
-		if reflect.TypeOf(cv.Value) != reflect.TypeOf(value) {
+		if cv.Type != expectedType {
 			return
 		}
 		cv.Value = value
@@ -83,6 +103,7 @@ func AddConvarBool(key string, description string, value bool) {
 	convarSingleton.convars[key] = Convar{
 		Key:         key,
 		Description: description,
+		Type:        ConvarTypeBool,
 		Value:       value,
 	}
 }
@@ -91,6 +112,7 @@ func AddConvarInt(key string, description string, value int) {
 	convarSingleton.convars[key] = Convar{
 		Key:         key,
 		Description: description,
+		Type:        ConvarTypeInt,
 		Value:       value,
 	}
 }
@@ -99,6 +121,7 @@ func AddConvarString(key string, description string, value string) {
 	convarSingleton.convars[key] = Convar{
 		Key:         key,
 		Description: description,
+		Type:        ConvarTypeString,
 		Value:       value,
 	}
 }
@@ -107,6 +130,7 @@ func AddConvarFloat(key string, description string, value float32) {
 	convarSingleton.convars[key] = Convar{
 		Key:         key,
 		Description: description,
+		Type:        ConvarTypeFloat,
 		Value:       value,
 	}
 }

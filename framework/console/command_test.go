@@ -87,3 +87,44 @@ func TestBuiltinCommands(t *testing.T) {
 		t.Errorf("sut[3] = %q, want \"  foo: bar\"", sut[3])
 	}
 }
+
+func TestExecuteCommandWithBooleanConvarAndInt(t *testing.T) {
+	// Setup: Create a boolean convar
+	AddConvarBool("test_bool_cmd", "Test boolean convar for command execution", false)
+
+	// Test: Execute command "test_bool_cmd 1" (should set to true)
+	err := ExecuteCommand("test_bool_cmd 1")
+	if err != nil {
+		t.Error(err)
+	}
+	if !GetConvarBoolean("test_bool_cmd") {
+		t.Error("Expected true after executing 'test_bool_cmd 1'")
+	}
+
+	// Test: Execute command "test_bool_cmd 0" (should set to false)
+	err = ExecuteCommand("test_bool_cmd 0")
+	if err != nil {
+		t.Error(err)
+	}
+	if GetConvarBoolean("test_bool_cmd") {
+		t.Error("Expected false after executing 'test_bool_cmd 0'")
+	}
+
+	// Test: Execute command "test_bool_cmd true" (should still work)
+	err = ExecuteCommand("test_bool_cmd true")
+	if err != nil {
+		t.Error(err)
+	}
+	if !GetConvarBoolean("test_bool_cmd") {
+		t.Error("Expected true after executing 'test_bool_cmd true'")
+	}
+
+	// Test: Execute command "test_bool_cmd 2" (should be ignored, remain true)
+	err = ExecuteCommand("test_bool_cmd 2")
+	if err != nil {
+		t.Error(err)
+	}
+	if !GetConvarBoolean("test_bool_cmd") {
+		t.Error("Expected true (unchanged) after executing 'test_bool_cmd 2'")
+	}
+}
