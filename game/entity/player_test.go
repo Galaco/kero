@@ -12,7 +12,7 @@ func TestNewPlayer(t *testing.T) {
 	// Initialize console (needed for convars)
 	console.AddConvarFloat("sv_gravity", "Test gravity", 800.0)
 
-	spawnPos := mgl32.Vec3{100, 200, 50}
+	spawnPos := mgl32.Vec3{100, 200, 50} // Feet position
 	spawnYaw := mgl32.DegToRad(90)
 
 	player := NewPlayer(spawnPos, spawnYaw)
@@ -21,9 +21,11 @@ func TestNewPlayer(t *testing.T) {
 		t.Fatal("NewPlayer returned nil")
 	}
 
-	// Verify initial position
-	if player.Origin() != spawnPos {
-		t.Errorf("Expected position %v, got %v", spawnPos, player.Origin())
+	// Verify initial position (Origin returns capsule center, not feet)
+	// Capsule center should be offset upward by half height from feet
+	expectedCapsuleCenter := spawnPos.Add(mgl32.Vec3{0, 0, float32(PlayerHeight / 2)})
+	if player.Origin() != expectedCapsuleCenter {
+		t.Errorf("Expected capsule center position %v, got %v", expectedCapsuleCenter, player.Origin())
 	}
 
 	// Verify initial rotation
@@ -159,11 +161,13 @@ func TestPlayerCameraFollow(t *testing.T) {
 	player.ProcessInput(input, 0.1)
 
 	// Camera should have moved with player
-	playerPos := player.Origin()
+	playerPos := player.Origin() // Returns capsule center position
 	cameraPos := camera.Transform().Translation
 
-	// Camera should be at eye height above player
-	expectedCameraZ := playerPos.Z() + float32(PlayerEyeHeight)
+	// Camera should be at eye height from capsule center
+	// playerPos is capsule center, eye offset from center = PlayerEyeHeight - PlayerHeight/2
+	eyeOffsetFromCenter := float32(PlayerEyeHeight - PlayerHeight/2) // 64 - 36 = 28
+	expectedCameraZ := playerPos.Z() + eyeOffsetFromCenter
 	if cameraPos.Z() != expectedCameraZ {
 		t.Errorf("Camera Z position incorrect. Expected %f, got %f",
 			expectedCameraZ, cameraPos.Z())

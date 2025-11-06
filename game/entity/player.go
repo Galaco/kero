@@ -432,10 +432,17 @@ func (p *Player) InitializePhysics(world interface{}, capsuleShape interface{}) 
 
 // NewPlayer creates a new player entity at the specified position.
 // The player is initialized with default movement properties and a capsule collision shape.
+// The position parameter represents the player's feet position (ground level).
 func NewPlayer(position mgl32.Vec3, yaw float32) *Player {
-	// Create base entity
+	// Convert from feet position to capsule center position
+	// In Source Engine, player origin is at feet. In Bullet, capsule origin is at center.
+	// Offset upward by half the capsule height to get the center position.
+	capsuleCenterOffset := float32(PlayerHeight / 2) // 36 units
+	capsuleCenterPos := position.Add(mgl32.Vec3{0, 0, capsuleCenterOffset})
+
+	// Create base entity (using capsule center position for physics consistency)
 	baseEntity := entity.NewEntityBase("player", "", graphics.Transform{
-		Translation: position,
+		Translation: capsuleCenterPos,
 		Orientation: mgl32.AnglesToQuat(0, 0, yaw, mgl32.ZYX),
 	})
 
@@ -444,8 +451,8 @@ func NewPlayer(position mgl32.Vec3, yaw float32) *Player {
 	capsuleHeight := PlayerHeight - (2 * PlayerRadius)
 	capsuleBody := collision.NewCapsuleHull(PlayerRadius, capsuleHeight, PlayerMass)
 
-	// Set initial transform
-	initialTransform := mgl32.Translate3D(position.X(), position.Y(), position.Z())
+	// Set initial transform (using capsule center position)
+	initialTransform := mgl32.Translate3D(capsuleCenterPos.X(), capsuleCenterPos.Y(), capsuleCenterPos.Z())
 	capsuleBody.SetTransform(initialTransform)
 
 	player := &Player{
