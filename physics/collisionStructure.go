@@ -1,31 +1,31 @@
 package physics
 
 import (
+	"math"
+	"sync"
+
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/bsp/primitives/brush"
-	"github.com/galaco/bsp/primitives/plane"
+	"github.com/galaco/bsp/lump"
+	"github.com/galaco/bsp/lump/primitive/brush"
+	"github.com/galaco/bsp/lump/primitive/plane"
 	"github.com/galaco/kero/framework/physics/collision/bullet"
 	"github.com/galaco/kero/framework/scene"
 	"github.com/galaco/studiomodel/mdl"
 	"github.com/galaco/studiomodel/phy"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
-	"sync"
 )
 
 type bspCollisionMesh struct {
 	vertices          []mgl32.Vec3
-	indices []bullet.BulletPhysicsIndice
-	childShapeHandles bullet.BulletCollisionShapeHandle
+	brushShapes       []bullet.BulletCollisionShapeHandle
+	compoundShape     bullet.BulletCollisionShapeHandle
 	RigidBodyHandles  bullet.BulletRigidBodyHandle
 }
 
 func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
-	brushes := scene.RawBsp.File().Lump(bsp.LumpBrushes).(*lumps.Brush).GetData()
-	brushSides := scene.RawBsp.File().Lump(bsp.LumpBrushSides).(*lumps.BrushSide).GetData()
-	planes := scene.RawBsp.File().Lump(bsp.LumpPlanes).(*lumps.Planes).GetData()
-
+	brushes := scene.RawBsp.File().Lumps[bsp.LumpBrushes].(*lump.Brush).Data
+	brushSides := scene.RawBsp.File().Lumps[bsp.LumpBrushSides].(*lump.BrushSide).Data
+	planes := scene.RawBsp.File().Lumps[bsp.LumpPlanes].(*lump.Planes).Data
 
 	wg := sync.WaitGroup{}
 
@@ -33,7 +33,7 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 	wg.Add(len(brushes))
 
 	asyncVertsFromPlanes := func(b *brush.Brush, idx int) {
-		if b.Contents & bsp.CONTENTS_SOLID <= 0 || b.NumSides < 1 {
+		if b.Contents&bsp.ContentsSolid <= 0 || b.NumSides < 1 {
 			wg.Done()
 			return
 		}
@@ -54,30 +54,33 @@ func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
 
 	wg.Wait()
 
-	vertices := make([]mgl32.Vec3, 0)
-	indices := make([]bullet.BulletPhysicsIndice, 0)
-	idxBase := 0
+	// Create compound shape to hold all brush convex hulls
+	compoundShape := bullet.BulletNewCompoundShape()
+	brushShapes := make([]bullet.BulletCollisionShapeHandle, 0)
+	debugVertices := make([]mgl32.Vec3, 0)
+
 	for idx := range brushes {
 		if verts[idx] == nil || len(verts[idx]) == 0 {
 			continue
 		}
-		vertices = append(vertices, verts[idx]...)
 
-		for faceIndex := 0; faceIndex < len(verts[idx]); faceIndex++ {
-			indices = append(indices, bullet.BulletPhysicsIndice(faceIndex + idxBase))
-		}
+		// Create a convex hull for this brush (brushes are already convex)
+		brushShape := bullet.BulletNewConvexHullShape()
+		brushShape.AddVertices(verts[idx])
+		brushShapes = append(brushShapes, brushShape)
 
-		idxBase = len(vertices)
+		// Add to compound shape at origin (brushes are already in world space)
+		bullet.BulletAddChildToCompoundShape(compoundShape, brushShape, mgl32.Vec3{}, mgl32.QuatIdent())
+
+		// Keep vertices for debug visualization
+		debugVertices = append(debugVertices, verts[idx]...)
 	}
 
-
-	childShapeHandle := bullet.BulletNewStaticTriangleShape(indices, vertices, len(indices)/3, len(vertices))
-
 	return &bspCollisionMesh{
-		vertices:          vertices,
-		indices: indices,
-		childShapeHandles: childShapeHandle,
-		RigidBodyHandles:  bullet.NewRigidBody(0, childShapeHandle),
+		vertices:         debugVertices,
+		brushShapes:      brushShapes,
+		compoundShape:    compoundShape,
+		RigidBodyHandles: bullet.NewRigidBody(0, compoundShape),
 	}
 }
 
@@ -93,24 +96,34 @@ func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacement
 		return nil
 	}
 
-	indices := make([]bullet.BulletPhysicsIndice, 0)
-	vertices := make([]mgl32.Vec3, 0)
-
-	idxBase := 0
-	for _, face := range scene.DisplacementFaces {
-		for idx, i := range scene.RawBsp.Mesh().Indices()[face.Offset() : face.Offset()+face.Length()] {
-			indices = append(indices, bullet.BulletPhysicsIndice(idxBase + idx))
-			vertices = append(vertices,
-				mgl32.Vec3{
-					scene.RawBsp.Mesh().Vertices()[(i * 3)],
-					scene.RawBsp.Mesh().Vertices()[(i*3)+1],
-					scene.RawBsp.Mesh().Vertices()[(i*3)+2],
-				})
-		}
-		idxBase += face.Length()
+	// Displacements are now stored in a separate mesh (DisplacementBspMesh)
+	dispMesh := scene.DisplacementBspMesh
+	if dispMesh == nil {
+		return nil
 	}
 
-	childShapeHandles := bullet.BulletNewStaticTriangleShape(indices, vertices, len(indices)/3, len(vertices))
+	// Convert mesh indices to Bullet format
+	meshIndices := dispMesh.Indices()
+	indices := make([]bullet.BulletPhysicsIndice, len(meshIndices))
+	for i, idx := range meshIndices {
+		indices[i] = bullet.BulletPhysicsIndice(idx)
+	}
+
+	// Convert mesh vertices to Vec3 array
+	meshVerts := dispMesh.Vertices()
+	vertexCount := len(meshVerts) / 3
+	vertices := make([]mgl32.Vec3, vertexCount)
+	for i := 0; i < vertexCount; i++ {
+		vertices[i] = mgl32.Vec3{
+			meshVerts[i*3],
+			meshVerts[i*3+1],
+			meshVerts[i*3+2],
+		}
+	}
+
+	// Create triangle mesh shape - indices/3 gives triangle count
+	triangleCount := len(indices) / 3
+	childShapeHandles := bullet.BulletNewStaticTriangleShape(indices, vertices, triangleCount, vertexCount)
 	handles := bullet.NewRigidBody(0, childShapeHandles)
 
 	return &displacementCollisionMesh{
@@ -178,10 +191,6 @@ func transformPhyVertex(bone *mdl.Bone, vertex mgl32.Vec3) (out mgl32.Vec3) {
 	out[2] = 1 / 0.0254 * -vertex[1]
 	if bone != nil {
 		out = vectorITransform(out, bone.PoseToBone)
-	} else {
-		out[0] = 1 / 0.0254 * vertex[2]
-		out[1] = 1 / 0.0254 * -vertex[0]
-		out[2] = 1 / 0.0254 * -vertex[1]
 	}
 	return out
 }

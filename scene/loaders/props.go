@@ -2,18 +2,19 @@ package loader
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
+	"github.com/galaco/bsp/lump"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/mesh"
-	"strings"
-	"sync"
 )
 
 func LoadStaticProps(fs graphics.VirtualFileSystem, file *bsp.Bsp) (map[string]*mesh.Model, []graphics.StaticProp) {
-	gameLump := file.Lump(bsp.LumpGame).(*lumps.Game)
+	gameLump := file.Lumps[bsp.LumpGame].(*lump.Game)
 	propLump := gameLump.GetStaticPropLump()
 
 	// Get StaticProp list to load

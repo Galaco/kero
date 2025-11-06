@@ -104,3 +104,12 @@ func NewAxisAlignedBoundingBox(m *studiomodel.StudioModel) *AxisAlignedBoundingB
 		Maxs: m.Mdl.Header.ViewBBMax,
 	}
 }
+
+// NewCapsuleHull creates a capsule-shaped collision hull.
+// radius is the capsule radius, height is the cylindrical portion height (total height = height + 2*radius)
+func NewCapsuleHull(radius, height float64, mass float32) *ConvexHull {
+	cbody := new(ConvexHull)
+	h := bullet.BulletNewCapsuleShapeZ(radius, height)
+	cbody.handle = bullet.NewRigidBody(mass, h)
+	return cbody
+}

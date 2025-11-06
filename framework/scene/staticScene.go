@@ -2,7 +2,7 @@ package scene
 
 import (
 	"fmt"
-	"github.com/galaco/bsp/primitives/leaf"
+	"github.com/galaco/bsp/lump/primitive/leaf"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/graphics"
@@ -18,6 +18,9 @@ type fileSystem interface {
 
 var sceneSingleton StaticScene
 
+// Deprecated: Use Engine.SceneManager().GetCurrentScene() instead.
+// This function will be removed in a future version.
+// For new code, use SceneManager passed as an explicit dependency.
 func CurrentScene() *StaticScene {
 	if sceneSingleton.BspMesh == nil {
 		return nil
@@ -26,16 +29,19 @@ func CurrentScene() *StaticScene {
 	return &sceneSingleton
 }
 
+// Deprecated: Use Engine.SceneManager().CloseCurrentScene() instead.
+// This function will be removed in a future version.
 func CloseCurrentScene() {
 	sceneSingleton = StaticScene{}
 }
 
 type StaticScene struct {
-	RawBsp            *graphics.Bsp
-	BspMesh           *mesh.BasicMesh
-	BspFaces          []graphics.BspFace
-	DisplacementFaces []*graphics.BspFace
-	Textures          map[string]graphics.Texture
+	RawBsp               *graphics.Bsp
+	BspMesh              *mesh.BasicMesh // Regular BSP geometry (no blend weights)
+	DisplacementBspMesh  *mesh.BasicMesh // Displacement surfaces (with blend weights)
+	BspFaces             []graphics.BspFace
+	DisplacementFaces    []*graphics.BspFace
+	Textures             map[string]graphics.Texture
 
 	StaticProps []graphics.StaticProp
 	Entities    []entity.IEntity
@@ -158,9 +164,20 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 
 	// finish bsp mesh
 
-	// Add MATERIALS TO FACES
+	// Create a set of displacement face indices for quick lookup
+	dispFaceSet := make(map[int]bool)
+	for _, idx := range level.DispFaces() {
+		dispFaceSet[idx] = true
+	}
+
+	// Add MATERIALS TO REGULAR BSP FACES (non-displacements)
 	tex = nil
 	for idx, bspFace := range level.Faces() {
+		// Skip displacement faces - they'll be processed separately
+		if dispFaceSet[idx] {
+			continue
+		}
+
 		if level.MaterialDictionary()[bspFace.Material()] == nil {
 			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
 			tex = texCache.Find(ErrorTexturePath)
@@ -171,7 +188,7 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
 		}
-		// Generate texture coordinates
+		// Generate texture coordinates for regular BSP mesh
 		level.Mesh().AddUV(
 			graphics.TexCoordsForFaceFromTexInfo(
 				level.Mesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
@@ -191,10 +208,50 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 					level.LightmapAtlas().AtlasEntry(idx).X,
 					level.LightmapAtlas().AtlasEntry(idx).Y)...)
 		}
-
 	}
 
 	level.Mesh().GenerateTangents()
+
+	// Add MATERIALS TO DISPLACEMENT FACES
+	for idx, bspFace := range level.Faces() {
+		// Only process displacement faces
+		if !dispFaceSet[idx] {
+			continue
+		}
+
+		if level.MaterialDictionary()[bspFace.Material()] == nil {
+			console.PrintString(console.LevelWarning, fmt.Sprintf("MATERIAL: %s not found", bspFace.Material()))
+			tex = texCache.Find(ErrorTexturePath)
+		} else {
+			if level.MaterialDictionary()[bspFace.Material()].BaseTextureName == "" {
+				tex = texCache.Find(ErrorTexturePath)
+			} else {
+				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
+			}
+		}
+		// Generate texture coordinates for displacement mesh
+		level.DisplacementMesh().AddUV(
+			graphics.TexCoordsForFaceFromTexInfo(
+				level.DisplacementMesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+				bspFace.TexInfo(),
+				tex.Width(),
+				tex.Height())...)
+
+		// LightmapCoordsForFaceFromTexInfo
+		if level.LightmapAtlas() != nil {
+			level.DisplacementMesh().AddLightmapUV(
+				graphics.LightmapCoordsForFaceFromTexInfo(
+					level.DisplacementMesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+					bspFace.RawFace(),
+					bspFace.TexInfo(),
+					float32(level.LightmapAtlas().Width()),
+					float32(level.LightmapAtlas().Height()),
+					level.LightmapAtlas().AtlasEntry(idx).X,
+					level.LightmapAtlas().AtlasEntry(idx).Y)...)
+		}
+	}
+
+	level.DisplacementMesh().GenerateTangents()
 
 	remappedFaces := make([]graphics.BspFace, 0, 1024)
 	// Kero isn't interested in tools faces (for now)
@@ -233,18 +290,19 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 	}
 
 	sceneSingleton = StaticScene{
-		RawBsp:             level,
-		BspMesh:            level.Mesh(),
-		BspFaces:           remappedFaces,
-		DisplacementFaces:  dispFaces,
-		Entities:           entities,
-		StaticProps:        level.StaticProps,
-		ClusterLeafs:       clusterLeafs,
-		VisData:            visibility,
-		Camera:             level.Camera(),
-		CameraPrevPosition: mgl32.Vec3{99999, 99999, 99999},
-		SkyCamera:          skyCamera,
-		TexCache:           texCache,
+		RawBsp:              level,
+		BspMesh:             level.Mesh(),
+		DisplacementBspMesh: level.DisplacementMesh(),
+		BspFaces:            remappedFaces,
+		DisplacementFaces:   dispFaces,
+		Entities:            entities,
+		StaticProps:         level.StaticProps,
+		ClusterLeafs:        clusterLeafs,
+		VisData:             visibility,
+		Camera:              level.Camera(),
+		CameraPrevPosition:  mgl32.Vec3{99999, 99999, 99999},
+		SkyCamera:           skyCamera,
+		TexCache:            texCache,
 	}
 
 	// Generate Initial visibility data

@@ -10,9 +10,7 @@ import (
 var inputMiddleware *Input
 
 type Input struct {
-	event.Dispatcher
-
-	shouldLockMouse bool
+	eventBus *event.Dispatcher
 }
 
 func (s *Input) Poll() {
@@ -22,32 +20,51 @@ func (s *Input) Poll() {
 func (s *Input) frameworkKeyCallback(key input.Key, action input.KeyAction, mods input.ModifierKey) {
 	switch action {
 	case input.KeyPress:
-		s.Dispatch(messages.TypeKeyPress, key)
-		if key == input.KeyEscape {
-			s.shouldLockMouse = !s.shouldLockMouse
-			if s.shouldLockMouse {
-				input.Mouse().LockMousePosition()
-			} else {
-				input.Mouse().UnlockMousePosition()
-			}
-		}
+		// Use typed event dispatch (Phase 3)
+		event.DispatchTyped(s.eventBus, messages.KeyPressEvent{Key: key})
 	case input.KeyRelease:
-		s.Dispatch(messages.TypeKeyRelease, key)
+		// Use typed event dispatch (Phase 3)
+		event.DispatchTyped(s.eventBus, messages.KeyReleaseEvent{Key: key})
 	}
 }
 
 func (s *Input) frameworkMousePositionCallback(x, y float64) {
-	s.Dispatch(messages.TypeMouseMove, mgl32.Vec2{float32(x), float32(y)})
+	// Use typed event dispatch (Phase 3)
+	// Note: x, y are already DELTAS from mouse.go (not absolute position)
+	event.DispatchTyped(s.eventBus, messages.MouseMoveEvent{
+		Position: mgl32.Vec2{0, 0},                     // Not used for camera rotation
+		Delta:    mgl32.Vec2{float32(x), float32(y)}, // Mouse movement delta
+	})
 }
 
-func InitializeInput() *Input {
-	inputMiddleware = &Input{}
-	inputMiddleware.Dispatcher.Initialize()
+// NewInput creates a new Input middleware with explicit dependencies.
+// This is the preferred way to create Input instances.
+func NewInput(eventBus *event.Dispatcher) *Input {
+	inputMiddleware := &Input{
+		eventBus: eventBus,
+	}
 	input.Keyboard().RegisterExternalKeyCallback(inputMiddleware.frameworkKeyCallback)
 	input.Mouse().RegisterExternalMousePositionCallback(inputMiddleware.frameworkMousePositionCallback)
 	return inputMiddleware
 }
 
+// Deprecated: Use NewInput with explicit EventBus dependency instead
+func InitializeInput() *Input {
+	if inputMiddleware == nil {
+		inputMiddleware = &Input{}
+		inputMiddleware.eventBus = event.Get()
+		input.Keyboard().RegisterExternalKeyCallback(inputMiddleware.frameworkKeyCallback)
+		input.Mouse().RegisterExternalMousePositionCallback(inputMiddleware.frameworkMousePositionCallback)
+	}
+	return inputMiddleware
+}
+
+// Deprecated: Use Engine.Input() instead
 func InputMiddleware() *Input {
 	return inputMiddleware
+}
+
+// EventBus returns the event bus for external access
+func (s *Input) EventBus() *event.Dispatcher {
+	return s.eventBus
 }

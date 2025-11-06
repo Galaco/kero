@@ -17,6 +17,9 @@ func (kb *keyboard) RegisterExternalKeyCallback(callback func(key Key, action Ke
 }
 
 func (kb *keyboard) keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if key < 0 || int(key) >= len(kb.currentKeyStates) {
+		return
+	}
 	switch action {
 	case glfw.Press:
 		kb.currentKeyStates[key] = true

@@ -3,6 +3,7 @@ package console
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -55,7 +56,8 @@ func GetCommandList(prefix string) []string {
 	return commands
 }
 
-// ExecuteCommand parses a command string and executes the assigned callback if found
+// ExecuteCommand parses a command string and executes the assigned callback if found.
+// If not found as a command, it checks if it's a convar and attempts to set its value.
 func ExecuteCommand(input string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -69,21 +71,76 @@ func ExecuteCommand(input string) (err error) {
 	}
 
 	parts := strings.SplitN(input, " ", 2)
+	commandName := parts[0]
+
+	// Case 1: Single word input (no arguments)
 	if len(parts) < 2 {
-		if _, ok := commandListSingleton.commands[input]; !ok {
+		// Check if it's a command first
+		if cmd, ok := commandListSingleton.commands[input]; ok {
+			PrintString(LevelInfo, fmt.Sprintf("> %s", input))
+			return cmd.callback("")
+		}
+
+		// Not a command, check if it's a convar (print current value)
+		if convar := GetConvar(input); convar != nil {
+			PrintString(LevelInfo, fmt.Sprintf("%s: %v", input, convar.Value))
 			return nil
 		}
-		PrintString(LevelInfo, fmt.Sprintf("> %s", input))
-		return commandListSingleton.commands[input].callback("")
-	}
 
-	if _, ok := commandListSingleton.commands[parts[0]]; !ok {
+		// Not a command or convar, silently ignore
 		return nil
 	}
 
-	PrintString(LevelInfo, fmt.Sprintf("> %s", input))
+	// Case 2: Input with arguments
+	args := parts[1]
 
-	return commandListSingleton.commands[parts[0]].callback(parts[1])
+	// Check if it's a command first
+	if cmd, ok := commandListSingleton.commands[commandName]; ok {
+		PrintString(LevelInfo, fmt.Sprintf("> %s", input))
+		return cmd.callback(args)
+	}
+
+	// Not a command, check if it's a convar and try to set it
+	if convar := GetConvar(commandName); convar != nil {
+		return setConvarFromString(commandName, args)
+	}
+
+	// Not a command or convar, silently ignore
+	return nil
+}
+
+// setConvarFromString attempts to parse and set a convar value from a string
+func setConvarFromString(key, value string) error {
+	// Try to parse as boolean
+	if value == "true" {
+		SetConvarBoolean(key, true)
+		PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+		return nil
+	}
+	if value == "false" {
+		SetConvarBoolean(key, false)
+		PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+		return nil
+	}
+
+	// Try to parse as integer
+	if i, err := strconv.Atoi(value); err == nil {
+		SetConvarInt(key, i)
+		PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+		return nil
+	}
+
+	// Try to parse as float
+	if f, err := strconv.ParseFloat(value, 32); err == nil {
+		SetConvarFloat(key, float32(f))
+		PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+		return nil
+	}
+
+	// Default to string
+	SetConvarString(key, value)
+	PrintString(LevelInfo, fmt.Sprintf("> %s %s", key, value))
+	return nil
 }
 
 func init() {

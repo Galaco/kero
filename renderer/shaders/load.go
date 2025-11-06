@@ -28,5 +28,38 @@ func LoadShaders() (*cache.Shader, error) {
 	skyboxShader.Finish()
 	shaderCache.Add("Skybox", skyboxShader)
 
+	// Instanced version of LightMappedGeneric for static props
+	lightmappedGenericInstancedShader := adapter.NewShader()
+	if err := lightmappedGenericInstancedShader.Add(adapter.ShaderTypeVertex, LightMappedGenericInstancedVertex); err != nil {
+		return nil, err
+	}
+	if err := lightmappedGenericInstancedShader.Add(adapter.ShaderTypeFragment, LightMappedGenericInstancedFragment); err != nil {
+		return nil, err
+	}
+	lightmappedGenericInstancedShader.Finish()
+	shaderCache.Add("LightMappedGenericInstanced", lightmappedGenericInstancedShader)
+
+	// WorldVertexTransition shader for 2-texture displacement blending
+	worldVertexTransitionShader := adapter.NewShader()
+	if err := worldVertexTransitionShader.Add(adapter.ShaderTypeVertex, WorldVertexTransitionVertex); err != nil {
+		return nil, err
+	}
+	if err := worldVertexTransitionShader.Add(adapter.ShaderTypeFragment, WorldVertexTransitionFragment); err != nil {
+		return nil, err
+	}
+	worldVertexTransitionShader.Finish()
+	shaderCache.Add("WorldVertexTransition", worldVertexTransitionShader)
+
+	// Debug shader for debug primitives (physics, vis, etc.)
+	debugShader := adapter.NewShader()
+	if err := debugShader.Add(adapter.ShaderTypeVertex, DebugVertex); err != nil {
+		return nil, err
+	}
+	if err := debugShader.Add(adapter.ShaderTypeFragment, DebugFragment); err != nil {
+		return nil, err
+	}
+	debugShader.Finish()
+	shaderCache.Add("Debug", debugShader)
+
 	return shaderCache, nil
 }

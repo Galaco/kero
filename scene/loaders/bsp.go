@@ -1,15 +1,21 @@
 package loader
 
 import (
+	"context"
 	"fmt"
+	"math"
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	"github.com/galaco/bsp/primitives/common"
-	"github.com/galaco/bsp/primitives/dispinfo"
-	"github.com/galaco/bsp/primitives/dispvert"
-	"github.com/galaco/bsp/primitives/face"
-	"github.com/galaco/bsp/primitives/plane"
-	"github.com/galaco/bsp/primitives/texinfo"
+	"github.com/galaco/bsp/lump"
+	"github.com/galaco/bsp/lump/primitive/common"
+	"github.com/galaco/bsp/lump/primitive/dispinfo"
+	"github.com/galaco/bsp/lump/primitive/dispvert"
+	"github.com/galaco/bsp/lump/primitive/face"
+	"github.com/galaco/bsp/lump/primitive/plane"
+	"github.com/galaco/bsp/lump/primitive/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
@@ -21,9 +27,6 @@ import (
 	"github.com/galaco/stringtable"
 	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
-	"strings"
-	"sync"
 )
 
 // LoadBspMap is the gateway into loading the core static level. Entities are loaded
@@ -32,46 +35,85 @@ import (
 // BSP Geometry
 // BSP Materials
 // StaticProps (materials loaded as required)
-func LoadBspMap(fs filesystem.FileSystem, filename string) (*graphics.Bsp, []entity.IEntity, error) {
-	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStarted)
-	file, err := bsp.ReadFromFile(filename)
+func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
+	return LoadBspMapWithContext(context.Background(), fs, eventBus, filename)
+}
+
+// LoadBspMapWithContext loads a BSP map with cancellation support via context
+// This is the async-safe version that checks for cancellation at key points
+func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
+	// Use typed event dispatch (Phase 3)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStarted})
+
+	// Check cancellation before starting
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+
+	handle, err := os.Open(filename)
 	if err != nil {
-		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
+		return nil, nil, err
+	}
+	defer handle.Close()
+	file, err := bsp.NewReader().Read(handle)
+	if err != nil {
+		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
 		return nil, nil, err
 	}
 	bspNameParts := strings.Split(filename, "/")
 	bspName := bspNameParts[len(bspNameParts)-1]
 
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
-	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header().Version))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header.Version))
 
-	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateBSPParsed)
-	fs.RegisterPakFile(file.Lump(bsp.LumpPakfile).(*lumps.Pakfile))
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
+
+	// Check cancellation after BSP parse
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
+
+	fs.RegisterPakFile(file.Lumps[bsp.LumpPakfile].(*lump.Pakfile))
 	// Load the static bsp world
 	level, err := loadBSPWorld(fs, file)
 
 	if err != nil {
-		event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateError)
+		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
 		return nil, nil, err
 	}
 	level.SetCamera(graphics.NewCamera(
 		mgl32.DegToRad(90),
 		float32(window.CurrentWindow().Width())/float32(window.CurrentWindow().Height())))
-	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateGeometryLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateGeometryLoaded})
+
+	// Check cancellation after geometry load
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
 
 	// Load staticprops
 	level.StaticPropDictionary, level.StaticProps = LoadStaticProps(fs, file)
-	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateStaticPropsLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStaticPropsLoaded})
+
+	// Check cancellation after static props
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
 
 	// Load entities
-	ents, err := entity.LoadEntdata(fs, file)
+	ents, err := entity.LoadEntdata(file)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	level.EntityPropDictionary = LoadEntityProps(fs, ents)
 
-	event.Get().Dispatch(messages.TypeLoadingLevelProgress, messages.LoadingProgressStateEntitiesLoaded)
+	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateEntitiesLoaded})
+
+	// Final cancellation check
+	if ctx.Err() != nil {
+		return nil, nil, ctx.Err()
+	}
 
 	return level, ents, err
 }
@@ -97,28 +139,29 @@ type bspstructs struct {
 // StaticProps (materials loaded as required)
 func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error) {
 	bspStructure := bspstructs{
-		faces:       file.Lump(bsp.LumpFaces).(*lumps.Face).GetData(),
-		planes:      file.Lump(bsp.LumpPlanes).(*lumps.Planes).GetData(),
-		vertexes:    file.Lump(bsp.LumpVertexes).(*lumps.Vertex).GetData(),
-		surfEdges:   file.Lump(bsp.LumpSurfEdges).(*lumps.Surfedge).GetData(),
-		edges:       file.Lump(bsp.LumpEdges).(*lumps.Edge).GetData(),
-		texInfos:    file.Lump(bsp.LumpTexInfo).(*lumps.TexInfo).GetData(),
-		dispInfos:   file.Lump(bsp.LumpDispInfo).(*lumps.DispInfo).GetData(),
-		dispVerts:   file.Lump(bsp.LumpDispVerts).(*lumps.DispVert).GetData(),
-		lightmap:    file.Lump(bsp.LumpLighting).(*lumps.Lighting).GetData(),
-		lightmapHDR: file.Lump(bsp.LumpLightingHDR).(*lumps.Lighting).GetData(),
+		faces:       file.Lumps[bsp.LumpFaces].(*lump.Face).Data,
+		planes:      file.Lumps[bsp.LumpPlanes].(*lump.Planes).Data,
+		vertexes:    file.Lumps[bsp.LumpVertexes].(*lump.Vertex).Data,
+		surfEdges:   file.Lumps[bsp.LumpSurfEdges].(*lump.Surfedge).Data,
+		edges:       file.Lumps[bsp.LumpEdges].(*lump.Edge).Data,
+		texInfos:    file.Lumps[bsp.LumpTexInfo].(*lump.TexInfo).Data,
+		dispInfos:   file.Lumps[bsp.LumpDispInfo].(*lump.DispInfo).Data,
+		dispVerts:   file.Lumps[bsp.LumpDispVerts].(*lump.DispVert).Data,
+		lightmap:    file.Lumps[bsp.LumpLighting].(*lump.Lighting).Data,
+		lightmapHDR: file.Lumps[bsp.LumpLightingHDR].(*lump.Lighting).Data,
 	}
 
 	//MATERIALS
 	stringTable := stringtable.NewFromExistingStringTableData(
-		file.Lump(bsp.LumpTexDataStringData).(*lumps.TexDataStringData).GetData(),
-		file.Lump(bsp.LumpTexDataStringTable).(*lumps.TexDataStringTable).GetData())
+		file.Lumps[bsp.LumpTexDataStringData].(*lump.TexDataStringData).Data,
+		file.Lumps[bsp.LumpTexDataStringTable].(*lump.TexDataStringTable).Data)
 	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos)
 
 	materialDictionary := buildMaterialDictionary(fs, materials)
 
 	// BSP FACES
-	bspMesh := mesh.NewMesh()
+	bspMesh := mesh.NewMesh()              // Regular BSP geometry (no blend weights)
+	displacementMesh := mesh.NewMesh()     // Displacement surfaces (with blend weights)
 	bspFaces := make([]graphics.BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
@@ -138,10 +181,11 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 
 	for idx, f := range bspStructure.faces {
 		if f.DispInfo > -1 {
-			// This face is a displacement
-			bspFaces[idx] = generateDisplacementFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
+			// This face is a displacement - add to displacement mesh
+			bspFaces[idx] = generateDisplacementFace(&bspStructure.faces[idx], &bspStructure, displacementMesh)
 			dispFaces = append(dispFaces, idx)
 		} else {
+			// Regular BSP face - add to regular mesh
 			bspFaces[idx] = generateBspFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
 		}
 
@@ -157,7 +201,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		console.PrintString(console.LevelInfo, fmt.Sprintf("Lightmap size: %dx%d", lightmapAtlas.Width(), lightmapAtlas.Height()))
 	}
 
-	return graphics.NewBsp(file, bspMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
+	return graphics.NewBsp(file, bspMesh, displacementMesh, bspFaces, dispFaces, materialDictionary, bspStructure.texInfos, lightmapAtlas), nil
 }
 
 // SortUnique builds a unique list of materials in a StringTable
@@ -284,18 +328,44 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 
 	for x := 0; x < size; x++ {
 		for y := 0; y < size; y++ {
+			// Calculate vertex indices for this quad
+			idxA := int(info.DispVertStart) + x + y*(size+1)
+			idxB := int(info.DispVertStart) + x + (y+1)*(size+1)
+			idxC := int(info.DispVertStart) + (x + 1) + (y+1)*(size+1)
+			idxD := int(info.DispVertStart) + (x + 1) + y*(size+1)
+
+			// Generate vertex positions
 			a := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
 			b := generateDispVert(int(info.DispVertStart), x, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
 			c := generateDispVert(int(info.DispVertStart), x+1, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
 			d := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
 
-			// Split into triangles
+			// Get blend alpha from DispVert for 2-texture blending
+			// Alpha ranges from 0-255, normalize to 0.0-1.0
+			rawAlphaA := bspStructure.dispVerts[idxA].Alpha
+			rawAlphaB := bspStructure.dispVerts[idxB].Alpha
+			rawAlphaC := bspStructure.dispVerts[idxC].Alpha
+			rawAlphaD := bspStructure.dispVerts[idxD].Alpha
+
+			alphaA := rawAlphaA / 255.0
+			alphaB := rawAlphaB / 255.0
+			alphaC := rawAlphaC / 255.0
+			alphaD := rawAlphaD / 255.0
+
+			// Split into triangles (ABC, ACD)
 			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), b.X(), b.Y(), b.Z(), c.X(), c.Y(), c.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
+			bspMesh.AddBlendWeight(alphaA)
+			bspMesh.AddBlendWeight(alphaB)
+			bspMesh.AddBlendWeight(alphaC)
+
 			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
 			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z(), d.X(), d.Y(), d.Z())
 			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
+			bspMesh.AddBlendWeight(alphaA)
+			bspMesh.AddBlendWeight(alphaC)
+			bspMesh.AddBlendWeight(alphaD)
 
 			length += 6 // 6 b/c quad = 2*triangle
 		}
@@ -345,11 +415,32 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 	width := f.LightmapTextureSizeInLuxels[0] + 1
 	height := f.LightmapTextureSizeInLuxels[1] + 1
 	numLuxels := width * height
+
 	firstSampleIdx := f.Lightofs / 4 // 4 = size of ColorRGBExponent32
+
+	// For basic rendering, we only use the first lightstyle's first bumpmap
+	// The samples are stored as: [lightstyle0_bump0, lightstyle0_bump1, lightstyle0_bump2, lightstyle0_bump3, lightstyle1_bump0, ...]
+	// For non-bumpmapped faces, there's just one set per lightstyle
+	// We use the first set (bump0 or the only set)
+	sampleOffset := firstSampleIdx
 
 	raw := make([]uint8, (numLuxels)*4)
 
-	for idx, sample := range samples[firstSampleIdx : firstSampleIdx+numLuxels] {
+	// Bounds check
+	if sampleOffset < 0 || int(sampleOffset)+int(numLuxels) > len(samples) {
+		console.PrintString(console.LevelWarning, fmt.Sprintf("Lightmap out of bounds for face: offset=%d, numLuxels=%d, totalSamples=%d", sampleOffset, numLuxels, len(samples)))
+		// Return white texture on error
+		for i := 0; i < int(numLuxels); i++ {
+			raw[i*4] = 255
+			raw[i*4+1] = 255
+			raw[i*4+2] = 255
+			raw[i*4+3] = 255
+		}
+		return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
+	}
+
+	// Read the first lightstyle's first bump sample set (or only sample set for non-bumpmapped)
+	for idx, sample := range samples[sampleOffset : sampleOffset+int32(numLuxels)] {
 		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R)*math.Pow(2, float64(sample.Exponent))))
 		raw[(idx*4)+1] = uint8(math.Min(255, float64(sample.G)*math.Pow(2, float64(sample.Exponent))))
 		raw[(idx*4)+2] = uint8(math.Min(255, float64(sample.B)*math.Pow(2, float64(sample.Exponent))))

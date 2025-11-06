@@ -9,6 +9,15 @@ import (
 	"unsafe"
 )
 
+// Bullet activation states
+const (
+	ActivationStateActiveTag          = 1
+	ActivationStateIslandSleeping     = 2
+	ActivationStateWantsDeactivation  = 3
+	ActivationStateDisableDeactivation = 4
+	ActivationStateDisableSimulation   = 5
+)
+
 type BulletPhysicsIndice C.int
 type BulletPhysicsSDKHandle C.plPhysicsSdkHandle
 type BulletDynamicWorldHandle C.plDynamicsWorldHandle
@@ -103,8 +112,10 @@ func NewRigidBody(mass float32, shape BulletCollisionShapeHandle) BulletRigidBod
 }
 
 type BulletCollisionShapeHandle struct {
-	holder interface{}
-	handle C.plCollisionShapeHandle
+	holder       interface{} // Stores vertices to prevent GC
+	indexHolder  interface{} // Stores indices to prevent GC
+	triangleArrayHandle interface{} // Stores btTriangleIndexVertexArray handle
+	handle       C.plCollisionShapeHandle
 }
 
 func (c BulletCollisionShapeHandle) AddVertex(v mgl32.Vec3) {
@@ -132,6 +143,12 @@ func BulletNewSphericalHullShape(radius float64) BulletCollisionShapeHandle {
 	}
 }
 
+func BulletNewCapsuleShapeZ(radius, height float64) BulletCollisionShapeHandle {
+	return BulletCollisionShapeHandle{
+		handle: C.plNewCapsuleShapeZ(C.plReal(radius), C.plReal(height)),
+	}
+}
+
 func BulletNewCompoundShape() BulletCollisionShapeHandle {
 	return BulletCollisionShapeHandle{
 		handle: C.plNewCompoundShape(),
@@ -154,8 +171,10 @@ func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []mgl3
 	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(int64(totalTriangles)), C.int(int64(totalVerts)))
 
 	return BulletCollisionShapeHandle{
-		holder: v,
-		handle: C.btNewBvhTriangleMeshShape(m),
+		holder:              v,       // Keep vertices alive
+		indexHolder:         indices, // Keep indices alive
+		triangleArrayHandle: m,       // Keep triangle array handle alive
+		handle:              C.btNewBvhTriangleMeshShape(m),
 	}
 }
 
@@ -213,4 +232,63 @@ func BulletApplyImpulse(handle BulletRigidBodyHandle, impulse, localPoint mgl32.
 	i := Vec3ToBullet(impulse)
 	p := Vec3ToBullet(localPoint)
 	C.plApplyImpulse(handle.handle, &i[0], &p[0])
+}
+
+func BulletSetActivationState(handle BulletRigidBodyHandle, state int) {
+	C.plSetActivationState(handle.handle, C.int(state))
+}
+
+func BulletForceActivationState(handle BulletRigidBodyHandle, state int) {
+	C.plForceActivationState(handle.handle, C.int(state))
+}
+
+// SweepResult represents the result of a convex sweep test
+type SweepResult struct {
+	HasHit      bool
+	HitPoint    mgl32.Vec3
+	HitNormal   mgl32.Vec3
+	HitFraction float32
+}
+
+// RaycastResult represents the result of a raycast
+type RaycastResult struct {
+	HasHit      bool
+	HitPoint    mgl32.Vec3
+	HitNormal   mgl32.Vec3
+	HitFraction float32
+}
+
+// BulletConvexSweepTest sweeps a convex shape from one position to another
+func BulletConvexSweepTest(world BulletDynamicWorldHandle, shape BulletCollisionShapeHandle, from, to mgl32.Vec3) SweepResult {
+	fromVec := Vec3ToBullet(from)
+	toVec := Vec3ToBullet(to)
+
+	var result C.plSweepResult
+	C.plConvexSweepTest(world, shape.handle, &fromVec[0], &toVec[0], &result)
+
+	// Debug: log raw C result
+	// fmt.Printf("C sweep result: hasHit=%d, fraction=%.3f\n", result.hasHit, result.hitFraction)
+
+	return SweepResult{
+		HasHit:      result.hasHit != 0,
+		HitPoint:    vec3FromBullet(BulletVec3(result.hitPoint)),
+		HitNormal:   vec3FromBullet(BulletVec3(result.hitNormal)),
+		HitFraction: float32(result.hitFraction),
+	}
+}
+
+// BulletRayTest performs a raycast test
+func BulletRayTest(world BulletDynamicWorldHandle, from, to mgl32.Vec3) RaycastResult {
+	fromVec := Vec3ToBullet(from)
+	toVec := Vec3ToBullet(to)
+
+	var result C.plRaycastResult
+	C.plRayTest(world, &fromVec[0], &toVec[0], &result)
+
+	return RaycastResult{
+		HasHit:      result.hasHit != 0,
+		HitPoint:    vec3FromBullet(BulletVec3(result.hitPoint)),
+		HitNormal:   vec3FromBullet(BulletVec3(result.hitNormal)),
+		HitFraction: float32(result.hitFraction),
+	}
 }

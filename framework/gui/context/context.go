@@ -1,8 +1,9 @@
 package context
 
 import (
+	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/galaco/kero/framework/gui/theme"
 	"github.com/galaco/tinygametools"
-	"github.com/inkyblackness/imgui-go/v4"
 )
 
 type ContextBindable interface {
@@ -19,15 +20,18 @@ func (ctx *Context) Imgui() *imguiGlfw3 {
 }
 
 func (ctx *Context) Close() {
-	defer ctx.imguiContext.Destroy()
 	defer ctx.imguiBind.Shutdown()
+	defer imgui.DestroyContext()
 }
 
 func NewContext(window ContextBindable) *Context {
 	ctx := &Context{
-		imguiContext: imgui.CreateContext(nil),
+		imguiContext: imgui.CreateContext(),
 		imguiBind:    imguiGlfw3Init(window.Handle().Handle()),
 	}
+
+	// Apply the modern theme to all UI components
+	theme.Apply()
 
 	return ctx
 }

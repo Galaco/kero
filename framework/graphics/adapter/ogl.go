@@ -26,6 +26,7 @@ type Mesh interface {
 	UVs() []float32
 	Tangents() []float32
 	LightmapUVs() []float32
+	BlendWeights() []float32
 	Indices() []uint32
 }
 
@@ -171,6 +172,18 @@ func UploadMesh(mesh Mesh) GpuMesh {
 		gosigl.CreateVertexAttribute(gpuResource, mesh.LightmapUVs(), 2)
 	}
 
+	// Add blend weights for displacement blending (WorldVertexTransition)
+	// If no blend weights, use default of 0.0 (full basetexture, no blending)
+	if mesh.BlendWeights() == nil || len(mesh.BlendWeights()) == 0 {
+		// Create default blend weights (0.0 = no blending)
+		numVerts := len(mesh.Vertices()) / 3
+		defaultBlendWeights := make([]float32, numVerts)
+		// Already zeroed by make()
+		gosigl.CreateVertexAttribute(gpuResource, defaultBlendWeights, 1)
+	} else {
+		gosigl.CreateVertexAttribute(gpuResource, mesh.BlendWeights(), 1)
+	}
+
 	if len(mesh.Indices()) > 0 {
 		gosigl.SetElementArrayAttribute(gpuResource, mesh.Indices())
 	}
@@ -186,6 +199,21 @@ func DrawArray(offset int, num int) {
 
 func DrawIndexedArray(num int, offset int, indices []uint32) {
 	gosigl.DrawElements(num, offset, indices)
+}
+
+// DrawMultiIndexedArray draws multiple ranges from the same index buffer
+// offsets and counts must be the same length
+// This avoids index buffer uploads by using offsets into the existing buffer
+func DrawMultiIndexedArray(counts []int32, offsets []int) {
+	if len(counts) == 0 || len(counts) != len(offsets) {
+		return
+	}
+
+	// Draw each range using glDrawElements with byte offset into the index buffer
+	for i := range counts {
+		// offset in bytes = offset in indices * 4 (sizeof uint32)
+		gl.DrawElements(gl.TRIANGLES, counts[i], gl.UNSIGNED_INT, gl.PtrOffset(offsets[i]*4))
+	}
 }
 
 func UpdateIndexArrayBuffer(indices []uint32) {
@@ -213,11 +241,82 @@ func PushFloat32(uniform int32, value float32) {
 	gl.Uniform1f(uniform, value)
 }
 
+func PushVec3(uniform int32, vec mgl32.Vec3) {
+	gl.Uniform3f(uniform, vec.X(), vec.Y(), vec.Z())
+}
+
 func GpuError() error {
 	if glError := gl.GetError(); glError != gl.NO_ERROR {
 		return fmt.Errorf("gl error. Code: %d", glError)
 	}
 	return nil
+}
+
+// CreateEmptyInstanceBuffer creates a persistent GPU buffer for instance data
+// Buffer is allocated but not filled (use UpdateInstanceBuffer to fill)
+// floatsPerInstance should be 18 (16 for mat4 + 2 for fade min/max)
+func CreateEmptyInstanceBuffer(maxInstances int, floatsPerInstance int) uint32 {
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	// Allocate buffer with max capacity (no data uploaded yet)
+	sizeInBytes := maxInstances * floatsPerInstance * 4 // 4 bytes per float
+	gl.BufferData(gl.ARRAY_BUFFER, sizeInBytes, nil, gl.DYNAMIC_DRAW) // nil = allocate only
+
+	return vbo
+}
+
+// UpdateInstanceBuffer updates an existing instance buffer with new instance data
+// More efficient than recreating the buffer each frame
+// data is a flat array: [mat4_1(16 floats), fade_1(2 floats), mat4_2(16 floats), fade_2(2 floats), ...]
+func UpdateInstanceBuffer(vbo uint32, data []float32) {
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	// Upload only the visible instances (partial buffer update)
+	sizeInBytes := len(data) * 4
+	gl.BufferSubData(gl.ARRAY_BUFFER, 0, sizeInBytes, gl.Ptr(data))
+}
+
+// SetupInstanceAttributes configures vertex attributes for instanced rendering with fade
+// Must be called after BindMesh, before drawing
+func SetupInstanceAttributes(instanceVBO uint32) {
+	gl.BindBuffer(gl.ARRAY_BUFFER, instanceVBO)
+
+	stride := 18 * 4 // 72 bytes (16 floats for mat4 + 2 floats for fade min/max)
+
+	// mat4 model matrix (locations 5-8, one vec4 per column)
+	for i := uint32(0); i < 4; i++ {
+		loc := 5 + i
+		gl.EnableVertexAttribArray(loc)
+		gl.VertexAttribPointer(loc, 4, gl.FLOAT, false, int32(stride), gl.PtrOffset(int(i)*4*4))
+		gl.VertexAttribDivisor(loc, 1) // Advance per instance, not per vertex
+	}
+
+	// vec2 fade min/max (location 9)
+	gl.EnableVertexAttribArray(9)
+	gl.VertexAttribPointer(9, 2, gl.FLOAT, false, int32(stride), gl.PtrOffset(16*4))
+	gl.VertexAttribDivisor(9, 1) // Advance per instance
+}
+
+// DisableInstanceAttributes disables instance attributes to allow non-instanced rendering
+// Call this before switching back to non-instanced rendering with the same mesh
+func DisableInstanceAttributes() {
+	// Disable instance attributes (locations 5-9)
+	for i := uint32(5); i <= 9; i++ {
+		gl.DisableVertexAttribArray(i)
+		gl.VertexAttribDivisor(i, 0) // Reset divisor to 0 (per-vertex, not per-instance)
+	}
+}
+
+// DrawIndexedArrayInstanced draws mesh multiple times with different matrices
+func DrawIndexedArrayInstanced(indexCount int, instanceCount int) {
+	gl.DrawElementsInstanced(gl.TRIANGLES, int32(indexCount), gl.UNSIGNED_INT, nil, int32(instanceCount))
+}
+
+// DeleteInstanceBuffer cleans up instance buffer
+func DeleteInstanceBuffer(vbo uint32) {
+	gl.DeleteBuffers(1, &vbo)
 }
 
 func EnableBlending() {

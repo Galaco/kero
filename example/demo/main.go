@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"log"
+	"runtime"
+
 	"github.com/galaco/kero"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/debug"
-	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/galaco/kero/framework/input"
 	"github.com/galaco/kero/framework/window"
-	"log"
-	"runtime"
 )
 
 func main() {
@@ -39,19 +39,17 @@ func main() {
 
 	// Game config
 	game := NewGameDefinition()
-	_, err := filesystem.Init(*gameDirectoryPtr)
-	if err != nil {
-		panic(err)
-	}
 
-	// Start
+	// Start (filesystem init happens inside Start now)
 	keroImpl := kero.NewKero()
 	keroImpl.RegisterGameDefinitions(game)
-	keroImpl.Start()
+	if err := keroImpl.Start(*gameDirectoryPtr); err != nil {
+		panic(err)
+	}
 }
 
 func initFramework() error {
-	win, err := window.CreateWindow(1920, 1080, "Kero: A Source Engine Implementation")
+	win, err := window.CreateWindow(1440, 800, "Kero: A Source Engine Implementation")
 	if err != nil {
 		return err
 	}

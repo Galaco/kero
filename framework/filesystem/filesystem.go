@@ -2,13 +2,13 @@ package filesystem
 
 import (
 	"fmt"
-	"github.com/galaco/KeyValues"
-	"github.com/galaco/bsp/lumps"
-	filesystemLib "github.com/galaco/filesystem"
-	"github.com/galaco/kero/framework/console"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/galaco/KeyValues"
+	filesystemLib "github.com/galaco/filesystem"
+	"github.com/galaco/kero/framework/console"
 )
 
 // FileSystem provides a gateway to interacting with the
@@ -17,7 +17,7 @@ type FileSystem interface {
 	// GetFile searches for a file path
 	GetFile(string) (io.Reader, error)
 	// RegisterPakFile adds a bsp pakfile to the filesystem search paths
-	RegisterPakFile(pakFile *lumps.Pakfile)
+	RegisterPakFile(pakFile filesystemLib.PakFile)
 }
 
 var gameInstallBasePath string
@@ -90,15 +90,19 @@ func Init(gameDir string) (FileSystem, error) {
 	return fs, nil
 }
 
+// Deprecated: Use Engine.FileSystem() instead
 func GameBasePath() string {
 	return gameInstallBasePath
 }
 
-// Get returns the master filesystem singleton
+// Deprecated: Use Engine.FileSystem() instead of this global singleton.
+// This function will be removed in a future version.
+// For new code, pass FileSystem as an explicit dependency via constructors.
 func Get() FileSystem {
 	return masterFilesystem
 }
 
+// Deprecated: Store gameInfo in Engine context instead
 func GameInfo() *keyvalues.KeyValue {
 	return &masterGameInfo
 }

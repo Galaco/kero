@@ -1,25 +1,30 @@
 package entity
 
 import (
-	"github.com/galaco/bsp"
-	"github.com/galaco/bsp/lumps"
-	entityLib "github.com/galaco/source-tools-common/entity"
-	"github.com/galaco/vmf"
 	"io"
 	"strings"
+
+	"github.com/galaco/bsp"
+	"github.com/galaco/bsp/lump"
+	entityLib "github.com/galaco/source-tools-common/entity"
+	"github.com/galaco/vmf"
 )
 
 type filesystem interface {
 	// GetFile searches for a file path
 	GetFile(string) (io.Reader, error)
 	// RegisterPakFile adds a bsp pakfile to the filesystem search paths
-	RegisterPakFile(pakFile *lumps.Pakfile)
+	RegisterPakFile(pakFile *lump.Pakfile)
 }
 
 // LoadEntdata extracts entity data from the bsp
-func LoadEntdata(fs filesystem, file *bsp.Bsp) ([]IEntity, error) {
-	entdata := file.Lump(bsp.LumpEntities).(*lumps.EntData)
-	vmfEntityTree, err := parseEntdata(entdata.GetData())
+func LoadEntdata(file *bsp.Bsp) ([]IEntity, error) {
+	entdata, err := file.Lumps[bsp.LumpEntities].(*lump.EntData).ToBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	vmfEntityTree, err := parseEntdata(entdata)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +35,8 @@ func LoadEntdata(fs filesystem, file *bsp.Bsp) ([]IEntity, error) {
 	return entityList, nil
 }
 
-func parseEntdata(data string) (vmf.Vmf, error) {
-	stringReader := strings.NewReader(data)
+func parseEntdata(data []byte) (vmf.Vmf, error) {
+	stringReader := strings.NewReader(string(data))
 	reader := vmf.NewReader(stringReader)
 
 	return reader.Read()
