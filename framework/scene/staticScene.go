@@ -78,8 +78,8 @@ func (scene *StaticScene) RecomputeVisibleClusters() {
 
 	if currentLeaf == nil || currentLeaf.Cluster == -1 {
 		scene.CurrentLeaf = currentLeaf
-
-		scene.asyncRebuildVisibleWorld(currentLeaf)
+		scene.LeafCache = nil
+		scene.VisibleClusterLeafs = scene.asyncRebuildVisibleWorld(currentLeaf)
 		return
 	}
 
@@ -305,8 +305,14 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 		TexCache:            texCache,
 	}
 
-	// Generate Initial visibility data
-	sceneSingleton.asyncRebuildVisibleWorld(nil)
+	// Generate Initial visibility data based on camera position
+	initialLeaf := visibility.FindCurrentLeaf(level.Camera().Transform().Translation)
+	sceneSingleton.CurrentLeaf = initialLeaf
+	if initialLeaf != nil && initialLeaf.Cluster != -1 {
+		sceneSingleton.LeafCache = visibility.GetPVSCacheForCluster(initialLeaf.Cluster)
+	}
+	sceneSingleton.VisibleClusterLeafs = sceneSingleton.asyncRebuildVisibleWorld(initialLeaf)
+
 	if skyCamera != nil {
 		sceneSingleton.SkyboxClusterLeafs = sceneSingleton.asyncRebuildVisibleWorld(sceneSingleton.VisData.FindCurrentLeaf(skyCamera.Transform().Translation))
 	}
