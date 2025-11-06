@@ -55,6 +55,14 @@ func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventB
 		return nil, nil, err
 	}
 	defer handle.Close()
+
+	// Get file size before reading
+	fileInfo, err := handle.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+	fileSizeKB := float64(fileInfo.Size()) / 1024.0
+
 	file, err := bsp.NewReader().Read(handle)
 	if err != nil {
 		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
@@ -65,6 +73,8 @@ func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventB
 
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
 	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header.Version))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Map revision: %d", file.Header.Revision))
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Filesize: %.2f kb", fileSizeKB))
 
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
 
