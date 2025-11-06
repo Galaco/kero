@@ -6,7 +6,7 @@ require (
 	github.com/AllenDang/cimgui-go v1.4.0
 	github.com/galaco/KeyValues v1.4.1
 	github.com/galaco/bsp v1.0.0-b2
-	github.com/galaco/filesystem v0.1.5
+	github.com/galaco/filesystem v0.1.6
 	github.com/galaco/gosigl v0.2.1
 	github.com/galaco/source-tools-common v0.1.0
 	github.com/galaco/stringtable v0.1.1

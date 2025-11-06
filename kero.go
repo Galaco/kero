@@ -66,6 +66,9 @@ func (kero *Kero) Start(gameDir string) error {
 	eventBus.Initialize()
 	kero.engine.SetEventBus(eventBus)
 
+	// Register map commands (requires event bus)
+	middleware.AddMapCommands(eventBus)
+
 	// Initialize entity registry
 	entityRegistry := entity.NewRegistry()
 	kero.engine.SetEntityRegistry(entityRegistry)

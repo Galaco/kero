@@ -3,8 +3,10 @@ package loader
 import (
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -41,6 +43,7 @@ func LoadBspMap(fs filesystem.FileSystem, eventBus *event.Dispatcher, filename s
 
 // LoadBspMapWithContext loads a BSP map with cancellation support via context
 // This is the async-safe version that checks for cancellation at key points
+// Supports both absolute paths (from file dialog) and relative paths (from console/filesystem)
 func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventBus *event.Dispatcher, filename string) (*graphics.Bsp, []entity.IEntity, error) {
 	// Use typed event dispatch (Phase 3)
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateStarted})
@@ -50,23 +53,32 @@ func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventB
 		return nil, nil, ctx.Err()
 	}
 
-	handle, err := os.Open(filename)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer handle.Close()
+	var reader io.Reader
+	var err error
 
-	// Get file size before reading
-	fileInfo, err := handle.Stat()
-	if err != nil {
-		return nil, nil, err
+	// Check if path is absolute (from file dialog) or relative (from console/filesystem)
+	if filepath.IsAbs(filename) {
+		// Absolute path - use os.Open for direct file access
+		handle, err := os.Open(filename)
+		if err != nil {
+			event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
+			return nil, nil, fmt.Errorf("failed to open map file: %w", err)
+		}
+		defer handle.Close()
+		reader = handle
+	} else {
+		// Relative path - use virtual filesystem (searches VPKs, registered directories)
+		reader, err = fs.GetFile(filename)
+		if err != nil {
+			event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
+			return nil, nil, fmt.Errorf("map file not found: %s", filename)
+		}
 	}
-	fileSizeKB := float64(fileInfo.Size()) / 1024.0
 
-	file, err := bsp.NewReader().Read(handle)
+	file, err := bsp.NewReader().Read(reader)
 	if err != nil {
 		event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateError})
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to parse BSP file: %w", err)
 	}
 	bspNameParts := strings.Split(filename, "/")
 	bspName := bspNameParts[len(bspNameParts)-1]
@@ -74,7 +86,6 @@ func LoadBspMapWithContext(ctx context.Context, fs filesystem.FileSystem, eventB
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map name: %s", bspName))
 	console.PrintString(console.LevelInfo, fmt.Sprintf("BSP version: %d", file.Header.Version))
 	console.PrintString(console.LevelInfo, fmt.Sprintf("Map revision: %d", file.Header.Revision))
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Filesize: %.2f kb", fileSizeKB))
 
 	event.DispatchTyped(eventBus, messages.LoadingLevelProgressEvent{State: messages.LoadingProgressStateBSPParsed})
 
@@ -170,8 +181,8 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	materialDictionary := buildMaterialDictionary(fs, materials)
 
 	// BSP FACES
-	bspMesh := mesh.NewMesh()              // Regular BSP geometry (no blend weights)
-	displacementMesh := mesh.NewMesh()     // Displacement surfaces (with blend weights)
+	bspMesh := mesh.NewMesh()          // Regular BSP geometry (no blend weights)
+	displacementMesh := mesh.NewMesh() // Displacement surfaces (with blend weights)
 	bspFaces := make([]graphics.BspFace, len(bspStructure.faces))
 	// storeDispFaces until for visibility calculation purposes.
 	dispFaces := make([]int, 0)
