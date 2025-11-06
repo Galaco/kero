@@ -32,7 +32,7 @@ func (frustum *Frustum) IsLeafInFrustum(mins, maxs mgl32.Vec3) bool {
 // IsCuboidInFrustum
 // NOTE: This fails for leafs where all points sit outside the frustum but the contents is actually inside it
 func (frustum *Frustum) IsCuboidInFrustum(mins, maxs mgl32.Vec3) bool {
-	center := maxs.Sub(mins)
+	center := mins.Add(maxs).Mul(0.5)
 	if frustum.IsPointInFrustum(center[0], center[1], center[2]) {
 		return true
 	}
