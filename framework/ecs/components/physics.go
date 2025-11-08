@@ -24,7 +24,10 @@ type Physics struct {
 	AngularDrag float32 // Angular drag coefficient
 
 	// Bullet physics integration
-	RigidBodyID uint64 // Handle to Bullet rigid body (0 = not initialized)
+	// RigidBodyHandle stores the actual Bullet physics rigid body handle.
+	// Using interface{} to avoid CGo dependency in component definition.
+	// Physics system casts this to *collision.RigidBody when needed.
+	RigidBodyHandle interface{} // Bullet rigid body handle (nil = not initialized)
 
 	// State flags
 	IsKinematic bool // If true, controlled by code (not physics simulation)
@@ -40,6 +43,33 @@ func (Physics) IsComponent() {}
 func init() {
 	ecs.RegisterComponent[Physics](ecs.ComponentTypePhysics)
 }
+
+// ============================================================================
+// RigidBody Handle Management
+// ============================================================================
+
+// SetRigidBodyHandle stores the Bullet physics handle for this entity.
+// This should be called by the physics system after creating the Bullet rigid body.
+func (p *Physics) SetRigidBodyHandle(handle interface{}) {
+	p.RigidBodyHandle = handle
+}
+
+// GetRigidBodyHandle retrieves the Bullet physics handle.
+// Returns nil if no physics body is attached.
+// Physics system should cast this to *collision.RigidBody.
+func (p *Physics) GetRigidBodyHandle() interface{} {
+	return p.RigidBodyHandle
+}
+
+// HasRigidBody checks if a physics body is attached to this component.
+// Returns true if the handle is non-nil.
+func (p *Physics) HasRigidBody() bool {
+	return p.RigidBodyHandle != nil
+}
+
+// ============================================================================
+// Force and Motion Management
+// ============================================================================
 
 // AddForce applies a force to the rigid body
 func (p *Physics) AddForce(force mgl32.Vec3) {
@@ -79,11 +109,11 @@ func NewPhysics(mass float32) Physics {
 		Torque:      mgl32.Vec3{0, 0, 0},
 		Mass:        mass,
 		Restitution: 0.5,
-		Friction:    0.5,
-		Drag:        0.1,
-		AngularDrag: 0.1,
-		RigidBodyID: 0,
-		IsKinematic: false,
+		Friction:       0.5,
+		Drag:           0.1,
+		AngularDrag:    0.1,
+		RigidBodyHandle: nil,
+		IsKinematic:    false,
 		UseGravity:  true,
 		IsSleeping:  false,
 		IsStatic:    mass == 0,

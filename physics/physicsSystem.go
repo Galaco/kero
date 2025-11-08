@@ -8,6 +8,7 @@ import (
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
 	"github.com/galaco/kero/framework/ecs/legacy"
+	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/galaco/kero/framework/physics/collision"
@@ -82,44 +83,53 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 		return
 	}
 
-	// Update entity transforms to physics engine
+	// Phase 1: Write ECS transforms to Bullet physics engine
 	for _, entity := range entities {
 		transform, _ := ecs.GetComponent[components.Transform](system.ecsWorld, entity)
+		physics, _ := ecs.GetComponent[components.Physics](system.ecsWorld, entity)
 
-		// Get legacy entity to access RigidBody (migration phase)
-		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
-		if !exists || legacyEntity.Model() == nil || legacyEntity.Model().RigidBody == nil {
+		// Check if rigid body is initialized
+		if !physics.HasRigidBody() {
 			continue
 		}
+
+		// Get RigidBody from component (cast from interface{} to interface)
+		rigidBody := physics.GetRigidBodyHandle().(collision.RigidBody)
 
 		// Convert transform to matrix and update Bullet
 		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
 			Mul4(transform.Orientation.Mat4())
 
 		// Update Bullet rigid body transform
-		legacyEntity.Model().RigidBody.SetTransform(transformMatrix)
+		rigidBody.SetTransform(transformMatrix)
 	}
 
 	// Step physics simulation with fixed timestep
 	bullet.BulletStepSimulation(system.world, dt)
 
-	// Apply physics results back to ECS components
+	// Phase 2: Read physics results from Bullet back to ECS components
 	for _, entity := range entities {
 		transform, _ := ecs.GetComponent[components.Transform](system.ecsWorld, entity)
+		physics, _ := ecs.GetComponent[components.Physics](system.ecsWorld, entity)
 
-		// Get legacy entity to access RigidBody (migration phase)
-		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
-		if !exists || legacyEntity.Model() == nil || legacyEntity.Model().RigidBody == nil {
+		// Check if rigid body is initialized
+		if !physics.HasRigidBody() {
 			continue
 		}
 
+		// Get RigidBody from component
+		rigidBody := physics.GetRigidBodyHandle().(collision.RigidBody)
+
 		// Read physics results from Bullet
-		transform.Position = legacyEntity.Model().RigidBody.GetTranslation()
-		transform.Orientation = legacyEntity.Model().RigidBody.GetOrientation()
+		transform.Position = rigidBody.GetTranslation()
+		transform.Orientation = rigidBody.GetOrientation()
 	}
 
-	// Sync ECS changes back to legacy entities for systems that still use them
-	system.legacyBridge.SyncAllECSToLegacy()
+	// NOTE: Phase 1 Migration - No longer need to sync to legacy entities
+	// Once Phase 2 (Model component) is complete, we can remove legacyBridge entirely
+	if system.legacyBridge != nil {
+		system.legacyBridge.SyncAllECSToLegacy()
+	}
 }
 
 // Update is a wrapper around FixedUpdate for backward compatibility.
@@ -155,14 +165,16 @@ func (system *PhysicsSystem) PrepareDebug(buffer interface{}) {
 	query := system.ecsWorld.Query().
 		With(ecs.ComponentTypeTransform).
 		With(ecs.ComponentTypePhysics).
+		With(ecs.ComponentTypeModel).
 		Build()
 
 	for _, entity := range query.Entities() {
 		transform, _ := ecs.GetComponent[components.Transform](system.ecsWorld, entity)
+		physics, _ := ecs.GetComponent[components.Physics](system.ecsWorld, entity)
+		model, _ := ecs.GetComponent[components.Model](system.ecsWorld, entity)
 
-		// Get legacy entity to access model (migration phase)
-		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
-		if !exists || legacyEntity.Model() == nil || legacyEntity.Model().RigidBody == nil {
+		// Skip if no rigid body or model
+		if !physics.HasRigidBody() {
 			continue
 		}
 
@@ -170,13 +182,15 @@ func (system *PhysicsSystem) PrepareDebug(buffer interface{}) {
 		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
 			Mul4(transform.Orientation.Mat4())
 
-		// Add collision mesh for each part of the studiomodel
-		for _, r := range system.studiomodelCollisionMeshes[legacyEntity.Model().Model.Id].vertices {
-			verts := make([]mgl32.Vec3, 0, len(r))
-			for _, v := range r {
-				verts = append(verts, mgl32.Vec3{v[0], v[1], v[2]})
+		// Add collision mesh for each part of the studiomodel using model ID from component
+		if collisionMesh, exists := system.studiomodelCollisionMeshes[model.MeshPath]; exists {
+			for _, r := range collisionMesh.vertices {
+				verts := make([]mgl32.Vec3, 0, len(r))
+				for _, v := range r {
+					verts = append(verts, mgl32.Vec3{v[0], v[1], v[2]})
+				}
+				debugBuf.AddLines(verts, mgl32.Vec3{1, 0, 1}, transformMatrix)
 			}
-			debugBuf.AddLines(verts, mgl32.Vec3{1, 0, 1}, transformMatrix)
 		}
 	}
 
@@ -302,8 +316,11 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 
 	// Find entities that have a model
 	console.PrintString(console.LevelInfo, "Physics prop collision structures...")
+
+	entityCount := 0
 	for _, e := range system.dataScene.Entities {
 		if e.Model() != nil {
+			entityCount++
 			disableMotion := true
 			// @TODO Once entity base types are implemented they can be detected better than this
 			if strings.HasPrefix(e.Classname(), "prop_physics") {
@@ -311,10 +328,8 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 			}
 			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), disableMotion)
 
-			// Create ECS entities from legacy entities
-			if system.legacyBridge != nil {
-				system.legacyBridge.CreateECSEntityFromLegacy(e)
-			}
+			// Phase 1: Create ECS entity directly with RigidBody handle
+			system.createECSEntityFromLegacy(e)
 		}
 	}
 	console.PrintString(console.LevelSuccess, "Collision structures ready!")
@@ -323,6 +338,61 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 	if system.player != nil {
 		system.initializePlayerPhysics()
 	}
+}
+
+// createECSEntityFromLegacy creates an ECS entity from a legacy entity with proper component setup.
+// Phase 1-2: Directly stores RigidBody and ModelInstance handles in components.
+func (system *PhysicsSystem) createECSEntityFromLegacy(legacyEntity interface{}) ecs.Entity {
+	// Use the actual IEntity interface from framework/entity
+	e, ok := legacyEntity.(entity.IEntity)
+	if !ok {
+		return ecs.NullEntity
+	}
+
+	// Create new ECS entity
+	entity := system.ecsWorld.CreateEntity()
+
+	// Add Transform component from legacy entity
+	legacyTransform := e.Transform()
+	transform := components.Transform{
+		Position:    legacyTransform.Translation,
+		Orientation: legacyTransform.Orientation,
+		Scale:       legacyTransform.Scale,
+	}
+	ecs.AddComponent(system.ecsWorld, entity, transform)
+
+	// Add Physics component with RigidBody handle
+	if e.Model() != nil && e.Model().RigidBody != nil {
+		mass := e.Model().Model.OriginalStudiomodel.Mdl.Header.Mass
+
+		physics := components.Physics{
+			Mass:            mass,
+			Restitution:     0.5,
+			Friction:        0.5,
+			UseGravity:      mass > 0, // Only dynamic objects use gravity
+			IsStatic:        mass == 0,
+			RigidBodyHandle: e.Model().RigidBody, // ← Store actual handle!
+		}
+		ecs.AddComponent(system.ecsWorld, entity, physics)
+	}
+
+	// Add Model component (for renderer)
+	if e.Model() != nil {
+		model := components.Model{
+			MeshPath:            e.Model().Model.Id,
+			Visible:             true,
+			ModelInstanceHandle: e.Model(), // Phase 2: Store ModelInstance handle
+		}
+		ecs.AddComponent(system.ecsWorld, entity, model)
+	}
+
+	// Still register with legacy bridge for Phase 2 (entity creation still uses bridge)
+	// This will be removed in Phase 4
+	if system.legacyBridge != nil {
+		system.legacyBridge.Register(entity, legacyEntity)
+	}
+
+	return entity
 }
 
 func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {

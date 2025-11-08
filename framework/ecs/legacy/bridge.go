@@ -46,32 +46,33 @@ func (b *Bridge) CreateECSEntityFromLegacy(legacyEntity entity.IEntity) ecs.Enti
 	// Add Model component if entity has a model
 	if legacyEntity.Model() != nil {
 		model := components.Model{
-			MeshPath:       legacyEntity.Model().Model.Id, // Use model ID as path
-			MaterialID:     0,                             // Will be populated by renderer
-			CastShadows:    true,
-			ReceiveShadows: true,
-			Visible:        true,
-			ModelScale:     1.0,
+			MeshPath:            legacyEntity.Model().Model.Id, // Use model ID as path
+			MaterialID:          0,                             // Will be populated by renderer
+			CastShadows:         true,
+			ReceiveShadows:      true,
+			Visible:             true,
+			ModelScale:          1.0,
+			ModelInstanceHandle: legacyEntity.Model(), // Phase 2: Store ModelInstance handle
 		}
 		ecs.AddComponent(b.world, ecsEntity, model)
 
 		// Add Physics component if entity has a rigid body
 		if legacyEntity.Model().RigidBody != nil {
 			physics := components.Physics{
-				Velocity:    mgl32.Vec3{0, 0, 0},  // Bullet manages velocity internally
-				Force:       mgl32.Vec3{0, 0, 0},
-				AngularVel:  mgl32.Vec3{0, 0, 0},
-				Torque:      mgl32.Vec3{0, 0, 0},
-				Mass:        legacyEntity.Model().Model.OriginalStudiomodel.Mdl.Header.Mass,
-				Restitution: 0.5,
-				Friction:    0.5,
-				Drag:        0.1,
-				AngularDrag: 0.1,
-				RigidBodyID: 0, // Note: RigidBody accessed through legacy entity during migration
-				IsKinematic: false,
-				UseGravity:  true,
-				IsSleeping:  false,
-				IsStatic:    false,
+				Velocity:        mgl32.Vec3{0, 0, 0},  // Bullet manages velocity internally
+				Force:           mgl32.Vec3{0, 0, 0},
+				AngularVel:      mgl32.Vec3{0, 0, 0},
+				Torque:          mgl32.Vec3{0, 0, 0},
+				Mass:            legacyEntity.Model().Model.OriginalStudiomodel.Mdl.Header.Mass,
+				Restitution:     0.5,
+				Friction:        0.5,
+				Drag:            0.1,
+				AngularDrag:     0.1,
+				RigidBodyHandle: legacyEntity.Model().RigidBody, // Phase 1: Store actual handle
+				IsKinematic:     false,
+				UseGravity:      true,
+				IsSleeping:      false,
+				IsStatic:        false,
 			}
 			ecs.AddComponent(b.world, ecsEntity, physics)
 		}
@@ -94,6 +95,17 @@ func (b *Bridge) GetECSEntity(legacyEntity entity.IEntity) (ecs.Entity, bool) {
 func (b *Bridge) GetLegacyEntity(ecsEntity ecs.Entity) (entity.IEntity, bool) {
 	legacyEntity, exists := b.ecsToLegacy[ecsEntity]
 	return legacyEntity, exists
+}
+
+// Register manually registers a bidirectional mapping between ECS and legacy entities.
+// This is useful during migration when entities are created directly in ECS.
+func (b *Bridge) Register(ecsEntity ecs.Entity, legacyEntity interface{}) {
+	legacy, ok := legacyEntity.(entity.IEntity)
+	if !ok {
+		return
+	}
+	b.ecsToLegacy[ecsEntity] = legacy
+	b.legacyToECS[legacy] = ecsEntity
 }
 
 // SyncLegacyToECS updates ECS components from legacy entity state.
@@ -159,12 +171,13 @@ func (b *Bridge) EntityCount() int {
 // This is a helper for creating ECS entities without full legacy entities.
 func ConvertModelInstanceToComponents(modelInstance *mesh.ModelInstance, initialTransform mgl32.Mat4) (components.Model, components.Physics, bool) {
 	model := components.Model{
-		MeshPath:       modelInstance.Model.Id,
-		MaterialID:     0,
-		CastShadows:    true,
-		ReceiveShadows: true,
-		Visible:        true,
-		ModelScale:     1.0,
+		MeshPath:            modelInstance.Model.Id,
+		MaterialID:          0,
+		CastShadows:         true,
+		ReceiveShadows:      true,
+		Visible:             true,
+		ModelScale:          1.0,
+		ModelInstanceHandle: modelInstance, // Phase 2: Store ModelInstance handle
 	}
 
 	hasPhysics := modelInstance.RigidBody != nil
@@ -173,20 +186,20 @@ func ConvertModelInstanceToComponents(modelInstance *mesh.ModelInstance, initial
 	if hasPhysics {
 		mass := modelInstance.Model.OriginalStudiomodel.Mdl.Header.Mass
 		physics = components.Physics{
-			Velocity:    mgl32.Vec3{0, 0, 0},
-			Force:       mgl32.Vec3{0, 0, 0},
-			AngularVel:  mgl32.Vec3{0, 0, 0},
-			Torque:      mgl32.Vec3{0, 0, 0},
-			Mass:        mass,
-			Restitution: 0.5,
-			Friction:    0.5,
-			Drag:        0.1,
-			AngularDrag: 0.1,
-			RigidBodyID: 0, // Note: RigidBody accessed through legacy entity during migration
-			IsKinematic: false,
-			UseGravity:  true,
-			IsSleeping:  false,
-			IsStatic:    mass == 0,
+			Velocity:        mgl32.Vec3{0, 0, 0},
+			Force:           mgl32.Vec3{0, 0, 0},
+			AngularVel:      mgl32.Vec3{0, 0, 0},
+			Torque:          mgl32.Vec3{0, 0, 0},
+			Mass:            mass,
+			Restitution:     0.5,
+			Friction:        0.5,
+			Drag:            0.1,
+			AngularDrag:     0.1,
+			RigidBodyHandle: modelInstance.RigidBody, // Phase 1: Store actual handle
+			IsKinematic:     false,
+			UseGravity:      true,
+			IsSleeping:      false,
+			IsStatic:        mass == 0,
 		}
 	}
 

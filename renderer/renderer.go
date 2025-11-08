@@ -501,16 +501,13 @@ func (s *Renderer) renderEntityProps() {
 		transform, _ := ecs.GetComponent[components.Transform](s.ecsWorld, entity)
 		model, _ := ecs.GetComponent[components.Model](s.ecsWorld, entity)
 
-		// Skip invisible models
-		if !model.Visible {
+		// Skip invisible or uninitialized models
+		if !model.Visible || !model.HasModelInstance() {
 			continue
 		}
 
-		// Get legacy entity to access model instance (migration phase)
-		legacyEntity, exists := s.legacyBridge.GetLegacyEntity(entity)
-		if !exists || legacyEntity.Model() == nil {
-			continue
-		}
+		// Phase 2: Get ModelInstance directly from component (no bridge!)
+		modelInstance := model.GetModelInstance().(*mesh.ModelInstance)
 
 		// Create transformation matrix from ECS transform
 		transformMatrix := mgl32.Translate3D(transform.Position.X(), transform.Position.Y(), transform.Position.Z()).
@@ -520,12 +517,12 @@ func (s *Renderer) renderEntityProps() {
 		adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, transformMatrix)
 
 		// Render using cached GPU resources
-		modelId := legacyEntity.Model().Model.Id
+		modelId := modelInstance.Model.Id
 		if gpuProp, ok := s.gpuScene.GpuStaticProps[modelId]; ok {
 			for idx := range gpuProp.Id {
 				adapter.BindMesh(&gpuProp.Id[idx])
 				adapter.BindTexture(gpuProp.Material[idx].Diffuse)
-				adapter.DrawIndexedArray(len(legacyEntity.Model().Model.Meshes()[idx].Indices()), 0, nil)
+				adapter.DrawIndexedArray(len(modelInstance.Model.Meshes()[idx].Indices()), 0, nil)
 			}
 		}
 	}

@@ -21,6 +21,11 @@ type Model struct {
 
 	// Model specific data
 	ModelScale float32 // Additional scale factor (beyond Transform.Scale)
+
+	// Phase 2: Direct mesh reference (replaces bridge lookup)
+	// Using interface{} to avoid mesh package dependency in components.
+	// Renderer casts this to *mesh.ModelInstance when needed.
+	ModelInstanceHandle interface{} // Mesh model instance (nil = not initialized)
 }
 
 // IsComponent implements the ecs.Component marker interface
@@ -49,4 +54,27 @@ func NewModel(meshPath string) Model {
 // IsLoaded returns true if GPU resources are loaded
 func (m *Model) IsLoaded() bool {
 	return m.GPUMeshID != 0
+}
+
+// ============================================================================
+// ModelInstance Handle Management
+// ============================================================================
+
+// SetModelInstance stores the mesh model instance handle for this entity.
+// This should be called during entity creation.
+func (m *Model) SetModelInstance(instance interface{}) {
+	m.ModelInstanceHandle = instance
+}
+
+// GetModelInstance retrieves the mesh model instance handle.
+// Returns nil if no model instance is attached.
+// Renderer should cast this to *mesh.ModelInstance.
+func (m *Model) GetModelInstance() interface{} {
+	return m.ModelInstanceHandle
+}
+
+// HasModelInstance checks if a model instance is attached to this component.
+// Returns true if the handle is non-nil.
+func (m *Model) HasModelInstance() bool {
+	return m.ModelInstanceHandle != nil
 }
