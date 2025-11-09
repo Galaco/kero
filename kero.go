@@ -15,6 +15,7 @@ import (
 	scene2 "github.com/galaco/kero/framework/scene"
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/game"
+	"github.com/galaco/kero/game/systems"
 	"github.com/galaco/kero/gui"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/kero/middleware"
@@ -101,8 +102,12 @@ func (kero *Kero) Start(gameDir string) error {
 	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
 	kero.engine.SetPhysics(physicsSystem)
 
-	// Create scene system with physics reference
-	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input, physicsSystem)
+	// Phase 3: Create player systems
+	playerMovementSystem := systems.NewPlayerMovementSystem(ecsWorld)
+	playerCameraSystem := systems.NewPlayerCameraSystem(ecsWorld)
+
+	// Create scene system with physics reference, ECS world, and player systems (Phase 3)
+	sceneSystem := scene.NewScene(eventBus, fs, sceneManager, input, physicsSystem, ecsWorld, playerMovementSystem, playerCameraSystem)
 	kero.engine.SetScene(sceneSystem)
 
 	ui := gui.NewGui(eventBus, fs, input, metricsCollector, sceneSystem)

@@ -36,7 +36,8 @@ type PhysicsSystem struct {
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
 
 	// Player physics
-	player             interface{} // Stored as interface{} to avoid import cycle
+	player             interface{} // Legacy player (stored as interface{} to avoid import cycle)
+	playerEntity       interface{} // Phase 3: ECS player entity (ecs.Entity stored as interface{})
 	playerCapsuleShape bullet.BulletCollisionShapeHandle
 }
 
@@ -429,10 +430,16 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 
 // RegisterPlayer adds the player to the physics world and sets up collision.
 // The player parameter should be a *gameEntity.Player (from game/entity package).
+// The ecsPlayer parameter (optional) should be an ecs.Entity with player components.
 // We use interface{} to avoid import cycles.
-func (system *PhysicsSystem) RegisterPlayer(player interface{}) {
+func (system *PhysicsSystem) RegisterPlayer(player interface{}, ecsPlayer ...interface{}) {
 	// Store the player reference
 	system.player = player
+
+	// Phase 3: Store ECS player entity if provided
+	if len(ecsPlayer) > 0 && ecsPlayer[0] != nil {
+		system.playerEntity = ecsPlayer[0]
+	}
 
 	// If physics world already exists, initialize player physics immediately
 	if system.dataScene != nil {
@@ -468,10 +475,55 @@ func (system *PhysicsSystem) initializePlayerPhysics() {
 
 	if playerWithPhysics, ok := system.player.(physicsInitializer); ok {
 		playerWithPhysics.InitializePhysics(system.world, system.playerCapsuleShape)
+
+		// Phase 3: If we have an ECS player entity, populate the CharacterController handle
+		if system.playerEntity != nil {
+			system.populateECSPlayerController()
+		}
+
 		console.PrintString(console.LevelSuccess, "Player physics initialized!")
 	} else {
 		console.PrintString(console.LevelWarning, "Player does not implement InitializePhysics method")
 	}
+}
+
+// populateECSPlayerController stores the CharacterController handle in the ECS component
+func (system *PhysicsSystem) populateECSPlayerController() {
+	console.PrintString(console.LevelInfo, fmt.Sprintf("populateECSPlayerController called, playerEntity=%v", system.playerEntity))
+
+	// Get the CharacterController from the legacy player and store it in ECS component
+	// Note: The return type must match EXACTLY - *collision.CharacterController, not interface{}
+	type playerWithCharacterController interface {
+		GetCharacterController() *collision.CharacterController
+	}
+
+	player, ok := system.player.(playerWithCharacterController)
+	if !ok {
+		console.PrintString(console.LevelWarning, "Player does not expose GetCharacterController method")
+		return
+	}
+
+	// Get the CharacterController handle from legacy player
+	characterController := player.GetCharacterController()
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Got CharacterController from legacy player: %v (nil=%v)", characterController, characterController == nil))
+	if characterController == nil {
+		console.PrintString(console.LevelWarning, "Legacy player CharacterController is nil")
+		return
+	}
+
+	// Store it in the ECS component
+	playerEntity := system.playerEntity.(ecs.Entity)
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Looking up CharacterController component for entity %d", playerEntity))
+	charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, playerEntity)
+	if !ok {
+		console.PrintString(console.LevelWarning, "Failed to get CharacterController component from ECS player")
+		return
+	}
+
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Got CharacterController component: %+v", charController))
+	charController.SetController(characterController)
+	console.PrintString(console.LevelInfo, fmt.Sprintf("After SetController: %+v", charController))
+	console.PrintString(console.LevelSuccess, "ECS player CharacterController handle populated from legacy player")
 }
 
 func (system *PhysicsSystem) Cleanup() {

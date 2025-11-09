@@ -18,6 +18,11 @@ const (
 	ComponentTypeCamera
 	ComponentTypeAudio
 	ComponentTypeParticles
+	// Phase 3: Player components
+	ComponentTypePlayerController
+	ComponentTypeCharacterMovement
+	ComponentTypeCharacterController
+	ComponentTypeCameraController
 	// Add more component types as needed
 )
 

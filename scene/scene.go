@@ -2,8 +2,9 @@ package scene
 
 import (
 	"context"
-	"fmt"
 	"github.com/galaco/kero/framework/console"
+	"github.com/galaco/kero/framework/ecs"
+	"github.com/galaco/kero/framework/ecs/components"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -32,7 +33,7 @@ type Scene struct {
 	physicsSystem   interface{} // Physics system reference (interface{} to avoid import cycle)
 
 	dataScene *scene2.StaticScene
-	player    *gameEntity.Player // The player entity
+	player    *gameEntity.Player // Legacy player entity (Phase 3: dual mode)
 
 	listenToInput bool
 
@@ -41,6 +42,13 @@ type Scene struct {
 	loadingCancel context.CancelFunc
 	loadComplete  chan loadResult
 	isLoading     bool
+
+	// Phase 3: ECS player support
+	ecsWorld             interface{} // *ecs.World (interface{} to avoid import cycle)
+	playerEntity         interface{} // ecs.Entity (stored as interface{})
+	playerMovementSystem interface{} // *systems.PlayerMovementSystem
+	playerCameraSystem   interface{} // *systems.PlayerCameraSystem
+	useECSPlayer         bool        // If true, use ECS player; if false, use legacy player
 }
 
 func (s *Scene) Initialize() {
@@ -105,7 +113,7 @@ func (s *Scene) Update(dt float64) {
 	// Update camera to reflect any changes
 	s.dataScene.Camera.Update(dt)
 
-	if s.listenToInput && s.player != nil {
+	if s.listenToInput {
 		// Build player input from keyboard/mouse
 		var forward, right float32
 		var buttons uint32
@@ -126,23 +134,37 @@ func (s *Scene) Update(dt float64) {
 			buttons |= gameEntity.ButtonJump
 		}
 
-		// Create player input command (mouse delta is applied in onMouseMoveTyped)
+		// Create player input command
 		playerInput := gameEntity.PlayerInput{
 			Forward: forward,
 			Right:   right,
 			Up:      0,
-			Yaw:     0, // Mouse delta handled separately
+			Yaw:     0, // Mouse delta handled separately in onMouseMoveTyped
 			Pitch:   0,
 			Buttons: buttons,
 		}
 
-		// Debug: Log when we have input
-		if forward != 0 || right != 0 {
-			console.PrintString(console.LevelInfo, fmt.Sprintf("Processing input: forward=%.1f, right=%.1f", forward, right))
-		}
+		// Phase 3: Use ECS systems or legacy player
+		if s.useECSPlayer && s.playerMovementSystem != nil {
+			// Use ECS player movement system
+			type movementSystem interface {
+				Update(input gameEntity.PlayerInput, dt float64)
+			}
+			if sys, ok := s.playerMovementSystem.(movementSystem); ok {
+				sys.Update(playerInput, dt)
+			}
 
-		// Process player input (deterministic movement)
-		s.player.ProcessInput(playerInput, dt)
+			// Update camera system
+			type cameraSystem interface {
+				Update()
+			}
+			if sys, ok := s.playerCameraSystem.(cameraSystem); ok {
+				sys.Update()
+			}
+		} else if s.player != nil {
+			// Fallback to legacy player
+			s.player.ProcessInput(playerInput, dt)
+		}
 	}
 
 	// Update all entities
@@ -245,24 +267,41 @@ func (s *Scene) onMouseMoveTyped(e messages.MouseMoveEvent) {
 		return
 	}
 
-	// If we have a player, apply mouse to player (which controls camera)
-	// Otherwise fall back to direct camera control
-	if s.player != nil {
-		// Get sensitivity multiplier from ConVar (default 1.0)
-		sens := console.GetConvarFloat("m_sensitivity")
-		if sens <= 0 {
-			sens = 1.0
-		}
-		sensitivity := float32(0.03) * sens
+	// Get sensitivity multiplier from ConVar (default 1.0)
+	sens := console.GetConvarFloat("m_sensitivity")
+	if sens <= 0 {
+		sens = 1.0
+	}
+	sensitivity := float32(0.03) * sens
 
-		// Create input command with mouse delta
-		input := gameEntity.PlayerInput{
-			Yaw:   e.Delta[0] * sensitivity,
-			Pitch: e.Delta[1] * sensitivity,
+	// Create input command with mouse delta
+	mouseInput := gameEntity.PlayerInput{
+		Yaw:   e.Delta[0] * sensitivity,
+		Pitch: e.Delta[1] * sensitivity,
+	}
+
+	// Phase 3: Use ECS systems or legacy player
+	if s.useECSPlayer && s.playerMovementSystem != nil {
+		// Use ECS player movement system (dt=0 for instant rotation)
+		type movementSystem interface {
+			Update(input gameEntity.PlayerInput, dt float64)
 		}
-		s.player.ProcessInput(input, 0) // dt=0 for instant rotation update
+		if sys, ok := s.playerMovementSystem.(movementSystem); ok {
+			sys.Update(mouseInput, 0)
+		}
+
+		// Update camera immediately
+		type cameraSystem interface {
+			Update()
+		}
+		if sys, ok := s.playerCameraSystem.(cameraSystem); ok {
+			sys.Update()
+		}
+	} else if s.player != nil {
+		// Fallback to legacy player
+		s.player.ProcessInput(mouseInput, 0)
 	} else {
-		// Fallback: direct camera control
+		// No player: direct camera control
 		s.dataScene.Camera.Rotate(e.Delta[0], 0, e.Delta[1])
 	}
 }
@@ -297,42 +336,118 @@ func (s *Scene) spawnPlayer() {
 		console.PrintString(console.LevelWarning, "No info_player_start found, using default spawn")
 	}
 
-	// Create player at spawn position
-	// NOTE: Source Engine spawn positions are at the player's feet, but Bullet capsules
-	// are positioned at their center. Offset up by half the player height (36 units) + 2 unit clearance.
-	spawnOffset := float32(gameEntity.PlayerHeight/2) + 2.0 // Extra clearance to avoid floor penetration
+	// Calculate player center position (capsule center)
+	spawnOffset := float32(gameEntity.PlayerHeight/2) + 2.0
 	playerCenterPos := spawnPos.Add(mgl32.Vec3{0, 0, spawnOffset})
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Spawn: feet=(%.1f,%.1f,%.1f) center=(%.1f,%.1f,%.1f) offset=%.1f",
-		spawnPos[0], spawnPos[1], spawnPos[2],
-		playerCenterPos[0], playerCenterPos[1], playerCenterPos[2],
-		spawnOffset))
-	s.player = gameEntity.NewPlayer(playerCenterPos, spawnYaw)
 
-	// Give player the scene camera
+	if s.useECSPlayer && s.ecsWorld != nil {
+		// Phase 3: Create ECS player entity
+		s.spawnECSPlayer(playerCenterPos, spawnYaw)
+	} else {
+		// Legacy player (fallback)
+		s.spawnLegacyPlayer(playerCenterPos, spawnYaw)
+	}
+}
+
+// spawnECSPlayer creates a player using ECS components
+func (s *Scene) spawnECSPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
+	world := s.ecsWorld.(*ecs.World)
+
+	// Create player entity
+	playerEntity := world.CreateEntity()
+
+	// Transform component
+	transform := components.Transform{
+		Position:    playerCenterPos,
+		Orientation: mgl32.AnglesToQuat(0, 0, spawnYaw, mgl32.ZYX),
+		Scale:       mgl32.Vec3{1, 1, 1},
+	}
+	ecs.AddComponent(world, playerEntity, transform)
+
+	// PlayerController component
+	sens := console.GetConvarFloat("m_sensitivity")
+	if sens <= 0 {
+		sens = 1.0
+	}
+	controller := components.NewPlayerController(0, spawnYaw, sens)
+	ecs.AddComponent(world, playerEntity, controller)
+
+	// CharacterMovement component
+	movement := components.NewCharacterMovement()
+	ecs.AddComponent(world, playerEntity, movement)
+
+	// CharacterController component (handle populated by physics system)
+	charController := components.NewCharacterController(
+		float32(gameEntity.PlayerHeight),
+		float32(gameEntity.PlayerRadius),
+		float32(gameEntity.PlayerStepHeight))
+	ecs.AddComponent(world, playerEntity, charController)
+
+	// CameraController component
+	eyeOffset := mgl32.Vec3{0, 0, float32(gameEntity.PlayerEyeHeight - gameEntity.PlayerHeight/2)}
+	fov := console.GetConvarFloat("fov")
+	if fov <= 0 {
+		fov = 90
+	}
+	cameraController := components.NewCameraController(eyeOffset, fov, true)
+	cameraController.SetCamera(s.dataScene.Camera)
+	ecs.AddComponent(world, playerEntity, cameraController)
+
+	// Store player entity
+	s.playerEntity = playerEntity
+
+	// Create legacy player for Phase 3 compatibility (physics system needs it)
+	s.player = gameEntity.NewPlayer(playerCenterPos, spawnYaw)
 	s.player.SetCamera(s.dataScene.Camera)
 
-	// Register player with physics system for collision
+	// Register player with physics system
 	if s.physicsSystem != nil {
-		// Call RegisterPlayer via interface (to avoid import cycle)
 		type playerRegistrar interface {
-			RegisterPlayer(player interface{})
+			RegisterPlayer(player interface{}, ecsPlayer ...interface{})
 		}
 		if registrar, ok := s.physicsSystem.(playerRegistrar); ok {
-			registrar.RegisterPlayer(s.player)
+			registrar.RegisterPlayer(s.player, playerEntity)
+			console.PrintString(console.LevelInfo, "Registered ECS player with physics system")
+		} else {
+			console.PrintString(console.LevelWarning, "Failed to register ECS player with physics system - type assertion failed")
 		}
 	}
 
-	console.PrintString(console.LevelSuccess, "Player spawned")
+	console.PrintString(console.LevelSuccess, "ECS Player spawned")
+}
+
+// spawnLegacyPlayer creates a legacy player entity (Phase 3 fallback)
+func (s *Scene) spawnLegacyPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
+	s.player = gameEntity.NewPlayer(playerCenterPos, spawnYaw)
+	s.player.SetCamera(s.dataScene.Camera)
+
+	if s.physicsSystem != nil {
+		type playerRegistrar interface {
+			RegisterPlayer(player interface{}, ecsPlayer ...interface{})
+		}
+		if registrar, ok := s.physicsSystem.(playerRegistrar); ok {
+			registrar.RegisterPlayer(s.player) // No ECS entity for legacy mode
+		}
+	}
+
+	console.PrintString(console.LevelSuccess, "Legacy Player spawned")
 }
 
 // NewScene creates a new scene with explicit dependencies.
 // physicsSystem should be the *PhysicsSystem from the physics package (passed as interface{} to avoid import cycle).
-func NewScene(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, sceneManager *scene2.Manager, inputMiddleware *middleware.Input, physicsSystem interface{}) *Scene {
+// ecsWorld should be the *ecs.World (passed as interface{} to avoid import cycle).
+// playerMovementSystem should be *systems.PlayerMovementSystem (passed as interface{} to avoid import cycle).
+// playerCameraSystem should be *systems.PlayerCameraSystem (passed as interface{} to avoid import cycle).
+func NewScene(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, sceneManager *scene2.Manager, inputMiddleware *middleware.Input, physicsSystem interface{}, ecsWorld interface{}, playerMovementSystem interface{}, playerCameraSystem interface{}) *Scene {
 	return &Scene{
-		eventBus:        eventBus,
-		fileSystem:      fileSystem,
-		sceneManager:    sceneManager,
-		inputMiddleware: inputMiddleware,
-		physicsSystem:   physicsSystem,
+		eventBus:             eventBus,
+		fileSystem:           fileSystem,
+		sceneManager:         sceneManager,
+		inputMiddleware:      inputMiddleware,
+		physicsSystem:        physicsSystem,
+		ecsWorld:             ecsWorld,
+		playerMovementSystem: playerMovementSystem,
+		playerCameraSystem:   playerCameraSystem,
+		useECSPlayer:         true, // Phase 3: Default to ECS player
 	}
 }
