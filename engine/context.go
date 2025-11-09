@@ -2,7 +2,6 @@ package engine
 
 import (
 	"github.com/galaco/kero/framework/ecs"
-	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -27,8 +26,7 @@ type Engine struct {
 
 	// Game state
 	sceneManager *frameworkScene.Manager
-	ecsWorld     *ecs.World        // Phase 4: ECS World for component-based entities
-	legacyBridge *legacy.Bridge    // Phase 4: Shared bridge for all systems
+	ecsWorld     *ecs.World // Phase 4: Pure ECS - no legacy bridge needed
 
 	// Systems (in dependency order)
 	input    *middleware.Input
@@ -155,16 +153,6 @@ func (e *Engine) ECSWorld() *ecs.World {
 // SetECSWorld sets the ECS world
 func (e *Engine) SetECSWorld(world *ecs.World) {
 	e.ecsWorld = world
-}
-
-// LegacyBridge returns the legacy entity bridge
-func (e *Engine) LegacyBridge() *legacy.Bridge {
-	return e.legacyBridge
-}
-
-// SetLegacyBridge sets the legacy entity bridge
-func (e *Engine) SetLegacyBridge(bridge *legacy.Bridge) {
-	e.legacyBridge = bridge
 }
 
 // Metrics returns the metrics collector

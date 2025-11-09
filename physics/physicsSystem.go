@@ -7,7 +7,6 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
-	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/graphics/mesh"
@@ -23,9 +22,8 @@ type PhysicsSystem struct {
 	sceneManager *scene.Manager
 	dataScene    *scene.StaticScene
 
-	// Phase 4: ECS integration
-	ecsWorld     *ecs.World
-	legacyBridge *legacy.Bridge
+	// Phase 4: Pure ECS
+	ecsWorld *ecs.World
 
 	// Bullet
 	sdk   bullet.BulletPhysicsSDKHandle
@@ -35,9 +33,8 @@ type PhysicsSystem struct {
 	displacementRigidBody      *displacementCollisionMesh
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
 
-	// Player physics
-	player             interface{} // Legacy player (stored as interface{} to avoid import cycle)
-	playerEntity       interface{} // Phase 3: ECS player entity (ecs.Entity stored as interface{})
+	// Player physics (Phase 4: ECS entity only, no legacy player)
+	playerEntity       interface{} // ECS player entity (ecs.Entity stored as interface{})
 	playerCapsuleShape bullet.BulletCollisionShapeHandle
 }
 
@@ -126,11 +123,7 @@ func (system *PhysicsSystem) FixedUpdate(dt float64) {
 		transform.Orientation = rigidBody.GetOrientation()
 	}
 
-	// NOTE: Phase 1 Migration - No longer need to sync to legacy entities
-	// Once Phase 2 (Model component) is complete, we can remove legacyBridge entirely
-	if system.legacyBridge != nil {
-		system.legacyBridge.SyncAllECSToLegacy()
-	}
+	// Phase 4: No sync needed - renderer reads from ECS components directly
 }
 
 // Update is a wrapper around FixedUpdate for backward compatibility.
@@ -195,18 +188,19 @@ func (system *PhysicsSystem) PrepareDebug(buffer interface{}) {
 		}
 	}
 
-	// Draw player collision capsule
-	if console.GetConvarBoolean("r_drawplayercollision") && system.player != nil {
+	// Phase 4: Draw player collision capsule (ECS player)
+	if console.GetConvarBoolean("r_drawplayercollision") && system.playerEntity != nil {
 		system.drawPlayerCapsule(debugBuf)
 	}
 
-	// Draw player collision hits
-	if console.GetConvarBoolean("r_drawplayerhits") && system.player != nil {
+	// Phase 4: Draw player collision hits (ECS player)
+	if console.GetConvarBoolean("r_drawplayerhits") && system.playerEntity != nil {
 		system.drawPlayerCollisions(debugBuf)
 	}
 }
 
 // drawPlayerCapsule renders the player's collision capsule wireframe
+// Phase 4: Uses ECS components instead of legacy player
 func (system *PhysicsSystem) drawPlayerCapsule(debugBuf interface{}) {
 	type debugBuffer interface {
 		AddLines(vertices []mgl32.Vec3, color mgl32.Vec3, transform mgl32.Mat4)
@@ -214,28 +208,32 @@ func (system *PhysicsSystem) drawPlayerCapsule(debugBuf interface{}) {
 
 	buf := debugBuf.(debugBuffer)
 
-	// Get player's CharacterController via type assertion
-	type playerWithController interface {
-		GetCharacterController() *collision.CharacterController
-		GetPosition() mgl32.Vec3
+	// Get player entity's components
+	playerEntity := system.playerEntity.(ecs.Entity)
+
+	// Get Transform for position
+	transform, ok := ecs.GetComponent[components.Transform](system.ecsWorld, playerEntity)
+	if !ok {
+		return
 	}
 
-	if playerCtrl, ok := system.player.(playerWithController); ok {
-		controller := playerCtrl.GetCharacterController()
-		if controller != nil {
-			// Get current position
-			pos := playerCtrl.GetPosition()
-
-			// Generate capsule geometry
-			vertices := controller.GetCapsuleDebugGeometry(pos)
-
-			// Draw in green
-			buf.AddLines(vertices, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
-		}
+	// Get CharacterController for debug geometry
+	charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, playerEntity)
+	if !ok || !charController.HasController() {
+		return
 	}
+
+	controller := charController.GetController().(*collision.CharacterController)
+
+	// Generate capsule geometry
+	vertices := controller.GetCapsuleDebugGeometry(transform.Position)
+
+	// Draw in green
+	buf.AddLines(vertices, mgl32.Vec3{0, 1, 0}, mgl32.Ident4())
 }
 
 // drawPlayerCollisions renders collision hit points and normals
+// Phase 4: Uses ECS components instead of legacy player
 func (system *PhysicsSystem) drawPlayerCollisions(debugBuf interface{}) {
 	type debugBuffer interface {
 		AddLines(vertices []mgl32.Vec3, color mgl32.Vec3, transform mgl32.Mat4)
@@ -243,39 +241,37 @@ func (system *PhysicsSystem) drawPlayerCollisions(debugBuf interface{}) {
 
 	buf := debugBuf.(debugBuffer)
 
-	// Get player's CharacterController
-	type playerWithController interface {
-		GetCharacterController() *collision.CharacterController
+	// Get player entity's CharacterController component
+	playerEntity := system.playerEntity.(ecs.Entity)
+	charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, playerEntity)
+	if !ok || !charController.HasController() {
+		return
 	}
 
-	if playerCtrl, ok := system.player.(playerWithController); ok {
-		controller := playerCtrl.GetCharacterController()
-		if controller != nil {
-			hits := controller.GetDebugHits()
+	controller := charController.GetController().(*collision.CharacterController)
+	hits := controller.GetDebugHits()
 
-			for _, hit := range hits {
-				// Draw hit point as a small cross (red)
-				size := float32(2.0)
-				vertices := []mgl32.Vec3{
-					// X axis
-					hit.Point.Add(mgl32.Vec3{-size, 0, 0}),
-					hit.Point.Add(mgl32.Vec3{size, 0, 0}),
-					// Y axis
-					hit.Point.Add(mgl32.Vec3{0, -size, 0}),
-					hit.Point.Add(mgl32.Vec3{0, size, 0}),
-					// Z axis
-					hit.Point.Add(mgl32.Vec3{0, 0, -size}),
-					hit.Point.Add(mgl32.Vec3{0, 0, size}),
-				}
-				buf.AddLines(vertices, mgl32.Vec3{1, 0, 0}, mgl32.Ident4()) // Red
-
-				// Draw normal as a line from hit point (yellow)
-				normalLength := float32(10.0)
-				normalEnd := hit.Point.Add(hit.Normal.Mul(normalLength))
-				normalVerts := []mgl32.Vec3{hit.Point, normalEnd}
-				buf.AddLines(normalVerts, mgl32.Vec3{1, 1, 0}, mgl32.Ident4()) // Yellow
-			}
+	for _, hit := range hits {
+		// Draw hit point as a small cross (red)
+		size := float32(2.0)
+		vertices := []mgl32.Vec3{
+			// X axis
+			hit.Point.Add(mgl32.Vec3{-size, 0, 0}),
+			hit.Point.Add(mgl32.Vec3{size, 0, 0}),
+			// Y axis
+			hit.Point.Add(mgl32.Vec3{0, -size, 0}),
+			hit.Point.Add(mgl32.Vec3{0, size, 0}),
+			// Z axis
+			hit.Point.Add(mgl32.Vec3{0, 0, -size}),
+			hit.Point.Add(mgl32.Vec3{0, 0, size}),
 		}
+		buf.AddLines(vertices, mgl32.Vec3{1, 0, 0}, mgl32.Ident4()) // Red
+
+		// Draw normal as a line from hit point (yellow)
+		normalLength := float32(10.0)
+		normalEnd := hit.Point.Add(hit.Normal.Mul(normalLength))
+		normalVerts := []mgl32.Vec3{hit.Point, normalEnd}
+		buf.AddLines(normalVerts, mgl32.Vec3{1, 1, 0}, mgl32.Ident4()) // Yellow
 	}
 }
 
@@ -335,10 +331,8 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 	}
 	console.PrintString(console.LevelSuccess, "Collision structures ready!")
 
-	// Initialize player physics if player was registered
-	if system.player != nil {
-		system.initializePlayerPhysics()
-	}
+	// Phase 4: Initialize CharacterControllers for all entities (including player)
+	system.initializeCharacterControllers()
 }
 
 // createECSEntityFromLegacy creates an ECS entity from a legacy entity with proper component setup.
@@ -387,11 +381,7 @@ func (system *PhysicsSystem) createECSEntityFromLegacy(legacyEntity interface{})
 		ecs.AddComponent(system.ecsWorld, entity, model)
 	}
 
-	// Still register with legacy bridge for Phase 2 (entity creation still uses bridge)
-	// This will be removed in Phase 4
-	if system.legacyBridge != nil {
-		system.legacyBridge.Register(entity, legacyEntity)
-	}
+	// Phase 4: No bridge registration needed - all data in ECS components
 
 	return entity
 }
@@ -428,102 +418,76 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
 }
 
-// RegisterPlayer adds the player to the physics world and sets up collision.
-// The player parameter should be a *gameEntity.Player (from game/entity package).
-// The ecsPlayer parameter (optional) should be an ecs.Entity with player components.
-// We use interface{} to avoid import cycles.
-func (system *PhysicsSystem) RegisterPlayer(player interface{}, ecsPlayer ...interface{}) {
-	// Store the player reference
-	system.player = player
-
-	// Phase 3: Store ECS player entity if provided
+// RegisterPlayer stores the ECS player entity for physics initialization.
+// Phase 4: Simplified - CharacterController is created via component query, not player-specific code.
+// The ecsPlayer parameter should be an ecs.Entity with CharacterController component.
+func (system *PhysicsSystem) RegisterPlayer(ecsPlayer ...interface{}) {
+	// Phase 4: Store ECS player entity if provided
 	if len(ecsPlayer) > 0 && ecsPlayer[0] != nil {
 		system.playerEntity = ecsPlayer[0]
+		console.PrintString(console.LevelInfo, "Player entity registered with physics system")
 	}
 
-	// If physics world already exists, initialize player physics immediately
+	// If physics world already exists, initialize CharacterControllers immediately
 	if system.dataScene != nil {
-		system.initializePlayerPhysics()
+		system.initializeCharacterControllers()
 	}
 	// Otherwise, it will be initialized in onLoadingLevelParsedTyped
 }
 
-// initializePlayerPhysics creates the character controller for the player.
-// This is called after the physics world is created.
-func (system *PhysicsSystem) initializePlayerPhysics() {
-	if system.player == nil || system.dataScene == nil {
+// initializeCharacterControllers creates character controllers for all entities with CharacterController components.
+// Phase 4: This replaces the legacy player-specific physics initialization.
+func (system *PhysicsSystem) initializeCharacterControllers() {
+	if system.dataScene == nil {
 		return
 	}
 
-	// Create capsule shape for player character controller
-	// Player dimensions: radius=16, total height=72
-	// Capsule height = total height - (2 * radius) = 72 - 32 = 40
-	playerRadius := float64(16)
-	playerHeight := float64(72)
-	capsuleHeight := playerHeight - (2 * playerRadius)
+	// Query for all entities with CharacterController component
+	query := system.ecsWorld.Query().
+		With(ecs.ComponentTypeTransform).
+		With(ecs.ComponentTypeCharacterController).
+		Build()
 
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Creating player capsule: radius=%.1f, height=%.1f, totalHeight=%.1f",
-		playerRadius, capsuleHeight, playerHeight))
-
-	system.playerCapsuleShape = bullet.BulletNewCapsuleShapeZ(playerRadius, capsuleHeight)
-
-	// Call InitializePhysics on the player via reflection (interface{} method call)
-	// We expect the player to have a method: InitializePhysics(world interface{}, capsuleShape interface{})
-	type physicsInitializer interface {
-		InitializePhysics(world interface{}, capsuleShape interface{})
+	entities := query.Entities()
+	if len(entities) == 0 {
+		return
 	}
 
-	if playerWithPhysics, ok := system.player.(physicsInitializer); ok {
-		playerWithPhysics.InitializePhysics(system.world, system.playerCapsuleShape)
+	console.PrintString(console.LevelInfo, fmt.Sprintf("Initializing CharacterControllers for %d entities", len(entities)))
 
-		// Phase 3: If we have an ECS player entity, populate the CharacterController handle
-		if system.playerEntity != nil {
-			system.populateECSPlayerController()
+	for _, entity := range entities {
+		charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, entity)
+		if !ok {
+			continue
 		}
 
-		console.PrintString(console.LevelSuccess, "Player physics initialized!")
-	} else {
-		console.PrintString(console.LevelWarning, "Player does not implement InitializePhysics method")
+		// Skip if already initialized
+		if charController.HasController() {
+			console.PrintString(console.LevelInfo, fmt.Sprintf("Entity %d already has CharacterController, skipping", entity))
+			continue
+		}
+
+		// Create Bullet capsule shape
+		capsuleHeight := float64(charController.Height) - (2 * float64(charController.Radius))
+
+		console.PrintString(console.LevelInfo, fmt.Sprintf("Creating CharacterController for entity %d: radius=%.1f, capsuleHeight=%.1f, totalHeight=%.1f, stepHeight=%.1f",
+			entity, charController.Radius, capsuleHeight, charController.Height, charController.StepHeight))
+
+		capsuleShape := bullet.BulletNewCapsuleShapeZ(float64(charController.Radius), capsuleHeight)
+
+		// Create CharacterController
+		controller := collision.NewCharacterController(
+			system.world,
+			capsuleShape,
+			float64(charController.Height),
+			float64(charController.Radius),
+			float64(charController.StepHeight))
+
+		// Store in component
+		charController.SetController(controller)
+
+		console.PrintString(console.LevelSuccess, fmt.Sprintf("CharacterController initialized for entity %d", entity))
 	}
-}
-
-// populateECSPlayerController stores the CharacterController handle in the ECS component
-func (system *PhysicsSystem) populateECSPlayerController() {
-	console.PrintString(console.LevelInfo, fmt.Sprintf("populateECSPlayerController called, playerEntity=%v", system.playerEntity))
-
-	// Get the CharacterController from the legacy player and store it in ECS component
-	// Note: The return type must match EXACTLY - *collision.CharacterController, not interface{}
-	type playerWithCharacterController interface {
-		GetCharacterController() *collision.CharacterController
-	}
-
-	player, ok := system.player.(playerWithCharacterController)
-	if !ok {
-		console.PrintString(console.LevelWarning, "Player does not expose GetCharacterController method")
-		return
-	}
-
-	// Get the CharacterController handle from legacy player
-	characterController := player.GetCharacterController()
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Got CharacterController from legacy player: %v (nil=%v)", characterController, characterController == nil))
-	if characterController == nil {
-		console.PrintString(console.LevelWarning, "Legacy player CharacterController is nil")
-		return
-	}
-
-	// Store it in the ECS component
-	playerEntity := system.playerEntity.(ecs.Entity)
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Looking up CharacterController component for entity %d", playerEntity))
-	charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, playerEntity)
-	if !ok {
-		console.PrintString(console.LevelWarning, "Failed to get CharacterController component from ECS player")
-		return
-	}
-
-	console.PrintString(console.LevelInfo, fmt.Sprintf("Got CharacterController component: %+v", charController))
-	charController.SetController(characterController)
-	console.PrintString(console.LevelInfo, fmt.Sprintf("After SetController: %+v", charController))
-	console.PrintString(console.LevelSuccess, "ECS player CharacterController handle populated from legacy player")
 }
 
 func (system *PhysicsSystem) Cleanup() {
@@ -531,49 +495,63 @@ func (system *PhysicsSystem) Cleanup() {
 		return
 	}
 
-	// Phase 4: Clear ECS bridge
-	if system.legacyBridge != nil {
-		system.legacyBridge.Clear()
-	}
-
-	// Cleanup player physics
-	// Note: Collision shapes are owned by Bullet and cleaned up when the world is deleted
-	system.playerCapsuleShape = bullet.BulletCollisionShapeHandle{}
-	system.player = nil
-
-	bullet.BulletDeleteDynamicWorld(system.world)
-	bullet.BulletDeletePhysicsSDK(system.sdk)
-
-	// Delete rigid bodies for all physics entities
+	// Phase 4: Component-based cleanup - Delete rigid bodies from Physics components
 	query := system.ecsWorld.Query().
 		With(ecs.ComponentTypePhysics).
 		Build()
 
 	for _, entity := range query.Entities() {
-		legacyEntity, exists := system.legacyBridge.GetLegacyEntity(entity)
-		if exists && legacyEntity.Model() != nil && legacyEntity.Model().RigidBody != nil {
-			bullet.BulletDeleteRigidBody(legacyEntity.Model().RigidBody.BulletHandle())
-			legacyEntity.Model().RigidBody = nil
+		physics, ok := ecs.GetComponent[components.Physics](system.ecsWorld, entity)
+		if !ok || !physics.HasRigidBody() {
+			continue
 		}
+
+		rigidBody := physics.GetRigidBodyHandle().(collision.RigidBody)
+		bullet.BulletDeleteRigidBody(rigidBody.BulletHandle())
 	}
 
+	// Cleanup CharacterControllers (including player)
+	charQuery := system.ecsWorld.Query().
+		With(ecs.ComponentTypeCharacterController).
+		Build()
+
+	for _, entity := range charQuery.Entities() {
+		charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, entity)
+		if !ok || !charController.HasController() {
+			continue
+		}
+
+		// CharacterController cleanup (if needed in future)
+		// Currently CharacterController doesn't allocate external resources
+		// Bullet capsule shapes are cleaned up with the world
+	}
+
+	// Cleanup BSP and displacement collision meshes
 	bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandles)
 
 	if system.displacementRigidBody != nil {
 		bullet.BulletDeleteRigidBody(system.displacementRigidBody.RigidBodyHandles)
 	}
+
+	// Cleanup Bullet world
+	bullet.BulletDeleteDynamicWorld(system.world)
+	bullet.BulletDeletePhysicsSDK(system.sdk)
+
+	// Clear state
+	system.playerCapsuleShape = bullet.BulletCollisionShapeHandle{}
+	system.playerEntity = nil
 	system.dataScene = nil
 	system.bspRigidBody = nil
 	system.displacementRigidBody = nil
 }
 
 // NewPhysicsSystem creates a new physics system with explicit dependencies
-func NewPhysicsSystem(eventBus *event.Dispatcher, sceneManager *scene.Manager, ecsWorld *ecs.World, legacyBridge *legacy.Bridge) *PhysicsSystem {
+// Phase 4: No legacy bridge needed - pure ECS
+func NewPhysicsSystem(eventBus *event.Dispatcher, sceneManager *scene.Manager, ecsWorld *ecs.World) *PhysicsSystem {
 	return &PhysicsSystem{
 		eventBus:                   eventBus,
 		sceneManager:               sceneManager,
 		ecsWorld:                   ecsWorld,
-		legacyBridge:               legacyBridge,
 		studiomodelCollisionMeshes: map[string]studiomodelCollisionMesh{},
 	}
 }

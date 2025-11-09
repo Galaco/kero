@@ -33,7 +33,6 @@ type Scene struct {
 	physicsSystem   interface{} // Physics system reference (interface{} to avoid import cycle)
 
 	dataScene *scene2.StaticScene
-	player    *gameEntity.Player // Legacy player entity (Phase 3: dual mode)
 
 	listenToInput bool
 
@@ -43,12 +42,11 @@ type Scene struct {
 	loadComplete  chan loadResult
 	isLoading     bool
 
-	// Phase 3: ECS player support
+	// Phase 4: Pure ECS player
 	ecsWorld             interface{} // *ecs.World (interface{} to avoid import cycle)
 	playerEntity         interface{} // ecs.Entity (stored as interface{})
 	playerMovementSystem interface{} // *systems.PlayerMovementSystem
 	playerCameraSystem   interface{} // *systems.PlayerCameraSystem
-	useECSPlayer         bool        // If true, use ECS player; if false, use legacy player
 }
 
 func (s *Scene) Initialize() {
@@ -60,7 +58,6 @@ func (s *Scene) Initialize() {
 	event.RegisterTypedEvent(s.eventBus, func(e messages.EngineDisconnectEvent) {
 		s.sceneManager.CloseCurrentScene()
 		s.dataScene = nil // Clear the scene reference so IsLevelLoaded() returns false
-		s.player = nil    // Clear the player
 
 		// Reset input capture state and unlock mouse
 		s.listenToInput = false
@@ -144,37 +141,30 @@ func (s *Scene) Update(dt float64) {
 			Buttons: buttons,
 		}
 
-		// Phase 3: Use ECS systems or legacy player
-		if s.useECSPlayer && s.playerMovementSystem != nil {
-			// Use ECS player movement system
+		// Phase 4: Use ECS player systems
+		if s.playerMovementSystem != nil {
 			type movementSystem interface {
 				Update(input gameEntity.PlayerInput, dt float64)
 			}
 			if sys, ok := s.playerMovementSystem.(movementSystem); ok {
 				sys.Update(playerInput, dt)
 			}
+		}
 
-			// Update camera system
+		// Update camera system
+		if s.playerCameraSystem != nil {
 			type cameraSystem interface {
 				Update()
 			}
 			if sys, ok := s.playerCameraSystem.(cameraSystem); ok {
 				sys.Update()
 			}
-		} else if s.player != nil {
-			// Fallback to legacy player
-			s.player.ProcessInput(playerInput, dt)
 		}
 	}
 
 	// Update all entities
 	for _, e := range s.dataScene.Entities {
 		e.Think(dt)
-	}
-
-	// Update player
-	if s.player != nil {
-		s.player.Think(dt)
 	}
 }
 
@@ -188,7 +178,6 @@ func (s *Scene) onChangeLevelTyped(e messages.ChangeLevelEvent) {
 	if s.dataScene != nil {
 		// Cleanup old scene
 		s.dataScene = nil
-		s.player = nil
 	}
 
 	// Mark as loading
@@ -280,8 +269,8 @@ func (s *Scene) onMouseMoveTyped(e messages.MouseMoveEvent) {
 		Pitch: e.Delta[1] * sensitivity,
 	}
 
-	// Phase 3: Use ECS systems or legacy player
-	if s.useECSPlayer && s.playerMovementSystem != nil {
+	// Phase 4: Use ECS player systems
+	if s.playerMovementSystem != nil {
 		// Use ECS player movement system (dt=0 for instant rotation)
 		type movementSystem interface {
 			Update(input gameEntity.PlayerInput, dt float64)
@@ -291,15 +280,14 @@ func (s *Scene) onMouseMoveTyped(e messages.MouseMoveEvent) {
 		}
 
 		// Update camera immediately
-		type cameraSystem interface {
-			Update()
+		if s.playerCameraSystem != nil {
+			type cameraSystem interface {
+				Update()
+			}
+			if sys, ok := s.playerCameraSystem.(cameraSystem); ok {
+				sys.Update()
+			}
 		}
-		if sys, ok := s.playerCameraSystem.(cameraSystem); ok {
-			sys.Update()
-		}
-	} else if s.player != nil {
-		// Fallback to legacy player
-		s.player.ProcessInput(mouseInput, 0)
 	} else {
 		// No player: direct camera control
 		s.dataScene.Camera.Rotate(e.Delta[0], 0, e.Delta[1])
@@ -340,12 +328,9 @@ func (s *Scene) spawnPlayer() {
 	spawnOffset := float32(gameEntity.PlayerHeight/2) + 2.0
 	playerCenterPos := spawnPos.Add(mgl32.Vec3{0, 0, spawnOffset})
 
-	if s.useECSPlayer && s.ecsWorld != nil {
-		// Phase 3: Create ECS player entity
+	// Phase 4: Always create ECS player
+	if s.ecsWorld != nil {
 		s.spawnECSPlayer(playerCenterPos, spawnYaw)
-	} else {
-		// Legacy player (fallback)
-		s.spawnLegacyPlayer(playerCenterPos, spawnYaw)
 	}
 }
 
@@ -396,17 +381,14 @@ func (s *Scene) spawnECSPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
 	// Store player entity
 	s.playerEntity = playerEntity
 
-	// Create legacy player for Phase 3 compatibility (physics system needs it)
-	s.player = gameEntity.NewPlayer(playerCenterPos, spawnYaw)
-	s.player.SetCamera(s.dataScene.Camera)
-
-	// Register player with physics system
+	// Phase 4: No legacy player creation - CharacterController created by PhysicsSystem
+	// Register ECS player entity with physics system
 	if s.physicsSystem != nil {
 		type playerRegistrar interface {
-			RegisterPlayer(player interface{}, ecsPlayer ...interface{})
+			RegisterPlayer(ecsPlayer ...interface{})
 		}
 		if registrar, ok := s.physicsSystem.(playerRegistrar); ok {
-			registrar.RegisterPlayer(s.player, playerEntity)
+			registrar.RegisterPlayer(playerEntity)
 			console.PrintString(console.LevelInfo, "Registered ECS player with physics system")
 		} else {
 			console.PrintString(console.LevelWarning, "Failed to register ECS player with physics system - type assertion failed")
@@ -416,22 +398,7 @@ func (s *Scene) spawnECSPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
 	console.PrintString(console.LevelSuccess, "ECS Player spawned")
 }
 
-// spawnLegacyPlayer creates a legacy player entity (Phase 3 fallback)
-func (s *Scene) spawnLegacyPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
-	s.player = gameEntity.NewPlayer(playerCenterPos, spawnYaw)
-	s.player.SetCamera(s.dataScene.Camera)
-
-	if s.physicsSystem != nil {
-		type playerRegistrar interface {
-			RegisterPlayer(player interface{}, ecsPlayer ...interface{})
-		}
-		if registrar, ok := s.physicsSystem.(playerRegistrar); ok {
-			registrar.RegisterPlayer(s.player) // No ECS entity for legacy mode
-		}
-	}
-
-	console.PrintString(console.LevelSuccess, "Legacy Player spawned")
-}
+// Phase 4: Legacy player removed - pure ECS player only
 
 // NewScene creates a new scene with explicit dependencies.
 // physicsSystem should be the *PhysicsSystem from the physics package (passed as interface{} to avoid import cycle).
@@ -448,6 +415,5 @@ func NewScene(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, scen
 		ecsWorld:             ecsWorld,
 		playerMovementSystem: playerMovementSystem,
 		playerCameraSystem:   playerCameraSystem,
-		useECSPlayer:         true, // Phase 3: Default to ECS player
 	}
 }

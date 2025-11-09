@@ -7,7 +7,6 @@ import (
 	"github.com/galaco/kero/engine"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
-	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/entity"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
@@ -82,10 +81,7 @@ func (kero *Kero) Start(gameDir string) error {
 	ecsWorld := ecs.NewWorld()
 	kero.engine.SetECSWorld(ecsWorld)
 
-	// Initialize shared Legacy Bridge (Phase 4)
-	// Single bridge instance shared by all systems
-	legacyBridge := legacy.NewBridge(ecsWorld)
-	kero.engine.SetLegacyBridge(legacyBridge)
+	// Phase 4: No legacy bridge needed - pure ECS architecture
 
 	// Initialize metrics collector (300 samples = ~5 seconds at 60fps)
 	metricsCollector := metrics.NewCollector(300)
@@ -95,11 +91,11 @@ func (kero *Kero) Start(gameDir string) error {
 	input := middleware.NewInput(eventBus)
 	kero.engine.SetInput(input)
 
-	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld, legacyBridge)
+	renderer := renderer.NewRenderer(eventBus, fs, ecsWorld)
 	kero.engine.SetRenderer(renderer)
 
 	// Create physics system before scene (scene needs physics reference for player registration)
-	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld, legacyBridge)
+	physicsSystem := physics.NewPhysicsSystem(eventBus, sceneManager, ecsWorld)
 	kero.engine.SetPhysics(physicsSystem)
 
 	// Phase 3: Create player systems

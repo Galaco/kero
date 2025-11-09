@@ -9,7 +9,6 @@ import (
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/ecs"
 	"github.com/galaco/kero/framework/ecs/components"
-	"github.com/galaco/kero/framework/ecs/legacy"
 	"github.com/galaco/kero/framework/event"
 	"github.com/galaco/kero/framework/filesystem"
 	"github.com/galaco/kero/framework/graphics"
@@ -32,9 +31,8 @@ type Renderer struct {
 	fileSystem  filesystem.FileSystem
 	shaderCache *cache.Shader
 
-	// Phase 4: ECS integration
-	ecsWorld     *ecs.World
-	legacyBridge *legacy.Bridge
+	// Phase 4: Pure ECS
+	ecsWorld *ecs.World
 
 	dataScene *scene2.StaticScene
 	gpuScene  scene.GPUScene
@@ -621,11 +619,10 @@ func (s *Renderer) GetDebugBuffer() *gfxdebug.DebugDrawBuffer {
 }
 
 // NewRenderer creates a new renderer with explicit dependencies
-func NewRenderer(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, ecsWorld *ecs.World, legacyBridge *legacy.Bridge) *Renderer {
+func NewRenderer(eventBus *event.Dispatcher, fileSystem filesystem.FileSystem, ecsWorld *ecs.World) *Renderer {
 	return &Renderer{
-		eventBus:     eventBus,
-		fileSystem:   fileSystem,
-		ecsWorld:     ecsWorld,
-		legacyBridge: legacyBridge,
+		eventBus:   eventBus,
+		fileSystem: fileSystem,
+		ecsWorld:   ecsWorld,
 	}
 }
