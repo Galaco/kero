@@ -17,6 +17,8 @@ github.com/galaco/stringtable v0.1.1 h1:0V4zYLe8/1Ndx5PwT8hPgrYFgujete0QhwS3BdEk
 github.com/galaco/stringtable v0.1.1/go.mod h1:QsTYRslDE3iPm2wqig/5ZmKKTQsQ+LY6ZtEdBZLf9CY=
 github.com/galaco/studiomodel v1.0.0-b4 h1:JF4B0EhzT4kbTMAxJVYJfjGipY8f+jHWvqLmRpjD4HA=
 github.com/galaco/studiomodel v1.0.0-b4/go.mod h1:nqtKGL0NZvvs9ZkJxiHBH/XYogMRN/LWpoLT3TgBcDU=
+github.com/galaco/studiomodel v1.0.0-beta.1 h1:ncNHCs02ERUhf/c2GNIwZt36jE9Ac3vTcvp5b7Sl61k=
+github.com/galaco/studiomodel v1.0.0-beta.1/go.mod h1:3sH4l4amq6gij37dAP6d5Jn99YRL6Hm8u6uq4t7zIY8=
 github.com/galaco/tinygametools v0.1.1 h1:s65gIex1OQpWERPD1FdtZsaMXtf/D3J84eYN1RJE/Z4=
 github.com/galaco/tinygametools v0.1.1/go.mod h1:odt4iPoOUUb0Es074CVcukYLC80qyieSvdOcazcgSH8=
 github.com/galaco/vmf v0.0.0-20180309175744-7a9ccb6e8abb/go.mod h1:+hpnZQBHJ5xrERgGMr6f/KO0ZkxEkrvjqr3RI9aNHes=
@@ -36,6 +38,7 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728 h1:RkGhqHxEVAvPM0/R+8g7XRwQnHatO0KAuVcwHo8q9W8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728/go.mod h1:SyRD8YfuKk+ZXlDqYiqe1qMSqjNgtHzBTG810KUagMc=
 github.com/go-gl/mathgl v0.0.0-20180804195959-cdf14b6b8f8a/go.mod h1:dvrdneKbyWbK2skTda0nM4B9zSlS2GZSnjX7itr/skQ=
+github.com/go-gl/mathgl v1.0.0/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 github.com/go-gl/mathgl v1.2.0 h1:v2eOj/y1B2afDxF6URV1qCYmo1KW08lAMtTbOn3KXCY=
 github.com/go-gl/mathgl v1.2.0/go.mod h1:pf9+b5J3LFP7iZ4XXaVzZrCle0Q/vNpB/vDe5+3ulRE=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -43,3 +46,6 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/sqweek/dialog v0.0.0-20240226140203-065105509627 h1:2JL2wmHXWIAxDofCK+AdkFi1KEg3dgkefCsm7isADzQ=
 github.com/sqweek/dialog v0.0.0-20240226140203-065105509627/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
 golang.org/x/image v0.0.0-20190209060608-ef4a1470e0dc/go.mod h1:ux5Hcp/YLpHSI86hEcLt0YII63i6oz57MZXIpbrjZUs=
+golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
+golang.org/x/image v0.0.0-20210504121937-7319ad40d33e/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
