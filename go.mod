@@ -3,7 +3,7 @@ module github.com/galaco/kero
 go 1.24.0
 
 require (
-	github.com/AllenDang/cimgui-go v1.4.0
+	github.com/AllenDang/cimgui-go v1.6.0
 	github.com/galaco/KeyValues v1.4.1
 	github.com/galaco/bsp v1.0.0-b2
 	github.com/galaco/filesystem v0.1.6
