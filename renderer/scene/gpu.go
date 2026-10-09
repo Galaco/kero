@@ -15,15 +15,16 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// InstanceBatch represents a group of static props that share the same model+mesh+material
+// InstanceBatch represents a group of static props that share the same model+sub-mesh+material
 // and can be rendered together using GPU instancing
 type InstanceBatch struct {
 	Key          string                 // Unique identifier: "modelId_meshIdx_materialHash"
 	ModelId      string                 // Model identifier
-	MeshIdx      int                    // Index of mesh within model
-	Mesh         adapter.GpuMesh        // GPU mesh handle
+	MeshIdx      int                    // Index of sub-mesh within model
+	Mesh         adapter.GpuMesh        // GPU mesh handle, shared by every sub-mesh of the model
 	Material     uint32                 // Texture ID
-	IndexCount   int                    // Number of indices in mesh
+	IndexOffset  int                    // First index of the sub-mesh in Mesh
+	IndexCount   int                    // Number of indices in the sub-mesh
 	Props        []*graphics.StaticProp // All props in this batch (for reverse lookup)
 	InstanceVBO  uint32                 // Persistent GPU buffer for instance data
 	MaxInstances int                    // VBO capacity
@@ -170,10 +171,11 @@ func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.Static
 	}
 
 	gpuProp := cache.GpuProp{}
-	s.GpuStaticProps[prop.Id] = cache.GpuProp{}
-	for _, m := range prop.Meshes() {
-		gpuProp.AddMesh(adapter.UploadMesh(m))
+	s.GpuStaticProps[prop.Id] = gpuProp
+	if len(prop.SubMeshes()) == 0 {
+		return
 	}
+	gpuProp.Mesh = adapter.UploadMesh(prop.Mesh())
 	for _, materialPath := range prop.Materials() {
 		if _, ok := frameworkScene.RawBsp.MaterialDictionary()[materialPath]; ok {
 			gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
@@ -243,8 +245,8 @@ func (s *GPUScene) buildInstanceBatches(frameworkScene *scene.StaticScene) {
 				continue
 			}
 
-			// Each mesh in the prop might need a separate batch
-			for meshIdx := range gpuProp.Id {
+			// Each sub-mesh in the prop might need a separate batch
+			for meshIdx, subMesh := range prop.Model().Model.SubMeshes() {
 				// Create batch key (same as runtime sorting key)
 				materialHash := gpuProp.Material[meshIdx].Diffuse
 				key := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
@@ -255,13 +257,14 @@ func (s *GPUScene) buildInstanceBatches(frameworkScene *scene.StaticScene) {
 				} else {
 					// Create new batch
 					batches[key] = &InstanceBatch{
-						Key:        key,
-						ModelId:    prop.Model().Model.Id,
-						MeshIdx:    meshIdx,
-						Mesh:       gpuProp.Id[meshIdx],
-						Material:   materialHash,
-						IndexCount: len(prop.Model().Model.Meshes()[meshIdx].Indices()),
-						Props:      []*graphics.StaticProp{prop},
+						Key:         key,
+						ModelId:     prop.Model().Model.Id,
+						MeshIdx:     meshIdx,
+						Mesh:        gpuProp.Mesh,
+						Material:    materialHash,
+						IndexOffset: subMesh.IndexOffset,
+						IndexCount:  subMesh.IndexCount,
+						Props:       []*graphics.StaticProp{prop},
 					}
 				}
 			}

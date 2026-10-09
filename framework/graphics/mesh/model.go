@@ -12,10 +12,17 @@ type ModelInstance struct {
 	RigidBody collision.RigidBody
 }
 
+// SubMesh is a range of a model's indices that is drawn with one material
+type SubMesh struct {
+	IndexOffset int
+	IndexCount  int
+}
+
 type Model struct {
 	Id                  string
 	OriginalStudiomodel *studiomodel.StudioModel
-	meshes              []*BasicMesh
+	mesh                *BasicMesh
+	subMeshes           []SubMesh
 	materials           []string
 	rigidBody           collision.RigidBody
 	boundsMins          mgl32.Vec3
@@ -23,20 +30,29 @@ type Model struct {
 	boundsComputed      bool
 }
 
-func (model *Model) Meshes() []*BasicMesh {
-	return model.meshes
+// Mesh returns the vertices shared by all sub-meshes, and the indices of every sub-mesh one after another
+func (model *Model) Mesh() *BasicMesh {
+	return model.mesh
 }
 
+// SubMeshes returns the ranges of Mesh's indices that are each drawn with one material
+func (model *Model) SubMeshes() []SubMesh {
+	return model.subMeshes
+}
+
+// Materials returns the material of each sub-mesh
 func (model *Model) Materials() []string {
 	return model.materials
 }
 
-func (model *Model) AddMesh(m *BasicMesh) {
-	model.meshes = append(model.meshes, m)
-}
-
-func (model *Model) AddMaterial(m string) {
-	model.materials = append(model.materials, m)
+// AddSubMesh adds indices into Mesh's vertices that are drawn with a material
+func (model *Model) AddSubMesh(indices []uint32, material string) {
+	model.subMeshes = append(model.subMeshes, SubMesh{
+		IndexOffset: len(model.mesh.Indices()),
+		IndexCount:  len(indices),
+	})
+	model.mesh.AddIndice(indices...)
+	model.materials = append(model.materials, material)
 }
 
 func (model *Model) RigidBody() collision.RigidBody {
@@ -47,9 +63,10 @@ func (model *Model) AddRigidBody(body collision.RigidBody) {
 	model.rigidBody = body
 }
 
-// ComputeBounds calculates the axis-aligned bounding box for all meshes in the model
+// ComputeBounds calculates the axis-aligned bounding box of the model's vertices
 func (model *Model) ComputeBounds() {
-	if model.boundsComputed || len(model.meshes) == 0 {
+	verts := model.mesh.Vertices()
+	if model.boundsComputed || len(verts) == 0 {
 		return
 	}
 
@@ -57,33 +74,10 @@ func (model *Model) ComputeBounds() {
 	mins := mgl32.Vec3{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
 	maxs := mgl32.Vec3{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
 
-	// Iterate through all meshes and vertices
-	for _, mesh := range model.meshes {
-		verts := mesh.Vertices()
-		for i := 0; i < len(verts); i += 3 {
-			x, y, z := verts[i], verts[i+1], verts[i+2]
-
-			// Update mins
-			if x < mins[0] {
-				mins[0] = x
-			}
-			if y < mins[1] {
-				mins[1] = y
-			}
-			if z < mins[2] {
-				mins[2] = z
-			}
-
-			// Update maxs
-			if x > maxs[0] {
-				maxs[0] = x
-			}
-			if y > maxs[1] {
-				maxs[1] = y
-			}
-			if z > maxs[2] {
-				maxs[2] = z
-			}
+	for i := 0; i < len(verts); i += 3 {
+		for axis := 0; axis < 3; axis++ {
+			mins[axis] = min(mins[axis], verts[i+axis])
+			maxs[axis] = max(maxs[axis], verts[i+axis])
 		}
 	}
 
@@ -105,5 +99,6 @@ func NewModel(id string, originalStudioModel *studiomodel.StudioModel) *Model {
 	return &Model{
 		Id:                  id,
 		OriginalStudiomodel: originalStudioModel,
+		mesh:                NewMesh(),
 	}
 }

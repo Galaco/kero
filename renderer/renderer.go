@@ -393,7 +393,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 				continue
 			}
 
-			for meshIdx := range gpuProp.Id {
+			for meshIdx := range prop.Model().Model.SubMeshes() {
 				materialHash := gpuProp.Material[meshIdx].Diffuse
 				batchKey := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
 
@@ -457,7 +457,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 		adapter.SetupInstanceAttributes(batch.InstanceVBO)
 
 		// Draw all visible instances with one call!
-		adapter.DrawIndexedArrayInstanced(batch.IndexCount, instanceCount)
+		adapter.DrawIndexedArrayInstanced(batch.IndexCount, batch.IndexOffset, instanceCount)
 
 		// Check for GL errors after draw
 		if err := adapter.GpuError(); err != nil {
@@ -516,11 +516,11 @@ func (s *Renderer) renderEntityProps() {
 
 		// Render using cached GPU resources
 		modelId := modelInstance.Model.Id
-		if gpuProp, ok := s.gpuScene.GpuStaticProps[modelId]; ok {
-			for idx := range gpuProp.Id {
-				adapter.BindMesh(&gpuProp.Id[idx])
+		if gpuProp, ok := s.gpuScene.GpuStaticProps[modelId]; ok && gpuProp.Mesh != nil {
+			adapter.BindMesh(&gpuProp.Mesh)
+			for idx, subMesh := range modelInstance.Model.SubMeshes() {
 				adapter.BindTexture(gpuProp.Material[idx].Diffuse)
-				adapter.DrawIndexedArray(len(modelInstance.Model.Meshes()[idx].Indices()), 0, nil)
+				adapter.DrawIndexedArray(subMesh.IndexCount, subMesh.IndexOffset, nil)
 			}
 		}
 	}
@@ -562,8 +562,8 @@ func (s *Renderer) Cleanup() {
 	}
 
 	for _, s := range s.gpuScene.GpuStaticProps {
-		for _, id := range s.Id {
-			adapter.DeleteMeshResource(id)
+		if s.Mesh != nil {
+			adapter.DeleteMeshResource(s.Mesh)
 		}
 	}
 

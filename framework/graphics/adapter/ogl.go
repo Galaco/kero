@@ -309,9 +309,10 @@ func DisableInstanceAttributes() {
 	}
 }
 
-// DrawIndexedArrayInstanced draws mesh multiple times with different matrices
-func DrawIndexedArrayInstanced(indexCount int, instanceCount int) {
-	gl.DrawElementsInstanced(gl.TRIANGLES, int32(indexCount), gl.UNSIGNED_INT, nil, int32(instanceCount))
+// DrawIndexedArrayInstanced draws indexCount of the bound mesh's indices, starting at index indexOffset, once per
+// instance with different matrices
+func DrawIndexedArrayInstanced(indexCount int, indexOffset int, instanceCount int) {
+	gl.DrawElementsInstanced(gl.TRIANGLES, int32(indexCount), gl.UNSIGNED_INT, gl.PtrOffset(indexOffset*4), int32(instanceCount))
 }
 
 // DeleteInstanceBuffer cleans up instance buffer

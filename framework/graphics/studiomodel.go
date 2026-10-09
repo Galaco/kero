@@ -90,38 +90,25 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel,
 		return nil, err
 	}
 
-	vertices := make([]float32, 0, len(lod.Vertices)*3)
-	normals := make([]float32, 0, len(lod.Vertices)*3)
-	uvs := make([]float32, 0, len(lod.Vertices)*2)
+	outModel := mesh.NewModel(filename, studioModel)
+	modelMesh := outModel.Mesh()
 	for _, vertex := range lod.Vertices {
-		vertices = append(vertices, vertex.Position[0], vertex.Position[1], vertex.Position[2])
-		normals = append(normals, vertex.Normal[0], vertex.Normal[1], vertex.Normal[2])
-		uvs = append(uvs, vertex.UVs[0], vertex.UVs[1])
+		modelMesh.AddVertex(vertex.Position[0], vertex.Position[1], vertex.Position[2])
+		modelMesh.AddNormal(vertex.Normal[0], vertex.Normal[1], vertex.Normal[2])
+		modelMesh.AddUV(vertex.UVs[0], vertex.UVs[1])
 	}
-	tangents := make([]float32, 0, len(lod.Tangents)*4)
 	for _, tangent := range lod.Tangents {
-		tangents = append(tangents, tangent[0], tangent[1], tangent[2], tangent[3])
+		modelMesh.AddTangent(tangent[0], tangent[1], tangent[2], tangent[3])
 	}
 
-	outModel := mesh.NewModel(filename, studioModel)
 	for _, lodMesh := range lod.Meshes {
 		// Every model of a body part is a bodygroup choice; the default body draws the first
 		if lodMesh.Model != 0 || len(lodMesh.Indices) == 0 {
 			continue
 		}
-
-		smMesh := mesh.NewMesh()
-		smMesh.AddVertex(vertices...)
-		smMesh.AddNormal(normals...)
-		smMesh.AddUV(uvs...)
-		smMesh.AddTangent(tangents...)
-		smMesh.AddIndice(lodMesh.Indices...)
-
-		outModel.AddMesh(smMesh)
-		outModel.AddMaterial(materialPathForStudioModel(studioModel.Mdl, lodMesh.Material, fs))
+		outModel.AddSubMesh(lodMesh.Indices, materialPathForStudioModel(studioModel.Mdl, lodMesh.Material, fs))
 	}
 
-	// Compute bounding box now that all meshes are added
 	outModel.ComputeBounds()
 
 	return outModel, nil

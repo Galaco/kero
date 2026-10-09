@@ -4,13 +4,10 @@ import (
 	"github.com/galaco/kero/framework/graphics/adapter"
 )
 
+// GpuProp is a model uploaded to the GPU. Its sub-meshes share Mesh, and are drawn with Material.
 type GpuProp struct {
-	Id       []adapter.GpuMesh
+	Mesh     adapter.GpuMesh
 	Material []GpuMaterial
-}
-
-func (prop *GpuProp) AddMesh(id adapter.GpuMesh) {
-	prop.Id = append(prop.Id, id)
 }
 
 func (prop *GpuProp) AddMaterial(mat GpuMaterial) {
