@@ -32,37 +32,27 @@ func (frustum *Frustum) IsLeafInFrustum(mins, maxs mgl32.Vec3) bool {
 // IsCuboidInFrustum
 // NOTE: This fails for leafs where all points sit outside the frustum but the contents is actually inside it
 func (frustum *Frustum) IsCuboidInFrustum(mins, maxs mgl32.Vec3) bool {
-	center := mins.Add(maxs).Mul(0.5)
-	if frustum.IsPointInFrustum(center[0], center[1], center[2]) {
-		return true
+	// A box is outside only when it is entirely behind one of the planes, which it is when the corner furthest along
+	// the plane's normal is. Testing the box's corners and center instead misses a box that crosses the view with
+	// all of them outside it, such as one that holds the camera.
+	for i := 0; i < 6; i++ {
+		plane := frustum.planes[i]
+		x, y, z := mins[0], mins[1], mins[2]
+		if plane[planeNormalX] >= 0 {
+			x = maxs[0]
+		}
+		if plane[planeNormalY] >= 0 {
+			y = maxs[1]
+		}
+		if plane[planeNormalZ] >= 0 {
+			z = maxs[2]
+		}
+		if plane[planeNormalX]*x+plane[planeNormalY]*y+plane[planeNormalZ]*z+plane[planeToOrigin] < 0 {
+			return false
+		}
 	}
 
-	if frustum.IsPointInFrustum(mins[0], mins[1], mins[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(maxs[0], mins[1], mins[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(mins[0], maxs[1], mins[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(maxs[0], maxs[1], mins[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(mins[0], mins[1], maxs[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(maxs[0], mins[1], maxs[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(mins[0], maxs[1], maxs[2]) {
-		return true
-	}
-	if frustum.IsPointInFrustum(maxs[0], maxs[1], maxs[2]) {
-		return true
-	}
-
-	return false
+	return true
 }
 
 func (frustum *Frustum) IsPointInFrustum(x, y, z float32) bool {

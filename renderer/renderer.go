@@ -3,7 +3,6 @@ package renderer
 import (
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/galaco/gosigl"
 	"github.com/galaco/kero/framework/console"
@@ -373,19 +372,16 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 
 	// Iterate visible clusters and props to determine which instances are visible
 	for _, cluster := range clusters {
-		distToCluster := math.Pow(float64(cluster.Origin.X()-camera.Transform().Translation.X()), 2) +
-			math.Pow(float64(cluster.Origin.Y()-camera.Transform().Translation.Y()), 2) +
-			math.Pow(float64(cluster.Origin.Z()-camera.Transform().Translation.Z()), 2)
-
 		for _, prop := range cluster.StaticProps {
 			if visited[prop] {
 				continue
 			}
-			// Fade distance check; another cluster the prop is in may be close enough
-			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
+			visited[prop] = true
+
+			// Props beyond their fade distance are fully faded out. The shader fades by the same distance.
+			if prop.FadeMaxDistance() > 0 && prop.Transform.Translation.Sub(camera.Transform().Translation).Len() >= prop.FadeMaxDistance() {
 				continue
 			}
-			visited[prop] = true
 
 			// Per-prop frustum culling using accurate transformed bounds
 			propMins, propMaxs := prop.GetTransformedBounds()

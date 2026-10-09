@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"math"
 	"testing"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -32,8 +33,8 @@ func TestIsCuboidInFrustum_CenterCalculation(t *testing.T) {
 			name:     "box at origin",
 			mins:     mgl32.Vec3{-1, -1, -1},
 			maxs:     mgl32.Vec3{1, 1, 1},
-			expected: false,
-			reason:   "box at camera origin is clipped by near plane (z=-0.2)",
+			expected: true,
+			reason:   "box around the camera holds what is just in front of it",
 		},
 		{
 			name:     "box behind camera",
@@ -158,6 +159,46 @@ func TestIsPointInFrustum(t *testing.T) {
 			result := frustum.IsPointInFrustum(tt.point[0], tt.point[1], tt.point[2])
 			if result != tt.expected {
 				t.Errorf("IsPointInFrustum(%v) = %v, expected %v", tt.point, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsCuboidInFrustum_NoCornerInside(t *testing.T) {
+	camera := NewCamera(mgl32.DegToRad(90), 1.0)
+	camera.Update(0)
+	frustum := FrustumFromCamera(camera)
+	forward, right, up := camera.direction, camera.right, camera.up
+
+	// box returns the bounds of a box holding the points a and b, grown by 1 on every axis
+	box := func(a, b mgl32.Vec3) (mgl32.Vec3, mgl32.Vec3) {
+		mins, maxs := a, a
+		for i := 0; i < 3; i++ {
+			mins[i] = float32(math.Min(float64(a[i]), float64(b[i]))) - 1
+			maxs[i] = float32(math.Max(float64(a[i]), float64(b[i]))) + 1
+		}
+		return mins, maxs
+	}
+	ahead := forward.Mul(100)
+
+	tests := []struct {
+		name string
+		a, b mgl32.Vec3
+		in   bool
+	}{
+		// Its corners are far to either side and its center is off to the right, but it crosses the view
+		{"beam crossing the view off center", ahead.Add(right.Mul(-200)), ahead.Add(right.Mul(3000)), true},
+		{"large box holding the camera", mgl32.Vec3{-5000, -5000, -5000}, mgl32.Vec3{5000, 5000, 5000}, true},
+		{"box far to the side", ahead.Add(right.Mul(1000)), ahead.Add(right.Mul(1020)), false},
+		{"box far above", ahead.Add(up.Mul(1000)), ahead.Add(up.Mul(1020)), false},
+		{"box behind", forward.Mul(-100), forward.Mul(-120), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mins, maxs := box(tt.a, tt.b)
+			if result := frustum.IsCuboidInFrustum(mins, maxs); result != tt.in {
+				t.Errorf("IsCuboidInFrustum(%v, %v) = %v, expected %v", mins, maxs, result, tt.in)
 			}
 		})
 	}

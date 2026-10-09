@@ -325,31 +325,50 @@ func generateClusterLeafs(level *graphics.Bsp, visData *vis.Vis) []vis.ClusterLe
 	//defaultCluster := vis.ClusterLeaf{
 	//	Id: 32767,
 	//}
-	for _, bspLeaf := range visData.Leafs {
-		for _, leafFace := range visData.LeafFaces[bspLeaf.FirstLeafFace : bspLeaf.FirstLeafFace+bspLeaf.NumLeafFaces] {
-			if bspLeaf.Cluster == -1 {
-				//defaultCluster.Faces = append(defaultCluster.Faces, bspFaces[leafFace])
-				continue
-			}
-			bspClusters[bspLeaf.Cluster].Id = bspLeaf.Cluster
-			bspClusters[bspLeaf.Cluster].Faces = append(bspClusters[bspLeaf.Cluster].Faces, level.Faces()[leafFace])
-			bspClusters[bspLeaf.Cluster].Mins = mgl32.Vec3{
-				float32(bspLeaf.Mins[0]),
-				float32(bspLeaf.Mins[1]),
-				float32(bspLeaf.Mins[2]),
-			}
-			bspClusters[bspLeaf.Cluster].Maxs = mgl32.Vec3{
-				float32(bspLeaf.Maxs[0]),
-				float32(bspLeaf.Maxs[1]),
-				float32(bspLeaf.Maxs[2]),
-			}
-			bspClusters[bspLeaf.Cluster].Origin = bspClusters[bspLeaf.Cluster].Mins.Add(bspClusters[bspLeaf.Cluster].Maxs.Sub(bspClusters[bspLeaf.Cluster].Mins))
-			bspClusters[bspLeaf.Cluster].DebugMesh = mesh.NewCuboidFromMinMaxs(bspClusters[bspLeaf.Cluster].Mins, bspClusters[bspLeaf.Cluster].Maxs)
 
-			if bspLeaf.Flags()&leaf.LeafFlagsSky > 0 {
-				bspClusters[bspLeaf.Cluster].SkyVisible = true
+	// A cluster's bounds hold every one of its leafs, and every face in them; a face is not split where it crosses
+	// from one leaf into another
+	hasBounds := make([]bool, len(bspClusters))
+	grow := func(cluster int16, mins, maxs mgl32.Vec3) {
+		if !hasBounds[cluster] {
+			bspClusters[cluster].Mins, bspClusters[cluster].Maxs = mins, maxs
+			hasBounds[cluster] = true
+			return
+		}
+		for axis := 0; axis < 3; axis++ {
+			bspClusters[cluster].Mins[axis] = min(bspClusters[cluster].Mins[axis], mins[axis])
+			bspClusters[cluster].Maxs[axis] = max(bspClusters[cluster].Maxs[axis], maxs[axis])
+		}
+	}
+	vertices := level.Mesh().Vertices()
+
+	for _, bspLeaf := range visData.Leafs {
+		if bspLeaf.Cluster == -1 {
+			//defaultCluster.Faces = append(defaultCluster.Faces, bspFaces[leafFace])
+			continue
+		}
+		bspClusters[bspLeaf.Cluster].Id = bspLeaf.Cluster
+		grow(bspLeaf.Cluster,
+			mgl32.Vec3{float32(bspLeaf.Mins[0]), float32(bspLeaf.Mins[1]), float32(bspLeaf.Mins[2])},
+			mgl32.Vec3{float32(bspLeaf.Maxs[0]), float32(bspLeaf.Maxs[1]), float32(bspLeaf.Maxs[2])})
+		if bspLeaf.Flags()&leaf.LeafFlagsSky > 0 {
+			bspClusters[bspLeaf.Cluster].SkyVisible = true
+		}
+
+		for _, leafFace := range visData.LeafFaces[bspLeaf.FirstLeafFace : bspLeaf.FirstLeafFace+bspLeaf.NumLeafFaces] {
+			face := level.Faces()[leafFace]
+			bspClusters[bspLeaf.Cluster].Faces = append(bspClusters[bspLeaf.Cluster].Faces, face)
+			for v := face.Offset(); v < face.Offset()+face.Length(); v++ {
+				vertex := mgl32.Vec3{vertices[v*3], vertices[v*3+1], vertices[v*3+2]}
+				grow(bspLeaf.Cluster, vertex, vertex)
 			}
 		}
+	}
+
+	for idx := range bspClusters {
+		cluster := &bspClusters[idx]
+		cluster.Origin = cluster.Mins.Add(cluster.Maxs).Mul(0.5)
+		cluster.DebugMesh = mesh.NewCuboidFromMinMaxs(cluster.Mins, cluster.Maxs)
 	}
 
 	// Assign staticprops to clusters
