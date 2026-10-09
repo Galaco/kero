@@ -572,7 +572,7 @@ func (s *Renderer) renderSkybox(skybox *scene.Skybox) {
 
 	adapter.BindMesh(&skybox.SkyMeshGpuID)
 	adapter.BindCubemap(skybox.SkyMaterialGpuID)
-	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices()))
+	adapter.DrawArray(0, len(skybox.SkyMesh.Vertices())/3)
 }
 
 func (s *Renderer) Cleanup() {
