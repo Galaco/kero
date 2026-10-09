@@ -24,4 +24,15 @@ require (
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d // indirect
 	github.com/galaco/vpk2 v1.0.0 // indirect
+	github.com/galaco/vtf/v2 v2.0.0
 )
+
+replace github.com/galaco/studiomodel => ../studiomodel
+
+replace github.com/galaco/gosigl => ../gosigl
+
+replace github.com/galaco/filesystem => ../filesystem
+
+replace github.com/galaco/vmt => ../vmt
+
+replace github.com/galaco/vtf/v2 => ../vtf

@@ -57,6 +57,7 @@ func (s *Scene) Initialize() {
 	// TODO Phase 2: Add event listener for physics world ready to initialize player collision
 	event.RegisterTypedEvent(s.eventBus, func(e messages.EngineDisconnectEvent) {
 		s.sceneManager.CloseCurrentScene()
+		s.despawnPlayer()
 		s.dataScene = nil // Clear the scene reference so IsLevelLoaded() returns false
 
 		// Reset input capture state and unlock mouse
@@ -177,6 +178,7 @@ func (s *Scene) onChangeLevelTyped(e messages.ChangeLevelEvent) {
 
 	if s.dataScene != nil {
 		// Cleanup old scene
+		s.despawnPlayer()
 		s.dataScene = nil
 	}
 
@@ -396,6 +398,15 @@ func (s *Scene) spawnECSPlayer(playerCenterPos mgl32.Vec3, spawnYaw float32) {
 	}
 
 	console.PrintString(console.LevelSuccess, "ECS Player spawned")
+}
+
+// despawnPlayer destroys the player of the level being unloaded
+func (s *Scene) despawnPlayer() {
+	if s.playerEntity == nil {
+		return
+	}
+	s.ecsWorld.(*ecs.World).DestroyEntity(s.playerEntity.(ecs.Entity))
+	s.playerEntity = nil
 }
 
 // Phase 4: Legacy player removed - pure ECS player only

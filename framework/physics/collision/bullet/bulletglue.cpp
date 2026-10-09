@@ -42,23 +42,22 @@ void plApplyImpulse(plRigidBodyHandle object, const plVector3 impulse, const plV
   body->applyImpulse(implse, relPos);
 }
 
-plCollisionShapeHandle btNewBvhTriangleIndexVertexArray(int* indices, plVector3* vertices, int totalTriangles, int totalVerts)
+plCollisionShapeHandle plNewBvhTriangleMeshShape(const int* indices, int totalTriangles, const plVector3* vertices, int totalVerts)
 {
-	void* mem = btAlignedAlloc(sizeof(btTriangleIndexVertexArray),16);
-	return (plCollisionShapeHandle) new (mem)btTriangleIndexVertexArray(
-                                                     totalTriangles,
-                                             		indices,
-                                             		3*sizeof(int),
-                                             		totalVerts,
-                                             		(btScalar*) (&vertices[0][0]),
-                                             		sizeof(plVector3)
-                                             	);
-}
+	// Bullet reads the mesh for as long as the shape exists, so it gets its own copy, which plDeleteShape frees
+	void* mem = btAlignedAlloc(sizeof(btTriangleMesh),16);
+	btTriangleMesh* mesh = new (mem)btTriangleMesh(true, false);
+	mesh->preallocateVertices(totalVerts);
+	mesh->preallocateIndices(totalTriangles * 3);
+	for (int i = 0; i < totalVerts; i++) {
+		mesh->findOrAddVertex(btVector3(vertices[i][0], vertices[i][1], vertices[i][2]), false);
+	}
+	for (int i = 0; i < totalTriangles; i++) {
+		mesh->addTriangleIndices(indices[i*3], indices[i*3+1], indices[i*3+2]);
+	}
 
-plCollisionShapeHandle btNewBvhTriangleMeshShape(plCollisionShapeHandle indexVertexArrays)
-{
-	void* mem = btAlignedAlloc(sizeof(btBvhTriangleMeshShape),16);
-	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(reinterpret_cast<btTriangleIndexVertexArray*>(indexVertexArrays), true, true);
+	mem = btAlignedAlloc(sizeof(btBvhTriangleMeshShape),16);
+	return (plCollisionShapeHandle) new (mem)btBvhTriangleMeshShape(mesh, true, true);
 }
 
 void plSetActivationState(plRigidBodyHandle object, int state) {

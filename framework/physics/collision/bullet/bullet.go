@@ -11,9 +11,9 @@ import (
 
 // Bullet activation states
 const (
-	ActivationStateActiveTag          = 1
-	ActivationStateIslandSleeping     = 2
-	ActivationStateWantsDeactivation  = 3
+	ActivationStateActiveTag           = 1
+	ActivationStateIslandSleeping      = 2
+	ActivationStateWantsDeactivation   = 3
 	ActivationStateDisableDeactivation = 4
 	ActivationStateDisableSimulation   = 5
 )
@@ -112,10 +112,7 @@ func NewRigidBody(mass float32, shape BulletCollisionShapeHandle) BulletRigidBod
 }
 
 type BulletCollisionShapeHandle struct {
-	holder       interface{} // Stores vertices to prevent GC
-	indexHolder  interface{} // Stores indices to prevent GC
-	triangleArrayHandle interface{} // Stores btTriangleIndexVertexArray handle
-	handle       C.plCollisionShapeHandle
+	handle C.plCollisionShapeHandle
 }
 
 func (c BulletCollisionShapeHandle) AddVertex(v mgl32.Vec3) {
@@ -123,6 +120,9 @@ func (c BulletCollisionShapeHandle) AddVertex(v mgl32.Vec3) {
 }
 
 func (c BulletCollisionShapeHandle) AddVertices(verts []mgl32.Vec3) {
+	if len(verts) == 0 {
+		return
+	}
 	v := make([]BulletVec3, len(verts))
 	for idx, r := range verts {
 		v[idx] = Vec3ToBullet(r)
@@ -168,14 +168,14 @@ func BulletNewStaticTriangleShape(indices []BulletPhysicsIndice, vertices []mgl3
 		v[idx] = Vec3ToBullet(r)
 	}
 
-	m := C.btNewBvhTriangleIndexVertexArray((*C.int)(unsafe.Pointer(&indices[0])), (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(int64(totalTriangles)), C.int(int64(totalVerts)))
-
 	return BulletCollisionShapeHandle{
-		holder:              v,       // Keep vertices alive
-		indexHolder:         indices, // Keep indices alive
-		triangleArrayHandle: m,       // Keep triangle array handle alive
-		handle:              C.btNewBvhTriangleMeshShape(m),
+		handle: C.plNewBvhTriangleMeshShape((*C.int)(unsafe.Pointer(&indices[0])), C.int(totalTriangles), (*C.plVector3)(unsafe.Pointer(&v[0])), C.int(totalVerts)),
 	}
+}
+
+// BulletDeleteShape destroys a shape. No rigid body or compound shape may still be using it.
+func BulletDeleteShape(shape BulletCollisionShapeHandle) {
+	C.plDeleteShape(shape.handle)
 }
 
 func BulletNewBrushShape(vertices []mgl32.Vec3) BulletCollisionShapeHandle {

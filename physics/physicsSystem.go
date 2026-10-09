@@ -17,6 +17,13 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+// How a prop collides, as the engine's SOLID_ types
+const (
+	solidNone     = 0
+	solidBBox     = 2
+	solidVPhysics = 6
+)
+
 type PhysicsSystem struct {
 	eventBus     *event.Dispatcher
 	sceneManager *scene.Manager
@@ -32,6 +39,11 @@ type PhysicsSystem struct {
 	bspRigidBody               *bspCollisionMesh
 	displacementRigidBody      *displacementCollisionMesh
 	studiomodelCollisionMeshes map[string]studiomodelCollisionMesh
+
+	// Everything made for the current level, which is destroyed with it
+	rigidBodies []bullet.BulletRigidBodyHandle
+	shapes      []bullet.BulletCollisionShapeHandle
+	entities    []ecs.Entity
 
 	// Player physics (Phase 4: ECS entity only, no legacy player)
 	playerEntity       interface{} // ECS player entity (ecs.Entity stored as interface{})
@@ -283,6 +295,9 @@ func (system *PhysicsSystem) onChangeLevelTyped(e messages.ChangeLevelEvent) {
 }
 
 func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelParsedEvent) {
+	// Never leave a previous level's world behind
+	system.Cleanup()
+
 	system.dataScene = e.Level
 
 	// create an sdk handle
@@ -296,19 +311,22 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 	// Generate BSP Rigidbody
 	console.PrintString(console.LevelInfo, "BSP collision structure...")
 	system.bspRigidBody = generateBspCollisionMesh(system.dataScene)
-	bullet.BulletAddRigidBody(system.world, system.bspRigidBody.RigidBodyHandles)
+	system.shapes = append(system.shapes, system.bspRigidBody.compoundShape)
+	system.shapes = append(system.shapes, system.bspRigidBody.brushShapes...)
+	system.addRigidBody(system.bspRigidBody.RigidBodyHandles)
 
 	// Generate Displacement RigidBodies
 	console.PrintString(console.LevelInfo, "Displacement collision structures...")
 	system.displacementRigidBody = generateDisplacementCollisionMeshes(system.dataScene)
 	if system.displacementRigidBody != nil {
-		bullet.BulletAddRigidBody(system.world, system.displacementRigidBody.RigidBodyHandles)
+		system.shapes = append(system.shapes, system.displacementRigidBody.childShapeHandles)
+		system.addRigidBody(system.displacementRigidBody.RigidBodyHandles)
 	}
 
 	// Generate Staticprop RigidBodies
 	console.PrintString(console.LevelInfo, "Static prop collision structures...")
 	for _, e := range system.dataScene.StaticProps {
-		system.prepareModelInstanceRigidBody(e.Model(), e.Transform.TransformationMatrix(), true)
+		system.prepareModelInstanceRigidBody(e.Model(), e.Transform.TransformationMatrix(), e.Solid(), true)
 	}
 
 	// Find entities that have a model
@@ -323,7 +341,13 @@ func (system *PhysicsSystem) onLoadingLevelParsedTyped(e messages.LoadingLevelPa
 			if strings.HasPrefix(e.Classname(), "prop_physics") {
 				disableMotion = false
 			}
-			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), disableMotion)
+			// prop_dynamic collides as its solid key says, so is not solid without one. Every other prop, such as
+			// prop_physics and prop_door_rotating, always uses its collision model.
+			solid := solidVPhysics
+			if strings.HasPrefix(e.Classname(), "prop_dynamic") {
+				solid = e.IntForKey("solid")
+			}
+			system.prepareModelInstanceRigidBody(e.Model(), e.Transform().TransformationMatrix(), solid, disableMotion)
 
 			// Phase 1: Create ECS entity directly with RigidBody handle
 			system.createECSEntityFromLegacy(e)
@@ -346,6 +370,7 @@ func (system *PhysicsSystem) createECSEntityFromLegacy(legacyEntity interface{})
 
 	// Create new ECS entity
 	entity := system.ecsWorld.CreateEntity()
+	system.entities = append(system.entities, entity)
 
 	// Add Transform component from legacy entity
 	legacyTransform := e.Transform()
@@ -386,26 +411,18 @@ func (system *PhysicsSystem) createECSEntityFromLegacy(legacyEntity interface{})
 	return entity
 }
 
-func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, isStatic bool) {
+func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInstance, initialTransformation mgl32.Mat4, solid int, isStatic bool) {
+	shape, ok := system.modelCollisionShape(model.Model, solid)
+	if !ok {
+		return
+	}
+
 	mass := float32(0)
 	if isStatic == false {
 		mass = model.Model.OriginalStudiomodel.Mdl.Header.Mass
 	}
 
-	// Prepare Bullet environment for collision meshes
-	if model.Model.OriginalStudiomodel.Phy != nil {
-		// We have an actual source engine .phy collision model
-		if _, ok := system.studiomodelCollisionMeshes[model.Model.Id]; !ok {
-			system.studiomodelCollisionMeshes[model.Model.Id] = generateCollisionMeshFromStudiomodelPhy(model.Model.OriginalStudiomodel.Phy)
-		}
-		model.RigidBody = collision.NewConvexHullFromExistingShape(
-			mass,
-			system.studiomodelCollisionMeshes[model.Model.Id].compoundShapeHandle)
-	} else {
-		// Fall back to generating one
-		model.RigidBody = collision.NewSphericalHull(4)
-	}
-
+	model.RigidBody = collision.NewConvexHullFromExistingShape(mass, shape)
 	model.RigidBody.SetTransform(initialTransformation)
 
 	// For dynamic objects (mass > 0), start in sleeping state to prevent
@@ -415,7 +432,51 @@ func (system *PhysicsSystem) prepareModelInstanceRigidBody(model *mesh.ModelInst
 		bullet.BulletForceActivationState(model.RigidBody.BulletHandle(), bullet.ActivationStateIslandSleeping)
 	}
 
-	bullet.BulletAddRigidBody(system.world, model.RigidBody.BulletHandle())
+	system.addRigidBody(model.RigidBody.BulletHandle())
+}
+
+// modelCollisionShape returns the shape the engine would give a model of a solid type, or false if it is not solid
+func (system *PhysicsSystem) modelCollisionShape(model *mesh.Model, solid int) (bullet.BulletCollisionShapeHandle, bool) {
+	switch solid {
+	case solidNone:
+		return bullet.BulletCollisionShapeHandle{}, false
+	case solidBBox:
+		// The bounding box is the model's hull, set by $bbox
+		mins := model.OriginalStudiomodel.Mdl.Header.HullMin
+		maxs := model.OriginalStudiomodel.Mdl.Header.HullMax
+		shape := bullet.BulletNewBrushShape([]mgl32.Vec3{
+			{mins.X(), mins.Y(), mins.Z()},
+			{maxs.X(), mins.Y(), mins.Z()},
+			{mins.X(), maxs.Y(), mins.Z()},
+			{maxs.X(), maxs.Y(), mins.Z()},
+			{mins.X(), mins.Y(), maxs.Z()},
+			{maxs.X(), mins.Y(), maxs.Z()},
+			{mins.X(), maxs.Y(), maxs.Z()},
+			{maxs.X(), maxs.Y(), maxs.Z()},
+		})
+		system.shapes = append(system.shapes, shape)
+		return shape, true
+	}
+
+	// Anything else collides with the model's collision model, without which the engine makes it not solid
+	if model.OriginalStudiomodel.Phy == nil {
+		console.PrintString(console.LevelWarning, fmt.Sprintf("%s has no collision model, so is not solid", model.Id))
+		return bullet.BulletCollisionShapeHandle{}, false
+	}
+	collisionMesh, ok := system.studiomodelCollisionMeshes[model.Id]
+	if !ok {
+		collisionMesh = generateCollisionMeshFromStudiomodelPhy(model.OriginalStudiomodel.Phy)
+		system.studiomodelCollisionMeshes[model.Id] = collisionMesh
+		system.shapes = append(system.shapes, collisionMesh.compoundShapeHandle)
+		system.shapes = append(system.shapes, collisionMesh.parts...)
+	}
+	return collisionMesh.compoundShapeHandle, true
+}
+
+// addRigidBody adds a body to the world, to be destroyed along with it
+func (system *PhysicsSystem) addRigidBody(body bullet.BulletRigidBodyHandle) {
+	bullet.BulletAddRigidBody(system.world, body)
+	system.rigidBodies = append(system.rigidBodies, body)
 }
 
 // RegisterPlayer stores the ECS player entity for physics initialization.
@@ -474,6 +535,7 @@ func (system *PhysicsSystem) initializeCharacterControllers() {
 			entity, charController.Radius, capsuleHeight, charController.Height, charController.StepHeight))
 
 		capsuleShape := bullet.BulletNewCapsuleShapeZ(float64(charController.Radius), capsuleHeight)
+		system.shapes = append(system.shapes, capsuleShape)
 
 		// Create CharacterController
 		controller := collision.NewCharacterController(
@@ -490,54 +552,51 @@ func (system *PhysicsSystem) initializeCharacterControllers() {
 	}
 }
 
+// Cleanup destroys the current level's physics world, and everything in it
 func (system *PhysicsSystem) Cleanup() {
 	if system.dataScene == nil {
 		return
 	}
 
-	// Phase 4: Component-based cleanup - Delete rigid bodies from Physics components
-	query := system.ecsWorld.Query().
-		With(ecs.ComponentTypePhysics).
-		Build()
-
-	for _, entity := range query.Entities() {
-		physics, ok := ecs.GetComponent[components.Physics](system.ecsWorld, entity)
-		if !ok || !physics.HasRigidBody() {
-			continue
-		}
-
-		rigidBody := physics.GetRigidBodyHandle().(collision.RigidBody)
-		bullet.BulletDeleteRigidBody(rigidBody.BulletHandle())
+	// Drop every reference to the world's Bullet objects first, so nothing can use them once they are destroyed
+	for _, entity := range system.entities {
+		system.ecsWorld.DestroyEntity(entity)
 	}
 
-	// Cleanup CharacterControllers (including player)
 	charQuery := system.ecsWorld.Query().
 		With(ecs.ComponentTypeCharacterController).
 		Build()
 
 	for _, entity := range charQuery.Entities() {
-		charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, entity)
-		if !ok || !charController.HasController() {
-			continue
+		if charController, ok := ecs.GetComponent[components.CharacterController](system.ecsWorld, entity); ok {
+			charController.SetController(nil)
 		}
-
-		// CharacterController cleanup (if needed in future)
-		// Currently CharacterController doesn't allocate external resources
-		// Bullet capsule shapes are cleaned up with the world
 	}
 
-	// Cleanup BSP and displacement collision meshes
-	bullet.BulletDeleteRigidBody(system.bspRigidBody.RigidBodyHandles)
-
-	if system.displacementRigidBody != nil {
-		bullet.BulletDeleteRigidBody(system.displacementRigidBody.RigidBodyHandles)
+	for _, e := range system.dataScene.Entities {
+		if e.Model() != nil {
+			e.Model().RigidBody = nil
+		}
 	}
 
-	// Cleanup Bullet world
+	// Bodies must leave the world before it is destroyed, and shapes must outlive the bodies using them
+	for _, body := range system.rigidBodies {
+		bullet.BulletRemoveRigidBody(system.world, body)
+	}
 	bullet.BulletDeleteDynamicWorld(system.world)
+	for _, body := range system.rigidBodies {
+		bullet.BulletDeleteRigidBody(body)
+	}
+	for _, shape := range system.shapes {
+		bullet.BulletDeleteShape(shape)
+	}
 	bullet.BulletDeletePhysicsSDK(system.sdk)
 
 	// Clear state
+	system.rigidBodies = nil
+	system.shapes = nil
+	system.entities = nil
+	system.studiomodelCollisionMeshes = map[string]studiomodelCollisionMesh{}
 	system.playerCapsuleShape = bullet.BulletCollisionShapeHandle{}
 	system.playerEntity = nil
 	system.dataScene = nil

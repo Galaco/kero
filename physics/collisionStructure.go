@@ -16,10 +16,10 @@ import (
 )
 
 type bspCollisionMesh struct {
-	vertices          []mgl32.Vec3
-	brushShapes       []bullet.BulletCollisionShapeHandle
-	compoundShape     bullet.BulletCollisionShapeHandle
-	RigidBodyHandles  bullet.BulletRigidBodyHandle
+	vertices         []mgl32.Vec3
+	brushShapes      []bullet.BulletCollisionShapeHandle
+	compoundShape    bullet.BulletCollisionShapeHandle
+	RigidBodyHandles bullet.BulletRigidBodyHandle
 }
 
 func generateBspCollisionMesh(scene *scene.StaticScene) *bspCollisionMesh {
@@ -119,6 +119,10 @@ func generateDisplacementCollisionMeshes(scene *scene.StaticScene) *displacement
 			meshVerts[i*3+1],
 			meshVerts[i*3+2],
 		}
+	}
+
+	if len(indices) == 0 || vertexCount == 0 {
+		return nil
 	}
 
 	// Create triangle mesh shape - indices/3 gives triangle count

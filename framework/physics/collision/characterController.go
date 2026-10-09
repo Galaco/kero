@@ -214,8 +214,8 @@ func (cc *CharacterController) slideMove(currentPos, desiredMove mgl32.Vec3, fir
 	return MoveResult{
 		FinalPosition: finalPos,
 		OnGround:      cc.CheckGround(finalPos),
-		HitWall:       isWall,              // Only true for actual walls, not slopes
-		WallNormal:    firstHit.HitNormal,  // Store normal for wall sliding
+		HitWall:       isWall,             // Only true for actual walls, not slopes
+		WallNormal:    firstHit.HitNormal, // Store normal for wall sliding
 	}
 }
 

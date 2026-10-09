@@ -15,6 +15,7 @@ type StaticProp struct {
 	fadeMinDistance float32
 	fadeMaxDistance float32
 	skin            int
+	solid           int
 	model           mesh.ModelInstance
 }
 
@@ -31,6 +32,11 @@ func (prop *StaticProp) LeafList() []uint16 {
 // Skin returns the skin the prop is drawn with
 func (prop *StaticProp) Skin() int {
 	return prop.skin
+}
+
+// Solid returns how the prop collides, as the engine's SOLID_ types
+func (prop *StaticProp) Solid() int {
+	return prop.solid
 }
 
 func (prop *StaticProp) FadeMinDistance() float32 {
@@ -117,6 +123,7 @@ func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticProp
 	prop.fadeMinDistance = lumpProp.GetFadeMinDist()
 	prop.fadeMaxDistance = lumpProp.GetFadeMaxDist()
 	prop.skin = int(lumpProp.GetSkin())
+	prop.solid = int(lumpProp.GetSolid())
 
 	return &prop
 }

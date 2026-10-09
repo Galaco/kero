@@ -57,19 +57,7 @@ struct	btPhysicsSdk
 //	btOverlappingPairCache*		m_pairCache;
 //	btConstraintSolver*			m_constraintSolver
 
-	btVector3	m_worldAabbMin;
-	btVector3	m_worldAabbMax;
-
-
 	//todo: version, hardware/optimization settings etc?
-	btPhysicsSdk()
-		:m_worldAabbMin(-1000,-1000,-1000),
-		m_worldAabbMax(1000,1000,1000)
-	{
-
-	}
-
-	
 };
 
 plPhysicsSdkHandle	plNewBulletSdk()
@@ -88,13 +76,14 @@ void		plDeletePhysicsSdk(plPhysicsSdkHandle	physicsSdk)
 /* Dynamics World */
 plDynamicsWorldHandle plCreateDynamicsWorld(plPhysicsSdkHandle physicsSdkHandle)
 {
-	btPhysicsSdk* physicsSdk = reinterpret_cast<btPhysicsSdk*>(physicsSdkHandle);
+	(void)physicsSdkHandle;
 	void* mem = btAlignedAlloc(sizeof(btDefaultCollisionConfiguration),16);
 	btDefaultCollisionConfiguration* collisionConfiguration = new (mem)btDefaultCollisionConfiguration();
 	mem = btAlignedAlloc(sizeof(btCollisionDispatcher),16);
 	btDispatcher*				dispatcher = new (mem)btCollisionDispatcher(collisionConfiguration);
-	mem = btAlignedAlloc(sizeof(btAxisSweep3),16);
-	btBroadphaseInterface*		pairCache = new (mem)btAxisSweep3(physicsSdk->m_worldAabbMin,physicsSdk->m_worldAabbMax);
+	// A dynamic AABB tree fits itself to the world, so unlike a sweep and prune broadphase it needs no world bounds
+	mem = btAlignedAlloc(sizeof(btDbvtBroadphase),16);
+	btBroadphaseInterface*		pairCache = new (mem)btDbvtBroadphase();
 	mem = btAlignedAlloc(sizeof(btSequentialImpulseConstraintSolver),16);
 	btConstraintSolver*			constraintSolver = new(mem) btSequentialImpulseConstraintSolver();
 
@@ -103,9 +92,25 @@ plDynamicsWorldHandle plCreateDynamicsWorld(plPhysicsSdkHandle physicsSdkHandle)
 }
 void           plDeleteDynamicsWorld(plDynamicsWorldHandle world)
 {
-	//todo: also clean up the other allocations, axisSweep, pairCache,dispatcher,constraintSolver,collisionConfiguration
+	// The world was created with its own dispatcher, broadphase, solver and collision configuration, so they go with it.
+	// Any rigid bodies still in the world must still exist, as its destructor removes them from the broadphase.
 	btDynamicsWorld* dynamicsWorld = reinterpret_cast< btDynamicsWorld* >(world);
+	btAssert(dynamicsWorld);
+	btCollisionDispatcher* dispatcher = static_cast<btCollisionDispatcher*>(dynamicsWorld->getDispatcher());
+	btCollisionConfiguration* collisionConfiguration = dispatcher->getCollisionConfiguration();
+	btBroadphaseInterface* pairCache = dynamicsWorld->getBroadphase();
+	btConstraintSolver* constraintSolver = dynamicsWorld->getConstraintSolver();
+
+	dynamicsWorld->~btDynamicsWorld();
 	btAlignedFree(dynamicsWorld);
+	constraintSolver->~btConstraintSolver();
+	btAlignedFree(constraintSolver);
+	pairCache->~btBroadphaseInterface();
+	btAlignedFree(pairCache);
+	dispatcher->~btCollisionDispatcher();
+	btAlignedFree(dispatcher);
+	collisionConfiguration->~btCollisionConfiguration();
+	btAlignedFree(collisionConfiguration);
 }
 
 void	plStepSimulation(plDynamicsWorldHandle world,	plReal	timeStep)
@@ -160,6 +165,7 @@ void plDeleteRigidBody(plRigidBodyHandle cbody)
 {
 	btRigidBody* body = reinterpret_cast< btRigidBody* >(cbody);
 	btAssert(body);
+	body->~btRigidBody();
 	btAlignedFree( body);
 }
 
@@ -276,7 +282,19 @@ void plDeleteShape(plCollisionShapeHandle cshape)
 {
 	btCollisionShape* shape = reinterpret_cast<btCollisionShape*>( cshape);
 	btAssert(shape);
+	// Triangle mesh shapes are only made by plNewBvhTriangleMeshShape, which gives each its own mesh
+	btStridingMeshInterface* mesh = 0;
+	if (shape->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)
+	{
+		mesh = static_cast<btBvhTriangleMeshShape*>(shape)->getMeshInterface();
+	}
+	shape->~btCollisionShape();
 	btAlignedFree(shape);
+	if (mesh)
+	{
+		mesh->~btStridingMeshInterface();
+		btAlignedFree(mesh);
+	}
 }
 void plSetScaling(plCollisionShapeHandle cshape, plVector3 cscaling)
 {
