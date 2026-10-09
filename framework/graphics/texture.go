@@ -265,6 +265,11 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 
 	badCounter := 0
 	for idx, box := range atlas.rectangles {
+		// An empty box, such as an unlit face's, takes no space
+		if box.W == 0 || box.H == 0 {
+			packed[idx] = AtlasTexture{colour: box.colour, id: box.id}
+			continue
+		}
 		// look through spaces backwards so that we check smaller spaces first
 		for i := len(spaces) - 1; i >= 0; i-- {
 			space := &(spaces[i])
@@ -319,14 +324,16 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 				// |_______|___________|
 				// | updated space     |
 				// |___________________|
-				spaces = append(spaces, atlasSpace{
+				newSpace := atlasSpace{
 					x: space.x + (box.W + padding),
 					y: space.y,
 					w: space.w - (box.W + padding),
 					h: box.H + padding,
-				})
+				}
+				// Update the space before appending: append can move spaces, leaving space pointing at the old copy
 				space.y += box.H + padding
 				space.h -= box.H + padding
+				spaces = append(spaces, newSpace)
 			}
 			break
 		}
