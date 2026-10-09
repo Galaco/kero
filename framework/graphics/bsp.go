@@ -105,6 +105,45 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 	return uvs
 }
 
+// DisplacementLightmapCoords creates lightmap coordinates for a displacement's vertices. A displacement's lightmap
+// covers its grid evenly, from the luxel centre at its start corner to the luxel centre at the opposite corner, however
+// the displacement is shaped.
+func DisplacementLightmapCoords(vertices []DisplacementVertex,
+	faceInfo *face.Face,
+	tx *texinfo.TexInfo,
+	lightmapWidth float32,
+	lightmapHeight float32,
+	lightmapOffsetX float32,
+	lightmapOffsetY float32) []float32 {
+	uvs := make([]float32, len(vertices)*2)
+
+	// 0x00000001 = SURFDRAW_NOLIGHT
+	if tx.Flags&0x00000001 != 0 {
+		for idx := range vertices {
+			uvs[(idx*2)+0] = 0.5
+			uvs[(idx*2)+1] = 0.5
+		}
+		return uvs
+	}
+
+	for idx, vertex := range vertices {
+		uvs[(idx*2)+0] = (lightmapOffsetX + 0.5 + vertex.Grid.X()*float32(faceInfo.LightmapTextureSizeInLuxels[0])) / lightmapWidth
+		uvs[(idx*2)+1] = (lightmapOffsetY + 0.5 + vertex.Grid.Y()*float32(faceInfo.LightmapTextureSizeInLuxels[1])) / lightmapHeight
+	}
+
+	return uvs
+}
+
+// DisplacementVertex is where a displacement's vertex is on the face the displacement is built from
+type DisplacementVertex struct {
+	// Base is the vertex's position on the face, before it is displaced. Texture coordinates are mapped from it, so a
+	// displacement's texture stretches with its shape as it does in the engine.
+	Base mgl32.Vec3
+	// Grid is the vertex's position across the face, from 0 to 1 along each edge from the start corner: X towards the
+	// corner before it, Y towards the corner after it
+	Grid mgl32.Vec2
+}
+
 // Bsp
 type Bsp struct {
 	file *bsp.Bsp
@@ -202,6 +241,8 @@ type BspFace struct {
 	material string
 	texInfo  *texinfo.TexInfo
 	bspFace  *face.Face
+	// displacementVertices describes each of a displacement's vertices; it is nil for other faces
+	displacementVertices []DisplacementVertex
 }
 
 // Offset
@@ -228,6 +269,16 @@ func (face *BspFace) TexInfo() *texinfo.TexInfo {
 
 func (face *BspFace) RawFace() *face.Face {
 	return face.bspFace
+}
+
+// DisplacementVertices describes each of a displacement's vertices, in the order they are in the mesh. It is nil for
+// other faces.
+func (face *BspFace) DisplacementVertices() []DisplacementVertex {
+	return face.displacementVertices
+}
+
+func (face *BspFace) SetDisplacementVertices(vertices []DisplacementVertex) {
+	face.displacementVertices = vertices
 }
 
 // NewFace

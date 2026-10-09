@@ -229,19 +229,22 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 				tex = texCache.Find(level.MaterialDictionary()[bspFace.Material()].BaseTextureName)
 			}
 		}
-		// Generate texture coordinates for displacement mesh
+		// Texture coordinates are mapped from the face the displacement is built from, not the displaced vertices
+		basePositions := make([]float32, 0, len(bspFace.DisplacementVertices())*3)
+		for _, v := range bspFace.DisplacementVertices() {
+			basePositions = append(basePositions, v.Base.X(), v.Base.Y(), v.Base.Z())
+		}
 		level.DisplacementMesh().AddUV(
 			graphics.TexCoordsForFaceFromTexInfo(
-				level.DisplacementMesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+				basePositions,
 				bspFace.TexInfo(),
 				tex.Width(),
 				tex.Height())...)
 
-		// LightmapCoordsForFaceFromTexInfo
 		if level.LightmapAtlas() != nil {
 			level.DisplacementMesh().AddLightmapUV(
-				graphics.LightmapCoordsForFaceFromTexInfo(
-					level.DisplacementMesh().Vertices()[bspFace.Offset()*3:(bspFace.Offset()*3)+(bspFace.Length()*3)],
+				graphics.DisplacementLightmapCoords(
+					bspFace.DisplacementVertices(),
 					bspFace.RawFace(),
 					bspFace.TexInfo(),
 					float32(level.LightmapAtlas().Width()),

@@ -340,6 +340,7 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 
 	offset := int32(len(bspMesh.Vertices())) / 3
 	length := int32(0)
+	onFace := make([]graphics.DisplacementVertex, 0, size*size*6)
 
 	for surfId := f.FirstEdge; surfId < f.FirstEdge+int32(f.NumEdges); surfId++ {
 		surfEdge := bspStructure.surfEdges[surfId]
@@ -368,10 +369,10 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 			idxD := int(info.DispVertStart) + (x + 1) + y*(size+1)
 
 			// Generate vertex positions
-			a := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
-			b := generateDispVert(int(info.DispVertStart), x, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
-			c := generateDispVert(int(info.DispVertStart), x+1, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
-			d := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
+			a, aOnFace := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
+			b, bOnFace := generateDispVert(int(info.DispVertStart), x, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
+			c, cOnFace := generateDispVert(int(info.DispVertStart), x+1, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
+			d, dOnFace := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
 
 			// Get blend alpha from DispVert for 2-texture blending
 			// Alpha ranges from 0-255, normalize to 0.0-1.0
@@ -399,16 +400,19 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 			bspMesh.AddBlendWeight(alphaA)
 			bspMesh.AddBlendWeight(alphaC)
 			bspMesh.AddBlendWeight(alphaD)
+			onFace = append(onFace, aOnFace, bOnFace, cOnFace, aOnFace, cOnFace, dOnFace)
 
 			length += 6 // 6 b/c quad = 2*triangle
 		}
 	}
 
-	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
+	dispFace := graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
+	dispFace.SetDisplacementVertices(onFace)
+	return dispFace
 }
 
-// generateDispVert Create a displacement vertex
-func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, firstCorner int32, dispVerts *[]dispvert.DispVert) mgl32.Vec3 {
+// generateDispVert returns the position of the displacement vertex at x,y in its grid, and where it is on the face
+func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, firstCorner int32, dispVerts *[]dispvert.DispVert) (mgl32.Vec3, graphics.DisplacementVertex) {
 	vert := (*dispVerts)[offset+x+y*(size+1)]
 
 	tx := float32(x) / float32(size)
@@ -423,7 +427,7 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 
 	origin := ((cornerB.Mul(sx).Add(cornerC.Mul(tx))).Mul(ty)).Add((cornerA.Mul(sx).Add(cornerD.Mul(tx))).Mul(sy))
 
-	return origin.Add(vert.Vec.Mul(vert.Dist))
+	return origin.Add(vert.Vec.Mul(vert.Dist)), graphics.DisplacementVertex{Base: origin, Grid: mgl32.Vec2{tx, ty}}
 }
 
 func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
