@@ -17,6 +17,7 @@ import (
 	"github.com/galaco/bsp/lump/primitive/dispvert"
 	"github.com/galaco/bsp/lump/primitive/face"
 	"github.com/galaco/bsp/lump/primitive/plane"
+	"github.com/galaco/bsp/lump/primitive/texdata"
 	"github.com/galaco/bsp/lump/primitive/texinfo"
 	"github.com/galaco/kero/framework/console"
 	"github.com/galaco/kero/framework/entity"
@@ -146,6 +147,7 @@ type bspstructs struct {
 	surfEdges   []int32
 	edges       [][2]uint16
 	texInfos    []texinfo.TexInfo
+	texDatas    []texdata.TexData
 	dispInfos   []dispinfo.DispInfo
 	dispVerts   []dispvert.DispVert
 	lightmap    []common.ColorRGBExponent32
@@ -166,6 +168,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 		surfEdges:   file.Lumps[bsp.LumpSurfEdges].(*lump.Surfedge).Data,
 		edges:       file.Lumps[bsp.LumpEdges].(*lump.Edge).Data,
 		texInfos:    file.Lumps[bsp.LumpTexInfo].(*lump.TexInfo).Data,
+		texDatas:    file.Lumps[bsp.LumpTexData].(*lump.TexData).Data,
 		dispInfos:   file.Lumps[bsp.LumpDispInfo].(*lump.DispInfo).Data,
 		dispVerts:   file.Lumps[bsp.LumpDispVerts].(*lump.DispVert).Data,
 		lightmap:    file.Lumps[bsp.LumpLighting].(*lump.Lighting).Data,
@@ -176,7 +179,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	stringTable := stringtable.NewFromExistingStringTableData(
 		file.Lumps[bsp.LumpTexDataStringData].(*lump.TexDataStringData).Data,
 		file.Lumps[bsp.LumpTexDataStringTable].(*lump.TexDataStringTable).Data)
-	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos)
+	materials := buildUniqueMaterialList(stringTable, &bspStructure.texInfos, bspStructure.texDatas)
 
 	materialDictionary := buildMaterialDictionary(fs, materials)
 
@@ -210,7 +213,7 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 			bspFaces[idx] = generateBspFace(&bspStructure.faces[idx], &bspStructure, bspMesh)
 		}
 
-		faceVmt, err := stringTable.FindString(int(bspStructure.texInfos[bspStructure.faces[idx].TexInfo].TexData))
+		faceVmt, err := materialName(stringTable, bspStructure.texDatas, &bspStructure.texInfos[bspStructure.faces[idx].TexInfo])
 		if err != nil {
 			console.PrintInterface(console.LevelError, err)
 		} else {
@@ -227,10 +230,10 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 
 // SortUnique builds a unique list of materials in a StringTable
 // referenced by BSP TexInfo lump data.
-func buildUniqueMaterialList(stringTable *stringtable.StringTable, texInfos *[]texinfo.TexInfo) []string {
+func buildUniqueMaterialList(stringTable *stringtable.StringTable, texInfos *[]texinfo.TexInfo, texDatas []texdata.TexData) []string {
 	materialList := make([]string, 0)
 	for _, ti := range *texInfos {
-		target, _ := stringTable.FindString(int(ti.TexData))
+		target, _ := materialName(stringTable, texDatas, &ti)
 		found := false
 		for _, cur := range materialList {
 			if cur == target {
@@ -244,6 +247,15 @@ func buildUniqueMaterialList(stringTable *stringtable.StringTable, texInfos *[]t
 	}
 
 	return materialList
+}
+
+// materialName resolves the material name of a TexInfo. TexInfo references
+// a TexData entry, which in turn references the material name in the StringTable.
+func materialName(stringTable *stringtable.StringTable, texDatas []texdata.TexData, ti *texinfo.TexInfo) (string, error) {
+	if ti.TexData < 0 || int(ti.TexData) >= len(texDatas) {
+		return "", fmt.Errorf("texdata index %d out of range", ti.TexData)
+	}
+	return stringTable.FindString(int(texDatas[ti.TexData].NameStringTableID))
 }
 
 func buildMaterialDictionary(fs filesystem.FileSystem, materials []string) (dictionary map[string]*graphics.Material) {

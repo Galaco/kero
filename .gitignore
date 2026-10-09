@@ -7,3 +7,5 @@ qtbox
 # Misc
 depgraph.png
 .DS_Store
+
+test_data/
