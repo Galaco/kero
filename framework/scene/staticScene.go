@@ -246,7 +246,6 @@ func LoadStaticSceneFromBsp(fs fileSystem,
 				graphics.DisplacementLightmapCoords(
 					bspFace.DisplacementVertices(),
 					bspFace.RawFace(),
-					bspFace.TexInfo(),
 					float32(level.LightmapAtlas().Width()),
 					float32(level.LightmapAtlas().Height()),
 					level.LightmapAtlas().AtlasEntry(idx).X,

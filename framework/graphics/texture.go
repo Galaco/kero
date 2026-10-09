@@ -291,7 +291,7 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 
 	badCounter := 0
 	for idx, box := range atlas.rectangles {
-		// An empty box, such as an unlit face's, takes no space
+		// An empty box takes no space
 		if box.W == 0 || box.H == 0 {
 			packed[idx] = AtlasTexture{colour: box.colour, id: box.id}
 			continue

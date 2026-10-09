@@ -62,19 +62,11 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 	tOffset := lightmapOffsetY * tScale
 	tScale = float32(faceInfo.LightmapTextureSizeInLuxels[1] + 1) * tScale
 
-	// 0x00000001 = SURFDRAW_NOLIGHT
-	if tx.Flags&0x00000001 != 0 {
+	// A face without lightmap samples has a single luxel
+	if faceInfo.Lightofs == -1 {
 		for idx := 0; idx < len(vertexes)/3; idx++ {
-			uvs[(idx*2)+0] = 0.5
-			uvs[(idx*2)+1] = 0.5
-		}
-		return uvs
-	}
-
-	if faceInfo.LightmapTextureSizeInLuxels[0] == 0 {
-		for idx := 0; idx < len(vertexes)/3; idx++ {
-			uvs[(idx*2)+0] = sOffset
-			uvs[(idx*2)+1] = tOffset
+			uvs[(idx*2)+0] = (lightmapOffsetX + 0.5) / lightmapWidth
+			uvs[(idx*2)+1] = (lightmapOffsetY + 0.5) / lightmapHeight
 		}
 		return uvs
 	}
@@ -115,25 +107,21 @@ const LightmapPages = 4
 // the displacement is shaped.
 func DisplacementLightmapCoords(vertices []DisplacementVertex,
 	faceInfo *face.Face,
-	tx *texinfo.TexInfo,
 	lightmapWidth float32,
 	lightmapHeight float32,
 	lightmapOffsetX float32,
 	lightmapOffsetY float32) []float32 {
 	uvs := make([]float32, len(vertices)*2)
 
-	// 0x00000001 = SURFDRAW_NOLIGHT
-	if tx.Flags&0x00000001 != 0 {
-		for idx := range vertices {
-			uvs[(idx*2)+0] = 0.5
-			uvs[(idx*2)+1] = 0.5
-		}
-		return uvs
+	// A displacement without lightmap samples has a single luxel
+	size := mgl32.Vec2{float32(faceInfo.LightmapTextureSizeInLuxels[0]), float32(faceInfo.LightmapTextureSizeInLuxels[1])}
+	if faceInfo.Lightofs == -1 {
+		size = mgl32.Vec2{}
 	}
 
 	for idx, vertex := range vertices {
-		uvs[(idx*2)+0] = (lightmapOffsetX + 0.5 + vertex.Grid.X()*float32(faceInfo.LightmapTextureSizeInLuxels[0])) / lightmapWidth
-		uvs[(idx*2)+1] = (lightmapOffsetY + 0.5 + vertex.Grid.Y()*float32(faceInfo.LightmapTextureSizeInLuxels[1])) / lightmapHeight
+		uvs[(idx*2)+0] = (lightmapOffsetX + 0.5 + vertex.Grid.X()*size.X()) / lightmapWidth
+		uvs[(idx*2)+1] = (lightmapOffsetY + 0.5 + vertex.Grid.Y()*size.Y()) / lightmapHeight
 	}
 
 	return uvs

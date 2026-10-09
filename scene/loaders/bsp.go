@@ -419,13 +419,29 @@ func generateLightmapTexture(faces []face.Face, texInfos []texinfo.TexInfo, samp
 	return lightMapAtlas
 }
 
-// surfBumpLight is the texinfo flag of a face lit for bump mapping
-const surfBumpLight = 0x800
+const (
+	// surfNoLight is the texinfo flag of a face that the map's lighting doesn't light, such as one whose material
+	// doesn't use a lightmap
+	surfNoLight = 0x400
+	// surfBumpLight is the texinfo flag of a face lit for bump mapping
+	surfBumpLight = 0x800
+)
 
 // lightmapFromFace returns a face's lightmap for each page of the lightmap atlas, as RGBA colour one page after another
 func lightmapFromFace(f *face.Face, tx *texinfo.TexInfo, samples []common.ColorRGBExponent32) (width int, height int, colour []uint8) {
+	// A face without samples has a single luxel. The engine lights a face that isn't meant to be lit fully, as its
+	// material would draw it without a lightmap. VRAD leaves out the samples of any other face that no light reaches,
+	// which is unlit.
 	if f.Lightofs == -1 {
-		return 0, 0, nil
+		luxel := uint8(0)
+		if tx.Flags&surfNoLight != 0 {
+			luxel = linearToLightmap[1024]
+		}
+		colour = make([]uint8, 4*graphics.LightmapPages)
+		for page := 0; page < graphics.LightmapPages; page++ {
+			colour[page*4], colour[page*4+1], colour[page*4+2], colour[page*4+3] = luxel, luxel, luxel, 255
+		}
+		return 1, 1, colour
 	}
 
 	width = int(f.LightmapTextureSizeInLuxels[0] + 1)

@@ -193,8 +193,21 @@ func TestLightmapFromFace(t *testing.T) {
 		}
 	}
 
-	// A face that isn't lit has no lightmap
-	if width, height, colour = lightmapFromFace(&face.Face{Lightofs: -1}, &texinfo.TexInfo{}, samples); width != 0 || height != 0 || len(colour) != 0 {
-		t.Errorf("unlit face: got a %dx%d lightmap of %d bytes, want none", width, height, len(colour))
+	// A face without samples has a single luxel in every page: fully lit if it isn't meant to be lit, and unlit if no
+	// light reached it
+	for _, c := range []struct {
+		name  string
+		flags int32
+		luxel uint8
+	}{{"a face that isn't lit", surfNoLight, 128}, {"a face no light reached", 0, 0}} {
+		width, height, colour = lightmapFromFace(&face.Face{Lightofs: -1}, &texinfo.TexInfo{Flags: c.flags}, samples)
+		if width != 1 || height != 1 || len(colour) != 4*graphics.LightmapPages {
+			t.Fatalf("%s: got a %dx%d lightmap of %d bytes, want 1x1 in %d pages", c.name, width, height, len(colour), graphics.LightmapPages)
+		}
+		for page := 0; page < graphics.LightmapPages; page++ {
+			if got, want := colour[page*4:page*4+4], []uint8{c.luxel, c.luxel, c.luxel, 255}; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: page %d is %v, want %v", c.name, page, got, want)
+			}
+		}
 	}
 }
