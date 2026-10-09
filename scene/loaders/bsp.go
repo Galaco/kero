@@ -323,7 +323,7 @@ func generateBspFace(f *face.Face, bspStructure *bspstructs, bspMesh *mesh.Basic
 		}
 	}
 
-	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
+	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
 }
 
 // generateDisplacementFace Create Primitive from Displacement face
@@ -404,7 +404,7 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 		}
 	}
 
-	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f)
+	return graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
 }
 
 // generateDispVert Create a displacement vertex

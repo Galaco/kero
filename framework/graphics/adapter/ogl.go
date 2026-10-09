@@ -278,24 +278,26 @@ func UpdateInstanceBuffer(vbo uint32, data []float32) {
 	gl.BufferSubData(gl.ARRAY_BUFFER, 0, sizeInBytes, gl.Ptr(data))
 }
 
-// SetupInstanceAttributes configures vertex attributes for instanced rendering with fade
+// SetupInstanceAttributes configures vertex attributes for instanced rendering with fade, so that the first instance
+// drawn uses the data of instance firstInstance in the buffer
 // Must be called after BindMesh, before drawing
-func SetupInstanceAttributes(instanceVBO uint32) {
+func SetupInstanceAttributes(instanceVBO uint32, firstInstance int) {
 	gl.BindBuffer(gl.ARRAY_BUFFER, instanceVBO)
 
 	stride := 18 * 4 // 72 bytes (16 floats for mat4 + 2 floats for fade min/max)
+	base := firstInstance * stride
 
 	// mat4 model matrix (locations 5-8, one vec4 per column)
 	for i := uint32(0); i < 4; i++ {
 		loc := 5 + i
 		gl.EnableVertexAttribArray(loc)
-		gl.VertexAttribPointer(loc, 4, gl.FLOAT, false, int32(stride), gl.PtrOffset(int(i)*4*4))
+		gl.VertexAttribPointer(loc, 4, gl.FLOAT, false, int32(stride), gl.PtrOffset(base+int(i)*4*4))
 		gl.VertexAttribDivisor(loc, 1) // Advance per instance, not per vertex
 	}
 
 	// vec2 fade min/max (location 9)
 	gl.EnableVertexAttribArray(9)
-	gl.VertexAttribPointer(9, 2, gl.FLOAT, false, int32(stride), gl.PtrOffset(16*4))
+	gl.VertexAttribPointer(9, 2, gl.FLOAT, false, int32(stride), gl.PtrOffset(base+16*4))
 	gl.VertexAttribDivisor(9, 1) // Advance per instance
 }
 
@@ -350,6 +352,10 @@ func EnableBackFaceCulling() {
 
 func EnableFrontFaceCulling() {
 	gosigl.EnableCullFace(gosigl.Front, gosigl.WindingClockwise)
+}
+
+func DisableFaceCulling() {
+	gl.Disable(gl.CULL_FACE)
 }
 
 // not a great implementation, but isolates gl specifics from outside of the adapter

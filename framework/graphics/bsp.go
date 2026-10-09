@@ -198,6 +198,7 @@ func NewBsp(
 type BspFace struct {
 	offset   int
 	length   int
+	center   mgl32.Vec3
 	material string
 	texInfo  *texinfo.TexInfo
 	bspFace  *face.Face
@@ -230,11 +231,25 @@ func (face *BspFace) RawFace() *face.Face {
 }
 
 // NewFace
-func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *face.Face) BspFace {
+// NewMeshFace creates a face drawn with length vertices of a mesh's vertices, starting at offset
+func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *face.Face, vertices []float32) BspFace {
+	center := mgl32.Vec3{}
+	for v := offset; v < offset+length; v++ {
+		center = center.Add(mgl32.Vec3{vertices[v*3], vertices[v*3+1], vertices[v*3+2]})
+	}
+	if length > 0 {
+		center = center.Mul(1 / float32(length))
+	}
 	return BspFace{
 		offset:  int(offset),
 		length:  int(length),
+		center:  center,
 		texInfo: texInfo,
 		bspFace: bspFace,
 	}
+}
+
+// Center returns the average position of the face's vertices
+func (face *BspFace) Center() mgl32.Vec3 {
+	return face.center
 }

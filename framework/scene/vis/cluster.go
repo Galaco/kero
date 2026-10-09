@@ -21,9 +21,15 @@ type ClusterLeaf struct {
 // clusters by material
 func GroupClusterFacesByMaterial(clusters []*ClusterLeaf) map[string][]*graphics.BspFace {
 	clusterFaceMap := map[string][]*graphics.BspFace{}
+	// A face is listed in every cluster it is in, but is drawn once. Faces are identified by where they are in the mesh.
+	added := map[int]bool{}
 
 	for _, cluster := range clusters {
 		for idx, face := range cluster.Faces {
+			if added[face.Offset()] {
+				continue
+			}
+			added[face.Offset()] = true
 			if _, ok := clusterFaceMap[face.Material()]; !ok {
 				clusterFaceMap[face.Material()] = []*graphics.BspFace{&cluster.Faces[idx]}
 			} else {

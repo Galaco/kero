@@ -35,17 +35,21 @@ var LightMappedGenericFragment = `
 	// Handle transparency rules here
 	// @TODO review various alpha affecting rules priority
 	vec4 AlphaPass(in vec4 color)
-	{	
+	{
 		if (hasTranslucentProperty == 0) {
 			// Ignore material alpha channel
 			color.a = 1;
 			return color;
 		}
-		// The $translucent property just means use texture alpha channel. i.e 0 processing if enabled
 
-		// $alpha property applies a single alpha value across the entire texture 
+		// Only $translucent uses the texture's alpha channel
+		if (translucent == 0) {
+			color.a = 1;
+		}
+
+		// $alpha fades the whole material. 0 means it is not set.
 		if (alpha != 0) {
-			color.a = alpha;
+			color.a *= alpha;
 		}
 
 		return color;
@@ -207,9 +211,14 @@ var LightMappedGenericInstancedFragment = `
 			return color;
 		}
 
-		// $alpha property applies a single alpha value across the entire texture
+		// Only $translucent uses the texture's alpha channel
+		if (translucent == 0) {
+			color.a = 1;
+		}
+
+		// $alpha fades the whole material. 0 means it is not set.
 		if (alpha != 0) {
-			color.a = alpha;
+			color.a *= alpha;
 		}
 
 		return color;

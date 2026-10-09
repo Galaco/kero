@@ -19,12 +19,20 @@ type Material struct {
 	Alpha float32
 	// Translucent
 	Translucent bool
+	// NoCull draws both sides of faces
+	NoCull bool
 }
 
 // FilePath returns this materials location in whatever
 // filesystem it was found
 func (mat *Material) FilePath() string {
 	return mat.filePath
+}
+
+// IsTranslucent returns true if this material blends with what is behind it, so it must be drawn after everything
+// opaque. $translucent uses the base texture's alpha, and an $alpha below 1 fades the whole material.
+func (mat *Material) IsTranslucent() bool {
+	return mat.Translucent || (mat.Alpha > 0 && mat.Alpha < 1)
 }
 
 // IsBlendMaterial returns true if this material uses 2-texture blending (WorldVertexTransition)
@@ -58,6 +66,7 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err err
 	if props.Translucent == 1 {
 		mat.Translucent = true
 	}
+	mat.NoCull = props.NoCull == "1"
 
 	if props.CompileSky == 1 || props.CompileNoDraw == 1 {
 		mat.Skip = true

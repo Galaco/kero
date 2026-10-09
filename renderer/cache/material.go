@@ -22,6 +22,16 @@ func NewGpuMaterial(diffuse uint32, mat *graphics.Material) *GpuMaterial {
 	}
 }
 
+// IsTranslucent returns true if the material must be drawn after everything opaque
+func (mat *GpuMaterial) IsTranslucent() bool {
+	return mat.Properties != nil && mat.Properties.IsTranslucent()
+}
+
+// NoCull returns true if both sides of faces with this material are drawn
+func (mat *GpuMaterial) NoCull() bool {
+	return mat.Properties != nil && mat.Properties.NoCull
+}
+
 type Material struct {
 	items map[string]*GpuMaterial
 }

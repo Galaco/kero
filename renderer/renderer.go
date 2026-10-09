@@ -38,6 +38,8 @@ type Renderer struct {
 	gpuScene  scene.GPUScene
 
 	activeShader *adapter.Shader
+	// noCull is true while face culling is disabled for a $nocull material
+	noCull bool
 
 	// Debug rendering system
 	debugRenderer *renderdebug.DebugRenderer
@@ -101,22 +103,24 @@ func (s *Renderer) Render() {
 			s.dataScene.SkyCamera.Transform().Translation = s.dataScene.SkyCamera.Transform().Translation.Add(s.dataScene.Camera.Transform().Translation.Mul(1 / s.dataScene.SkyCamera.Transform().Scale.X()))
 			s.dataScene.SkyCamera.Update(0)
 			s.startFrame(s.dataScene.SkyCamera)
-			s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
+			translucents := s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
 			s.renderDisplacements(s.dataScene.DisplacementFaces)
-			s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
+			translucents = append(translucents, s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)...)
+			s.renderTranslucents(s.dataScene.SkyCamera, translucents)
 			adapter.ClearDepthBuffer()
 			s.dataScene.SkyCamera.Transform().Translation = origin
 		}
 	}
 
-	// Draw world
+	// Draw world. Translucent faces and props are drawn after everything opaque.
 	s.startFrame(s.dataScene.Camera)
-	s.renderBsp(s.dataScene.Camera, clusters)
+	translucents := s.renderBsp(s.dataScene.Camera, clusters)
 	s.renderDisplacements(s.dataScene.DisplacementFaces)
-	s.renderStaticProps(s.dataScene.Camera, clusters)
+	translucents = append(translucents, s.renderStaticProps(s.dataScene.Camera, clusters)...)
 
 	// Render entity props using ECS
-	s.renderEntityProps()
+	translucents = append(translucents, s.renderEntityProps()...)
+	s.renderTranslucents(s.dataScene.Camera, translucents)
 
 	// Render debug primitives using new debug system
 	if s.debugRenderer != nil {
@@ -201,9 +205,11 @@ func (s *Renderer) startFrame(camera *graphics.Camera) {
 	s.activeShader.Bind()
 	adapter.PushMat4(s.activeShader.GetUniform("projection"), 1, false, projection)
 	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, view)
+	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
 }
 
-func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
+// renderBsp draws the opaque faces of clusters, and returns their translucent faces to draw later
+func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLeaf) []translucentItem {
 	adapter.PushMat4(s.activeShader.GetUniform("model"), 1, false, camera.ModelMatrix())
 	if console.GetConvarBoolean("r_drawlightmaps") == true {
 		adapter.PushInt32(s.activeShader.GetUniform("renderLightmapsAsAlbedo"), 1)
@@ -218,10 +224,8 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 	var mat *cache.GpuMaterial
 
 	materialMappedClusterFaces := vis.GroupClusterFacesByMaterial(clusters)
-
-	// SORTING
-	opaqueMaterials := map[*cache.GpuMaterial][]*graphics.BspFace{}
-	translucentMaterials := map[*cache.GpuMaterial][]*graphics.BspFace{}
+	cameraPosition := camera.Transform().Translation
+	translucents := make([]translucentItem, 0)
 
 	for clusterFaceMaterial, faces := range materialMappedClusterFaces {
 		mat = s.gpuScene.GpuMaterialCache.Find(clusterFaceMaterial)
@@ -230,29 +234,21 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 			continue
 		}
 
-		if mat.Properties.Translucent || mat.Properties.Alpha > 0 {
-			translucentMaterials[mat] = faces
-		} else {
-			opaqueMaterials[mat] = faces
+		if mat.IsTranslucent() {
+			for _, face := range faces {
+				translucents = append(translucents, translucentItem{
+					distance: face.Center().Sub(cameraPosition).LenSqr(),
+					material: mat,
+					face:     face,
+				})
+			}
+			continue
 		}
+		s.RenderBSPMaterial(mat, faces)
 	}
+	s.setNoCull(false)
 
-	for clusterFaceMaterial, faces := range opaqueMaterials {
-		s.RenderBSPMaterial(clusterFaceMaterial, faces)
-	}
-
-	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 1)
-
-	for clusterFaceMaterial, faces := range translucentMaterials {
-		adapter.PushFloat32(s.activeShader.GetUniform("alpha"), clusterFaceMaterial.Properties.Alpha)
-		if clusterFaceMaterial.Properties.Translucent == true {
-			adapter.PushInt32(s.activeShader.GetUniform("translucent"), 1)
-		} else {
-			adapter.PushInt32(s.activeShader.GetUniform("translucent"), 0)
-		}
-		s.RenderBSPMaterial(clusterFaceMaterial, faces)
-	}
-	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
+	return translucents
 }
 
 func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.BspFace) {
@@ -264,6 +260,7 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.B
 		offsets[i] = face.Offset()
 	}
 
+	s.setNoCull(mat.NoCull())
 	adapter.BindTexture(mat.Diffuse)
 	adapter.DrawMultiIndexedArray(counts, offsets)
 	if err := adapter.GpuError(); err != nil {
@@ -362,8 +359,11 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	}
 }
 
-func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
+// renderStaticProps draws the opaque sub-meshes of static props in clusters, and returns their translucent sub-meshes
+// to draw later
+func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.ClusterLeaf) []translucentItem {
 	viewFrustum := graphics.FrustumFromCamera(camera)
+	translucents := make([]translucentItem, 0)
 
 	// Build list of visible instance data per batch
 	// Value = flat array of instance data (mat4 + vec2 fade)
@@ -400,8 +400,18 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 			instanceData[16] = prop.FadeMinDistance()
 			instanceData[17] = prop.FadeMaxDistance()
 
-			// Add visible prop to the batch of each of its sub-meshes
+			// Add visible prop to the batch of each of its sub-meshes. Translucent sub-meshes are drawn one at a time
+			// later, with the instance data uploaded here.
+			propCenter := propMins.Add(propMaxs).Mul(0.5)
 			for _, batch := range s.gpuScene.StaticPropBatches[prop] {
+				if batch.Material.IsTranslucent() {
+					translucents = append(translucents, translucentItem{
+						distance: propCenter.Sub(camera.Transform().Translation).LenSqr(),
+						material: batch.Material,
+						batch:    batch,
+						instance: len(batchVisibleData[batch]) / 18,
+					})
+				}
 				batchVisibleData[batch] = append(batchVisibleData[batch], instanceData...)
 			}
 		}
@@ -411,7 +421,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	instancedShader := s.shaderCache.Find("LightMappedGenericInstanced")
 	if instancedShader == nil {
 		console.PrintString(console.LevelError, "Failed to find LightMappedGenericInstanced shader")
-		return
+		return nil
 	}
 	instancedShader.Bind()
 	adapter.PushMat4(instancedShader.GetUniform("projection"), 1, false, camera.ProjectionMatrix())
@@ -419,6 +429,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	adapter.PushVec3(instancedShader.GetUniform("cameraPosition"), camera.Transform().Translation)
 	adapter.PushInt32(instancedShader.GetUniform("albedoSampler"), 0)
 	adapter.PushInt32(instancedShader.GetUniform("lightmapSampler"), 4)
+	adapter.PushInt32(instancedShader.GetUniform("hasTranslucentProperty"), 0)
 	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
 
 	if err := adapter.GpuError(); err != nil {
@@ -436,11 +447,15 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 
 		// Update persistent VBO with visible instances only
 		adapter.UpdateInstanceBuffer(batch.InstanceVBO, data)
+		if batch.Material.IsTranslucent() {
+			continue
+		}
 
 		// Bind mesh and material
 		adapter.BindMesh(&batch.Mesh)
+		s.setNoCull(batch.Material.NoCull())
 		adapter.BindTexture(batch.Material.Diffuse)
-		adapter.SetupInstanceAttributes(batch.InstanceVBO)
+		adapter.SetupInstanceAttributes(batch.InstanceVBO, 0)
 
 		// Draw all visible instances with one call!
 		adapter.DrawIndexedArrayInstanced(batch.IndexCount, batch.IndexOffset, instanceCount)
@@ -454,10 +469,14 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	// IMPORTANT: Disable instance attributes before switching to non-instanced rendering
 	// Entity props reuse the same mesh VAOs but don't provide instance data
 	adapter.DisableInstanceAttributes()
+	s.setNoCull(false)
+
+	return translucents
 }
 
-// renderEntityProps renders entities using ECS queries
-func (s *Renderer) renderEntityProps() {
+// renderEntityProps renders the opaque sub-meshes of entities using ECS queries, and returns their translucent
+// sub-meshes to draw later
+func (s *Renderer) renderEntityProps() []translucentItem {
 	// Query entities with Transform + Model components
 	query := s.ecsWorld.Query().
 		With(ecs.ComponentTypeTransform).
@@ -466,8 +485,9 @@ func (s *Renderer) renderEntityProps() {
 
 	entities := query.Entities()
 	if len(entities) == 0 {
-		return
+		return nil
 	}
+	translucents := make([]translucentItem, 0)
 
 	// Switch back to non-instanced shader for entity rendering
 	s.activeShader = s.shaderCache.Find("LightMappedGeneric")
@@ -478,6 +498,7 @@ func (s *Renderer) renderEntityProps() {
 	adapter.PushMat4(s.activeShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
 	adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	adapter.PushInt32(s.activeShader.GetUniform("hasTranslucentProperty"), 0)
 	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
 
 	// Render each entity
@@ -506,11 +527,25 @@ func (s *Renderer) renderEntityProps() {
 			adapter.BindMesh(&gpuProp.Mesh)
 			materials := gpuProp.MaterialsForSkin(model.Skin)
 			for idx, subMesh := range modelInstance.Model.SubMeshes() {
+				if materials[idx].IsTranslucent() {
+					translucents = append(translucents, translucentItem{
+						distance:  transform.Position.Sub(s.dataScene.Camera.Transform().Translation).LenSqr(),
+						material:  &materials[idx],
+						gpuMesh:   &gpuProp.Mesh,
+						subMesh:   subMesh,
+						transform: transformMatrix,
+					})
+					continue
+				}
+				s.setNoCull(materials[idx].NoCull())
 				adapter.BindTexture(materials[idx].Diffuse)
 				adapter.DrawIndexedArray(subMesh.IndexCount, subMesh.IndexOffset, nil)
 			}
 		}
 	}
+	s.setNoCull(false)
+
+	return translucents
 }
 
 func (s *Renderer) computeRenderableClusters(viewFrustum *graphics.Frustum) []*vis.ClusterLeaf {
