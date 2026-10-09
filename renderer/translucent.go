@@ -83,6 +83,7 @@ func (s *Renderer) renderTranslucents(camera *graphics.Camera, items []transluce
 		adapter.PushInt32(shader.GetUniform("translucent"), translucent)
 		adapter.PushFloat32(shader.GetUniform("alpha"), item.material.Properties.Alpha)
 		s.setNoCull(item.material.NoCull())
+		pushAlphaTest(shader, item.material)
 		adapter.BindTexture(item.material.Diffuse)
 
 		switch {

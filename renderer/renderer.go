@@ -260,11 +260,24 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.B
 	}
 
 	s.setNoCull(mat.NoCull())
+	pushAlphaTest(s.activeShader, mat)
 	adapter.BindTexture(mat.Diffuse)
 	adapter.DrawMultiIndexedArray(counts, offsets)
 	if err := adapter.GpuError(); err != nil {
 		console.PrintString(console.LevelError, err.Error())
 	}
+}
+
+// pushAlphaTest tells a shader whether to discard the parts of a material's base texture below its alpha test
+// reference
+func pushAlphaTest(shader *adapter.Shader, mat *cache.GpuMaterial) {
+	alphaTest, reference := mat.AlphaTest()
+	enabled := int32(0)
+	if alphaTest {
+		enabled = 1
+	}
+	adapter.PushInt32(shader.GetUniform("alphaTest"), enabled)
+	adapter.PushFloat32(shader.GetUniform("alphaTestReference"), reference)
 }
 
 func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
@@ -296,6 +309,7 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 
 		for _, displacement := range regularDisplacements {
 			mat = s.gpuScene.GpuMaterialCache.Find(displacement.Material())
+			pushAlphaTest(s.activeShader, mat)
 			adapter.DrawFace(displacement.Offset(), displacement.Length(), mat.Diffuse)
 			if err := adapter.GpuError(); err != nil {
 				console.PrintString(console.LevelError, err.Error())
@@ -450,6 +464,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 		// Bind mesh and material
 		adapter.BindMesh(&batch.Mesh)
 		s.setNoCull(batch.Material.NoCull())
+		pushAlphaTest(instancedShader, batch.Material)
 		adapter.BindTexture(batch.Material.Diffuse)
 		adapter.SetupInstanceAttributes(batch.InstanceVBO, 0)
 
@@ -534,6 +549,7 @@ func (s *Renderer) renderEntityProps() []translucentItem {
 					continue
 				}
 				s.setNoCull(materials[idx].NoCull())
+				pushAlphaTest(s.activeShader, &materials[idx])
 				adapter.BindTexture(materials[idx].Diffuse)
 				adapter.DrawIndexedArray(subMesh.IndexCount, subMesh.IndexOffset, nil)
 			}

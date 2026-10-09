@@ -14,6 +14,10 @@ var LightMappedGenericFragment = `
 	uniform float alpha;
 	uniform int translucent;
 
+	// $alphatest discards the parts of the base texture whose alpha is below the reference
+	uniform int alphaTest;
+	uniform float alphaTestReference;
+
 	// Debug Options
 	uniform int renderLightmapsAsAlbedo;
 
@@ -69,8 +73,12 @@ var LightMappedGenericFragment = `
 		return color * lightmapColor;
 	}
 
-    void main() 
+    void main()
 	{
+		if (alphaTest == 1 && texture(albedoSampler, UV).a < alphaTestReference) {
+			discard;
+		}
+
 		vec4 diffuse = AlbedoPass();
 		diffuse = LightmapPass(diffuse);
 
@@ -184,6 +192,10 @@ var LightMappedGenericInstancedFragment = `
 	uniform float alpha;
 	uniform int translucent;
 
+	// $alphatest discards the parts of the base texture whose alpha is below the reference
+	uniform int alphaTest;
+	uniform float alphaTestReference;
+
 	// Debug Options
 	uniform int renderLightmapsAsAlbedo;
 
@@ -240,6 +252,10 @@ var LightMappedGenericInstancedFragment = `
 
     void main()
 	{
+		if (alphaTest == 1 && texture(albedoSampler, UV).a < alphaTestReference) {
+			discard;
+		}
+
 		vec4 diffuse = AlbedoPass();
 		diffuse = LightmapPass(diffuse);
 		diffuse = AlphaPass(diffuse);

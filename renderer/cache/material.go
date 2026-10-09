@@ -32,6 +32,14 @@ func (mat *GpuMaterial) NoCull() bool {
 	return mat.Properties != nil && mat.Properties.NoCull
 }
 
+// AlphaTest returns whether parts of the material's base texture are discarded, and the alpha they are discarded below
+func (mat *GpuMaterial) AlphaTest() (bool, float32) {
+	if mat.Properties == nil || !mat.Properties.AlphaTest {
+		return false, 0
+	}
+	return true, mat.Properties.AlphaTestReference
+}
+
 type Material struct {
 	items map[string]*GpuMaterial
 }

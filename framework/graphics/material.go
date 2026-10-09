@@ -21,6 +21,9 @@ type Material struct {
 	Translucent bool
 	// NoCull draws both sides of faces
 	NoCull bool
+	// AlphaTest discards the parts of the base texture whose alpha is below AlphaTestReference
+	AlphaTest          bool
+	AlphaTestReference float32
 }
 
 // FilePath returns this materials location in whatever
@@ -67,6 +70,12 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err err
 		mat.Translucent = true
 	}
 	mat.NoCull = props.NoCull == "1"
+	mat.AlphaTest = props.AlphaTest == "1"
+	mat.AlphaTestReference = props.AlphaTestReference
+	if mat.AlphaTestReference <= 0 {
+		// The engine's default
+		mat.AlphaTestReference = 0.5
+	}
 
 	if props.CompileSky == 1 || props.CompileNoDraw == 1 {
 		mat.Skip = true
