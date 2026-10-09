@@ -478,11 +478,31 @@ func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) 
 
 	// Read the first lightstyle's first bump sample set (or only sample set for non-bumpmapped)
 	for idx, sample := range samples[sampleOffset : sampleOffset+int32(numLuxels)] {
-		raw[(idx * 4)] = uint8(math.Min(255, float64(sample.R)*math.Pow(2, float64(sample.Exponent))))
-		raw[(idx*4)+1] = uint8(math.Min(255, float64(sample.G)*math.Pow(2, float64(sample.Exponent))))
-		raw[(idx*4)+2] = uint8(math.Min(255, float64(sample.B)*math.Pow(2, float64(sample.Exponent))))
+		raw[(idx * 4)] = luxelToLightmap(sample.R, sample.Exponent)
+		raw[(idx*4)+1] = luxelToLightmap(sample.G, sample.Exponent)
+		raw[(idx*4)+2] = luxelToLightmap(sample.B, sample.Exponent)
 		raw[(idx*4)+3] = 255
 	}
 
 	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
+}
+
+// linearToLightmap converts light, from 0 to 4 in 1024ths, to how the engine stores it in a lightmap texture: gamma
+// corrected for a 2.2 gamma screen, and halved, so that shaders double it back to light a surface up to twice as
+// brightly as its texture. This is mathlib's lineartolightmap table, built for the engine's default gamma and
+// overbright.
+var linearToLightmap = func() (table [4096]uint8) {
+	const gamma = 2.2
+	const overbrightFactor = 0.5
+	for i := range table {
+		table[i] = uint8(min(255, math.Round(math.Pow(float64(i)/1024, 1/gamma)*255*overbrightFactor)))
+	}
+	return table
+}()
+
+// luxelToLightmap converts a colour channel of a lightmap sample, stored with a shared exponent, to a lightmap texture
+// value
+func luxelToLightmap(colour uint8, exponent int8) uint8 {
+	linear := float64(colour) * math.Pow(2, float64(exponent)) / 255
+	return linearToLightmap[int(min(4091, math.Round(linear*1024)))]
 }

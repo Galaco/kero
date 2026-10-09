@@ -37,6 +37,8 @@ var WorldVertexTransitionFragment = `
 	uniform sampler2D basetextureSampler;
 	uniform sampler2D basetexture2Sampler;
 	uniform sampler2D lightmapSampler;
+	// Lightmaps are stored at half brightness, so that light can be up to twice as bright as a surface's texture
+	const float lightmapScale = 2.0;
 
 	// Flag that this material is in some way translucent
 	uniform int hasTranslucentProperty;
@@ -57,7 +59,7 @@ var WorldVertexTransitionFragment = `
 	vec4 AlbedoPass()
 	{
 		if (renderLightmapsAsAlbedo == 1) {
-			return texture(lightmapSampler, LightmapUV).rgba;
+			return vec4(texture(lightmapSampler, LightmapUV).rgb * lightmapScale, 1.0);
 		}
 
 		// Sample both textures
@@ -97,7 +99,7 @@ var WorldVertexTransitionFragment = `
 			return color;
 		}
 
-		vec4 lightmapColor = vec4(texture(lightmapSampler, LightmapUV).rgb, 1.0);
+		vec4 lightmapColor = vec4(texture(lightmapSampler, LightmapUV).rgb * lightmapScale, 1.0);
 
 		return color * lightmapColor;
 	}

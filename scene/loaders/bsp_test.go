@@ -53,3 +53,27 @@ func TestGenerateDisplacementFace(t *testing.T) {
 		t.Errorf("first vertex: got grid %v at %v, want the start corner", onFace[0].Grid, onFace[0].Base)
 	}
 }
+
+func TestLuxelToLightmap(t *testing.T) {
+	cases := []struct {
+		colour   uint8
+		exponent int8
+		expected uint8
+	}{
+		{0, 0, 0},
+		// Full light is stored at half brightness, for shaders to double
+		{255, 0, 128},
+		{128, 1, 128},
+		// Dim light is gamma corrected
+		{64, -2, 36},
+		{255, -8, 10},
+		// Light is stored up to 4 times full brightness
+		{255, 2, 239},
+		{200, 5, 239},
+	}
+	for _, c := range cases {
+		if actual := luxelToLightmap(c.colour, c.exponent); actual != c.expected {
+			t.Errorf("luxel %d with exponent %d: got %d, want %d", c.colour, c.exponent, actual, c.expected)
+		}
+	}
+}
