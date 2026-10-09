@@ -1,6 +1,8 @@
 package mesh
 
 import (
+	"math"
+
 	"github.com/galaco/kero/framework/graphics/adapter"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -90,105 +92,103 @@ func (mesh *BasicMesh) Indices() []uint32 {
 	return mesh.indices
 }
 
-// GenerateTangents
+// GenerateTangents computes a tangent for every vertex from the triangles it is part of and their texture
+// coordinates. Each tangent is 4 floats: its direction, then the handedness of the bitangent (1 or -1).
+// Triangles are read from the indices, or from consecutive vertices if there are none.
 func (mesh *BasicMesh) GenerateTangents() {
-	//const vector<vec3> & points,
-	//const vector<vec3> & normals,
-	//const vector<int> & faces,
-	//const vector<vec2> & texCoords,
-	//	vector<vec4> & tangents)
-	//{
-	//vector<vec3> tan1Accum;
-	tan1Accum := make([]float32, len(mesh.vertices))
-	//vector<vec3> tan2Accum;
-	tan2Accum := make([]float32, len(mesh.vertices))
-	tangents := make([]float32, len(mesh.vertices)+(len(mesh.vertices)/3))
-
-	//for( uint i = 0; i < points.size(); i++ ) {
-	//tan1Accum.push_back(vec3(0.0f));
-	//tan2Accum.push_back(vec3(0.0f));
-	//tangents.push_back(vec4(0.0f));
-	//}
-
-	// Compute the tangent vector
-	for i := uint(0); i < uint(len(mesh.vertices))-9; i += 9 {
-		rootIdx := i / 3
-		p1 := mgl32.Vec3{mesh.vertices[i], mesh.vertices[i+1], mesh.vertices[i+2]}
-		p2 := mgl32.Vec3{mesh.vertices[i+3], mesh.vertices[i+4], mesh.vertices[i+5]}
-		p3 := mgl32.Vec3{mesh.vertices[i+6], mesh.vertices[i+7], mesh.vertices[i+8]}
-
-		uvIdx := rootIdx * 2
-		tc1 := mgl32.Vec2{mesh.uvs[uvIdx], mesh.uvs[uvIdx+1]}
-		tc2 := mgl32.Vec2{mesh.uvs[uvIdx+2], mesh.uvs[uvIdx+3]}
-		tc3 := mgl32.Vec2{mesh.uvs[uvIdx+4], mesh.uvs[uvIdx+5]}
-
-		q1 := p2.Sub(p1)
-		q2 := p3.Sub(p1)
-		s1 := tc2.X() - tc1.X()
-		s2 := tc3.X() - tc1.X()
-		t1 := tc2.Y() - tc1.Y()
-		t2 := tc3.Y() - tc1.Y()
-		r := 1.0 / (s1*t2 - s2*t1)
-		tan1 := mgl32.Vec3{
-			(t2*q1.X() - t1*q2.X()) * r,
-			(t2*q1.Y() - t1*q2.Y()) * r,
-			(t2*q1.Z() - t1*q2.Z()) * r,
-		}
-
-		tan2 := mgl32.Vec3{
-			(s1*q2.X() - s2*q1.X()) * r,
-			(s1*q2.Y() - s2*q1.Y()) * r,
-			(s1*q2.Z() - s2*q1.Z()) * r,
-		}
-		tan1Accum[i] += tan1.X()
-		tan1Accum[i+1] += tan1.Y()
-		tan1Accum[i+2] += tan1.Z()
-		tan2Accum[i] += tan2.X()
-		tan2Accum[i+1] += tan2.Y()
-		tan2Accum[i+2] += tan2.Z()
-	}
-
-	for i := uint(0); i < uint(len(mesh.vertices))-2; i++ {
-		n := mgl32.Vec3{
-			mesh.normals[i],
-			mesh.normals[i+1],
-			mesh.normals[i+2],
-		}
-		t1 := mgl32.Vec3{
-			tan1Accum[i],
-			tan1Accum[i+1],
-			tan1Accum[i+2],
-		}
-		t2 := mgl32.Vec3{
-			tan2Accum[i],
-			tan2Accum[i+1],
-			tan2Accum[i+2],
-		}
-		//const vec3 &n = normals[i];
-		//vec3 &t1 = tan1Accum[i];
-		//vec3 &t2 = tan2Accum[i];
-
-		// Gram-Schmidt orthogonalize
-		//tangents[i] = vec4(glm::normalize( t1 - (glm::dot(n,t1) * n) ), 0.0f);
-		res := t1.Sub(n.Mul(n.Dot(t1))).Normalize()
-		tangents[i] = res.X()
-		tangents[i+1] = res.Y()
-		tangents[i+2] = res.Z()
-		// Store handedness in w
-		w := float32(1.0)
-		if n.Cross(t1).Dot(t2) < 0 {
-			w = -1.0
-		}
-		tangents[i+3] = w
-		//tangents[i] = (glm::dot( glm::cross(n,t1), t2 ) < 0.0f) ? -1.0f : 1.0f;
-	}
-
-	tan1Accum = nil
-	tan2Accum = nil
-	//tan1Accum.clear();
-	//tan2Accum.clear();
-
+	numVertices := len(mesh.vertices) / 3
+	tangents := make([]float32, numVertices*4)
 	mesh.tangents = tangents
+	if len(mesh.normals) < numVertices*3 || len(mesh.uvs) < numVertices*2 {
+		return
+	}
+
+	position := func(v int) mgl32.Vec3 {
+		return mgl32.Vec3{mesh.vertices[v*3], mesh.vertices[v*3+1], mesh.vertices[v*3+2]}
+	}
+	uv := func(v int) mgl32.Vec2 {
+		return mgl32.Vec2{mesh.uvs[v*2], mesh.uvs[v*2+1]}
+	}
+
+	// Sum the directions of increasing u (tan1) and v (tan2) of every triangle that uses a vertex
+	tan1Accum := make([]mgl32.Vec3, numVertices)
+	tan2Accum := make([]mgl32.Vec3, numVertices)
+	addTriangle := func(a, b, c int) {
+		if a >= numVertices || b >= numVertices || c >= numVertices {
+			return
+		}
+		q1 := position(b).Sub(position(a))
+		q2 := position(c).Sub(position(a))
+		st1 := uv(b).Sub(uv(a))
+		st2 := uv(c).Sub(uv(a))
+		det := st1.X()*st2.Y() - st2.X()*st1.Y()
+		if det == 0 {
+			// No texture area, so no texture direction
+			return
+		}
+		r := 1 / det
+		tan1 := q1.Mul(st2.Y()).Sub(q2.Mul(st1.Y())).Mul(r)
+		tan2 := q2.Mul(st1.X()).Sub(q1.Mul(st2.X())).Mul(r)
+		if !isFinite(tan1) || !isFinite(tan2) {
+			return
+		}
+		for _, v := range [3]int{a, b, c} {
+			tan1Accum[v] = tan1Accum[v].Add(tan1)
+			tan2Accum[v] = tan2Accum[v].Add(tan2)
+		}
+	}
+	if len(mesh.indices) > 0 {
+		for i := 0; i+2 < len(mesh.indices); i += 3 {
+			addTriangle(int(mesh.indices[i]), int(mesh.indices[i+1]), int(mesh.indices[i+2]))
+		}
+	} else {
+		for v := 0; v+2 < numVertices; v += 3 {
+			addTriangle(v, v+1, v+2)
+		}
+	}
+
+	for v := 0; v < numVertices; v++ {
+		n := mgl32.Vec3{mesh.normals[v*3], mesh.normals[v*3+1], mesh.normals[v*3+2]}
+		if n.Len() > 0 {
+			n = n.Normalize()
+		}
+
+		// Gram-Schmidt orthogonalize against the normal
+		tangent := tan1Accum[v].Sub(n.Mul(n.Dot(tan1Accum[v])))
+		if tangent.Len() < 1e-6 || !isFinite(tangent) {
+			tangent = perpendicular(n)
+		}
+		tangent = tangent.Normalize()
+
+		w := float32(1)
+		if n.Cross(tangent).Dot(tan2Accum[v]) < 0 {
+			w = -1
+		}
+		tangents[v*4] = tangent.X()
+		tangents[v*4+1] = tangent.Y()
+		tangents[v*4+2] = tangent.Z()
+		tangents[v*4+3] = w
+	}
+}
+
+// perpendicular returns a unit vector perpendicular to n, or the x axis if n is zero
+func perpendicular(n mgl32.Vec3) mgl32.Vec3 {
+	if n.Len() == 0 {
+		return mgl32.Vec3{1, 0, 0}
+	}
+	if math.Abs(float64(n.X())) < 0.9 {
+		return n.Cross(mgl32.Vec3{1, 0, 0}).Normalize()
+	}
+	return n.Cross(mgl32.Vec3{0, 1, 0}).Normalize()
+}
+
+func isFinite(v mgl32.Vec3) bool {
+	for _, c := range v {
+		if math.IsNaN(float64(c)) || math.IsInf(float64(c), 0) {
+			return false
+		}
+	}
+	return true
 }
 
 // NewMesh
