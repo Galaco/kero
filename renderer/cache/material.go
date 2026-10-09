@@ -9,8 +9,11 @@ const (
 )
 
 type GpuMaterial struct {
-	Diffuse    uint32
-	Diffuse2   uint32 // Second texture for blend materials (WorldVertexTransition)
+	Diffuse  uint32
+	Diffuse2 uint32 // Second texture for blend materials (WorldVertexTransition)
+	// Bumpmap and Bumpmap2 are the normal maps of the material's textures, or 0 for none
+	Bumpmap    uint32
+	Bumpmap2   uint32
 	Properties *graphics.Material
 }
 
@@ -30,6 +33,19 @@ func (mat *GpuMaterial) IsTranslucent() bool {
 // NoCull returns true if both sides of faces with this material are drawn
 func (mat *GpuMaterial) NoCull() bool {
 	return mat.Properties != nil && mat.Properties.NoCull
+}
+
+// BumpmapMode tells a shader how to light the material with its normal maps: 0 without them, 1 from the normal of a
+// normal map, or 2 from a self-shadowing bump map ($ssbump)
+func (mat *GpuMaterial) BumpmapMode() int32 {
+	switch {
+	case mat.Bumpmap == 0:
+		return 0
+	case mat.Properties != nil && mat.Properties.SSBump:
+		return 2
+	default:
+		return 1
+	}
 }
 
 // AlphaTest returns whether parts of the material's base texture are discarded, and the alpha they are discarded below

@@ -28,7 +28,6 @@ import (
 	"github.com/galaco/kero/framework/window"
 	"github.com/galaco/kero/messages"
 	"github.com/galaco/stringtable"
-	"github.com/galaco/vtf/format"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -193,13 +192,13 @@ func loadBSPWorld(fs filesystem.FileSystem, file *bsp.Bsp) (*graphics.Bsp, error
 	var lightmapAtlas *graphics.TextureAtlas
 	if console.GetConvarBoolean("hdr_enable") == true {
 		if bspStructure.lightmapHDR != nil {
-			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.lightmapHDR)
+			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.texInfos, bspStructure.lightmapHDR)
 		}
 	}
 
 	if lightmapAtlas == nil {
 		if bspStructure.lightmap != nil {
-			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.lightmap)
+			lightmapAtlas = generateLightmapTexture(bspStructure.faces, bspStructure.texInfos, bspStructure.lightmap)
 		}
 	}
 
@@ -407,13 +406,12 @@ func generateDispVert(offset int, x int, y int, size int, corners []mgl32.Vec3, 
 	return origin.Add(vert.Vec.Mul(vert.Dist)), graphics.DisplacementVertex{Base: origin, Grid: mgl32.Vec2{tx, ty}}
 }
 
-func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
-	lightMapAtlas := graphics.NewTextureAtlas(0, 0)
+func generateLightmapTexture(faces []face.Face, texInfos []texinfo.TexInfo, samples []common.ColorRGBExponent32) *graphics.TextureAtlas {
+	lightMapAtlas := graphics.NewPagedTextureAtlas(graphics.LightmapPages)
 
-	var tex *graphics.Texture2D
-	for _, f := range faces {
-		tex = lightmapTextureFromFace(&f, samples)
-		lightMapAtlas.AddRaw(tex.Width(), tex.Height(), tex.Image())
+	for idx := range faces {
+		width, height, colour := lightmapFromFace(&faces[idx], &texInfos[faces[idx].TexInfo], samples)
+		lightMapAtlas.AddRaw(width, height, colour)
 	}
 
 	lightMapAtlas.Pack()
@@ -421,47 +419,68 @@ func generateLightmapTexture(faces []face.Face, samples []common.ColorRGBExponen
 	return lightMapAtlas
 }
 
-func lightmapTextureFromFace(f *face.Face, samples []common.ColorRGBExponent32) *graphics.Texture2D {
+// surfBumpLight is the texinfo flag of a face lit for bump mapping
+const surfBumpLight = 0x800
+
+// lightmapFromFace returns a face's lightmap for each page of the lightmap atlas, as RGBA colour one page after another
+func lightmapFromFace(f *face.Face, tx *texinfo.TexInfo, samples []common.ColorRGBExponent32) (width int, height int, colour []uint8) {
 	if f.Lightofs == -1 {
-		return graphics.NewTexture("__lightmap_subtex__", 0, 0, uint32(format.RGB888), make([]uint8, 0))
+		return 0, 0, nil
 	}
 
-	width := f.LightmapTextureSizeInLuxels[0] + 1
-	height := f.LightmapTextureSizeInLuxels[1] + 1
+	width = int(f.LightmapTextureSizeInLuxels[0] + 1)
+	height = int(f.LightmapTextureSizeInLuxels[1] + 1)
 	numLuxels := width * height
+	pageSize := numLuxels * 4
+	colour = make([]uint8, pageSize*graphics.LightmapPages)
 
-	firstSampleIdx := f.Lightofs / 4 // 4 = size of ColorRGBExponent32
-
-	// For basic rendering, we only use the first lightstyle's first bumpmap
-	// The samples are stored as: [lightstyle0_bump0, lightstyle0_bump1, lightstyle0_bump2, lightstyle0_bump3, lightstyle1_bump0, ...]
-	// For non-bumpmapped faces, there's just one set per lightstyle
-	// We use the first set (bump0 or the only set)
-	sampleOffset := firstSampleIdx
-
-	raw := make([]uint8, (numLuxels)*4)
+	// A face's samples are a lightmap for each of its light styles; only the first is used. A face lit for bump mapping
+	// has four lightmaps for each light style: its lightmap, then the lightmap of each bump basis direction.
+	bumped := tx.Flags&surfBumpLight != 0
+	numSamples := numLuxels
+	if bumped {
+		numSamples *= 4
+	}
+	firstSampleIdx := int(f.Lightofs / 4) // 4 = size of ColorRGBExponent32
 
 	// Bounds check
-	if sampleOffset < 0 || int(sampleOffset)+int(numLuxels) > len(samples) {
-		console.PrintString(console.LevelWarning, fmt.Sprintf("Lightmap out of bounds for face: offset=%d, numLuxels=%d, totalSamples=%d", sampleOffset, numLuxels, len(samples)))
+	if firstSampleIdx < 0 || firstSampleIdx+numSamples > len(samples) {
+		console.PrintString(console.LevelWarning, fmt.Sprintf("Lightmap out of bounds for face: offset=%d, numLuxels=%d, totalSamples=%d", firstSampleIdx, numSamples, len(samples)))
 		// Return white texture on error
-		for i := 0; i < int(numLuxels); i++ {
-			raw[i*4] = 255
-			raw[i*4+1] = 255
-			raw[i*4+2] = 255
-			raw[i*4+3] = 255
+		for i := range colour {
+			colour[i] = 255
 		}
-		return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
+		return width, height, colour
 	}
 
-	// Read the first lightstyle's first bump sample set (or only sample set for non-bumpmapped)
-	for idx, sample := range samples[sampleOffset : sampleOffset+int32(numLuxels)] {
-		raw[(idx * 4)] = luxelToLightmap(sample.R, sample.Exponent)
-		raw[(idx*4)+1] = luxelToLightmap(sample.G, sample.Exponent)
-		raw[(idx*4)+2] = luxelToLightmap(sample.B, sample.Exponent)
-		raw[(idx*4)+3] = 255
+	for idx := 0; idx < numLuxels; idx++ {
+		sample := samples[firstSampleIdx+idx]
+		var pages [graphics.LightmapPages][3]uint8
+		pages[0] = [3]uint8{
+			luxelToLightmap(sample.R, sample.Exponent),
+			luxelToLightmap(sample.G, sample.Exponent),
+			luxelToLightmap(sample.B, sample.Exponent),
+		}
+		if bumped {
+			bumps := bumpedLuxelsToLightmap(sample, [3]common.ColorRGBExponent32{
+				samples[firstSampleIdx+numLuxels+idx],
+				samples[firstSampleIdx+2*numLuxels+idx],
+				samples[firstSampleIdx+3*numLuxels+idx],
+			})
+			copy(pages[1:], bumps[:])
+		} else {
+			// A face that isn't lit for bump mapping is lit the same from every direction
+			for page := 1; page < graphics.LightmapPages; page++ {
+				pages[page] = pages[0]
+			}
+		}
+		for page, pixel := range pages {
+			offset := page*pageSize + idx*4
+			colour[offset], colour[offset+1], colour[offset+2], colour[offset+3] = pixel[0], pixel[1], pixel[2], 255
+		}
 	}
 
-	return graphics.NewTexture("__lightmap_subtex__", int(width), int(height), uint32(format.RGBA8888), raw)
+	return width, height, colour
 }
 
 // linearToLightmap converts light, from 0 to 4 in 1024ths, to how the engine stores it in a lightmap texture: gamma
@@ -477,9 +496,50 @@ var linearToLightmap = func() (table [4096]uint8) {
 	return table
 }()
 
+// linearToVertexLight converts light, from 0 to 4 in 1024ths, to how the engine stores it in a lightmap texture, as
+// linearToLightmap does, from 0 to 1. This is mathlib's lineartovertex table.
+var linearToVertexLight = func() (table [4096]float64) {
+	const gamma = 2.2
+	const overbrightFactor = 0.5
+	for i := range table {
+		table[i] = min(1, math.Pow(float64(i)/1024, 1/gamma)*overbrightFactor)
+	}
+	return table
+}()
+
+// luxelToLinear converts a colour channel of a lightmap sample, stored with a shared exponent, to linear light
+func luxelToLinear(colour uint8, exponent int8) float64 {
+	return float64(colour) * math.Pow(2, float64(exponent)) / 255
+}
+
 // luxelToLightmap converts a colour channel of a lightmap sample, stored with a shared exponent, to a lightmap texture
 // value
 func luxelToLightmap(colour uint8, exponent int8) uint8 {
-	linear := float64(colour) * math.Pow(2, float64(exponent)) / 255
-	return linearToLightmap[int(min(4091, math.Round(linear*1024)))]
+	return linearToLightmap[int(min(4091, math.Round(luxelToLinear(colour, exponent)*1024)))]
+}
+
+// bumpedLuxelsToLightmap converts a luxel of a face lit for bump mapping, lit from each bump basis direction, to how
+// the engine stores it in the lightmap of each direction. The engine gamma corrects the light that reaches the face,
+// from flat, as it does for any lightmap, and scales the light from each direction to average it: a surface whose
+// normal map faces straight out of it, which is lit equally by each direction's lightmap, is lit as it would be
+// without a normal map.
+func bumpedLuxelsToLightmap(flat common.ColorRGBExponent32, bumps [3]common.ColorRGBExponent32) (lightmaps [3][3]uint8) {
+	flatChannels := [3]uint8{flat.R, flat.G, flat.B}
+	for channel := 0; channel < 3; channel++ {
+		var light [3]float64
+		for direction, bump := range bumps {
+			light[direction] = luxelToLinear([3]uint8{bump.R, bump.G, bump.B}[channel], bump.Exponent)
+		}
+		average := (light[0] + light[1] + light[2]) / 3
+		goal := linearToVertexLight[int(min(4095, math.Round(luxelToLinear(flatChannels[channel], flat.Exponent)*1024)))]
+
+		scale := 0.0
+		if average != 0 {
+			scale = goal / average
+		}
+		for direction := range light {
+			lightmaps[direction][channel] = uint8(math.Round(min(1, light[direction]*scale) * 255))
+		}
+	}
+	return lightmaps
 }

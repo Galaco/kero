@@ -222,7 +222,7 @@ func (s *Renderer) renderBsp(camera *graphics.Camera, clusters []*vis.ClusterLea
 
 	adapter.BindMesh(&s.gpuScene.GpuMesh)
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	pushLightmapUniforms(s.activeShader)
 	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
 	var mat *cache.GpuMaterial
 
@@ -265,6 +265,7 @@ func (s *Renderer) RenderBSPMaterial(mat *cache.GpuMaterial, faces []*graphics.B
 
 	s.setNoCull(mat.NoCull())
 	pushAlphaTest(s.activeShader, mat)
+	pushBumpmap(s.activeShader, mat)
 	adapter.BindTexture(mat.Diffuse)
 	adapter.DrawMultiIndexedArray(counts, offsets)
 	if err := adapter.GpuError(); err != nil {
@@ -284,6 +285,21 @@ func pushAlphaTest(shader *adapter.Shader, mat *cache.GpuMaterial) {
 	adapter.PushFloat32(shader.GetUniform("alphaTestReference"), reference)
 }
 
+// pushLightmapUniforms tells a shader where to find lightmaps and normal maps
+func pushLightmapUniforms(shader *adapter.Shader) {
+	adapter.PushInt32(shader.GetUniform("lightmapSampler"), 4)
+	adapter.PushInt32(shader.GetUniform("bumpmapSampler"), 2)
+	adapter.PushFloat32(shader.GetUniform("lightmapPageHeight"), 1/float32(graphics.LightmapPages))
+}
+
+// pushBumpmap binds a material's normal map, and tells a shader how to light the material with it
+func pushBumpmap(shader *adapter.Shader, mat *cache.GpuMaterial) {
+	if mat.Bumpmap != 0 {
+		gosigl.BindTexture2D(gosigl.TextureSlot(2), gosigl.TextureBindingId(mat.Bumpmap))
+	}
+	adapter.PushInt32(shader.GetUniform("bumpmap"), mat.BumpmapMode())
+}
+
 // renderDisplacements draws the displacements in clusters that camera sees, all of a material's at once
 func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
 	s.displacements.collect(clusters, graphics.FrustumFromCamera(camera))
@@ -293,7 +309,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 	adapter.BindMesh(&s.gpuScene.GpuDisplacementMesh)
 	adapter.BindLightmap(s.gpuScene.GpuItemCache.Find(scene2.LightmapTexturePath))
 	adapter.PushInt32(s.activeShader.GetUniform("albedoSampler"), 0)
-	adapter.PushInt32(s.activeShader.GetUniform("lightmapSampler"), 4)
+	pushLightmapUniforms(s.activeShader)
 
 	var blendShader *adapter.Shader
 	for _, batch := range s.displacements.batches {
@@ -304,6 +320,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 		s.setNoCull(batch.material.NoCull())
 		if !batch.blend {
 			pushAlphaTest(s.activeShader, batch.material)
+			pushBumpmap(s.activeShader, batch.material)
 			adapter.BindTexture(batch.material.Diffuse)
 		} else {
 			// Blended materials are after the others, so the shader is switched once
@@ -314,12 +331,19 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 				}
 			}
 			pushAlphaTest(blendShader, batch.material)
+			pushBumpmap(blendShader, batch.material)
 			adapter.BindTexture(batch.material.Diffuse)
 			second := batch.material.Diffuse2
 			if second == 0 {
 				second = batch.material.Diffuse
 			}
 			gosigl.BindTexture2D(gosigl.TextureSlot(1), gosigl.TextureBindingId(second))
+			hasBumpmap2 := int32(0)
+			if batch.material.Bumpmap2 != 0 {
+				gosigl.BindTexture2D(gosigl.TextureSlot(3), gosigl.TextureBindingId(batch.material.Bumpmap2))
+				hasBumpmap2 = 1
+			}
+			adapter.PushInt32(blendShader.GetUniform("hasBumpmap2"), hasBumpmap2)
 		}
 
 		adapter.DrawMultiIndexedArray(batch.counts, batch.offsets)
@@ -349,7 +373,8 @@ func (s *Renderer) bindWorldVertexTransition(camera *graphics.Camera) *adapter.S
 	adapter.PushMat4(shader.GetUniform("model"), 1, false, camera.ModelMatrix())
 	adapter.PushInt32(shader.GetUniform("basetextureSampler"), 0)
 	adapter.PushInt32(shader.GetUniform("basetexture2Sampler"), 1)
-	adapter.PushInt32(shader.GetUniform("lightmapSampler"), 4)
+	adapter.PushInt32(shader.GetUniform("bumpmap2Sampler"), 3)
+	pushLightmapUniforms(shader)
 
 	if console.GetConvarBoolean("r_drawlightmaps") == true {
 		adapter.PushInt32(shader.GetUniform("renderLightmapsAsAlbedo"), 1)

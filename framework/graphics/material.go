@@ -1,6 +1,8 @@
 package graphics
 
 import (
+	"strings"
+
 	"github.com/galaco/vmt"
 )
 
@@ -13,6 +15,13 @@ type Material struct {
 	BaseTextureName string
 	// BaseTexture2Name - for 2-texture blend materials (WorldVertexTransition)
 	BaseTexture2Name string
+	// BumpMapName is the normal map the surface is lit with, from the lightmap of each bump basis direction
+	BumpMapName string
+	// BumpMap2Name is the normal map of a blend material's second texture, blended with the first's
+	BumpMap2Name string
+	// SSBump is true if the normal maps hold how much each bump basis direction lights the surface, rather than its
+	// normal (self-shadowing bump maps)
+	SSBump bool
 	// Skip
 	Skip bool
 	// Alpha
@@ -64,6 +73,13 @@ func LoadMaterial(fs VirtualFileSystem, filePath string) (mat *Material, err err
 	mat.ShaderName = props.ShaderName
 	mat.BaseTextureName = props.BaseTexture
 	mat.BaseTexture2Name = props.BaseTexture2
+	// Only these shaders light a surface from its normal map with bumped lightmaps. Others use $bumpmap for something
+	// else, such as Water's refraction.
+	if shader := strings.ToLower(props.ShaderName); shader == "lightmappedgeneric" || shader == "worldvertextransition" {
+		mat.BumpMapName = props.Bumpmap
+		mat.BumpMap2Name = props.Bumpmap2
+		mat.SSBump = props.SSBump == "1"
+	}
 
 	mat.Alpha = props.Alpha
 	if props.Translucent == 1 {

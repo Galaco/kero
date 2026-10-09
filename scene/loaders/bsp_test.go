@@ -1,14 +1,17 @@
 package loader
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
+	"github.com/galaco/bsp/lump/primitive/common"
 	"github.com/galaco/bsp/lump/primitive/dispinfo"
 	"github.com/galaco/bsp/lump/primitive/dispvert"
 	"github.com/galaco/bsp/lump/primitive/face"
 	"github.com/galaco/bsp/lump/primitive/plane"
 	"github.com/galaco/bsp/lump/primitive/texinfo"
+	"github.com/galaco/kero/framework/graphics"
 	"github.com/galaco/kero/framework/graphics/mesh"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -98,5 +101,100 @@ func TestLuxelToLightmap(t *testing.T) {
 		if actual := luxelToLightmap(c.colour, c.exponent); actual != c.expected {
 			t.Errorf("luxel %d with exponent %d: got %d, want %d", c.colour, c.exponent, actual, c.expected)
 		}
+	}
+}
+
+func TestBumpedLuxelsToLightmap(t *testing.T) {
+	full := common.ColorRGBExponent32{R: 255, G: 255, B: 255, Exponent: 0}
+	twice := common.ColorRGBExponent32{R: 255, G: 255, B: 255, Exponent: 1}
+	none := common.ColorRGBExponent32{}
+
+	// Light equal from every direction is stored as the face's lightmap is
+	lightmaps := bumpedLuxelsToLightmap(full, [3]common.ColorRGBExponent32{full, full, full})
+	for direction, lightmap := range lightmaps {
+		if lightmap != [3]uint8{128, 128, 128} {
+			t.Errorf("even light from direction %d: got %v, want the face's lightmap, 128", direction, lightmap)
+		}
+	}
+
+	// Light from each direction is scaled so that its average is the face's lightmap
+	lightmaps = bumpedLuxelsToLightmap(full, [3]common.ColorRGBExponent32{twice, full, none})
+	if expected := [3][3]uint8{{255, 255, 255}, {128, 128, 128}, {0, 0, 0}}; lightmaps != expected {
+		t.Errorf("light from two directions: got %v, want %v", lightmaps, expected)
+	}
+
+	// An unlit face is unlit from every direction
+	if lightmaps = bumpedLuxelsToLightmap(none, [3]common.ColorRGBExponent32{none, none, none}); lightmaps != [3][3]uint8{} {
+		t.Errorf("unlit: got %v, want nothing", lightmaps)
+	}
+
+	// The average of the directions' lightmaps is the face's lightmap, unless one is clamped at full brightness
+	seed := uint32(1)
+	random := func(n int) int {
+		seed = seed*1664525 + 1013904223
+		return int(seed>>16) % n
+	}
+	luxel := func() common.ColorRGBExponent32 {
+		return common.ColorRGBExponent32{R: uint8(random(256)), G: uint8(random(256)), B: uint8(random(256)), Exponent: int8(random(4) - 3)}
+	}
+	for i := 0; i < 1000; i++ {
+		flat := luxel()
+		lightmaps := bumpedLuxelsToLightmap(flat, [3]common.ColorRGBExponent32{luxel(), luxel(), luxel()})
+		flatChannels := [3]uint8{flat.R, flat.G, flat.B}
+		for channel := 0; channel < 3; channel++ {
+			if lightmaps[0][channel] == 255 || lightmaps[1][channel] == 255 || lightmaps[2][channel] == 255 {
+				continue
+			}
+			average := (float64(lightmaps[0][channel]) + float64(lightmaps[1][channel]) + float64(lightmaps[2][channel])) / 3
+			if lightmaps[0][channel]+lightmaps[1][channel]+lightmaps[2][channel] == 0 {
+				continue
+			}
+			if expected := float64(luxelToLightmap(flatChannels[channel], flat.Exponent)); math.Abs(average-expected) > 1 {
+				t.Fatalf("luxel %v: directions average %f, want the face's lightmap, %f", flat, average, expected)
+			}
+		}
+	}
+}
+
+func TestLightmapFromFace(t *testing.T) {
+	// A 2x1 luxel face
+	f := &face.Face{Lightofs: 4 * 4, LightmapTextureSizeInLuxels: [2]int32{1, 0}}
+	full := common.ColorRGBExponent32{R: 255, G: 255, B: 255}
+	half := common.ColorRGBExponent32{R: 255, G: 255, B: 255, Exponent: -1}
+	twice := common.ColorRGBExponent32{R: 255, G: 255, B: 255, Exponent: 1}
+	none := common.ColorRGBExponent32{}
+	// Four samples before the face's, then its lightmap and the lightmap of each bump basis direction
+	samples := []common.ColorRGBExponent32{none, none, none, none, full, half, twice, full, full, half, none, half}
+
+	// The face's lightmap is in every page
+	width, height, colour := lightmapFromFace(f, &texinfo.TexInfo{}, samples)
+	if width != 2 || height != 1 || len(colour) != 2*4*graphics.LightmapPages {
+		t.Fatalf("got a %dx%d lightmap of %d bytes, want 2x1 in %d pages", width, height, len(colour), graphics.LightmapPages)
+	}
+	flatPage := []uint8{128, 128, 128, 255, luxelToLightmap(255, -1), luxelToLightmap(255, -1), luxelToLightmap(255, -1), 255}
+	for page := 0; page < graphics.LightmapPages; page++ {
+		if got := colour[page*8 : page*8+8]; !reflect.DeepEqual(got, flatPage) {
+			t.Errorf("page %d of a face not lit for bump mapping: got %v, want %v", page, got, flatPage)
+		}
+	}
+
+	// A face lit for bump mapping has the lightmap of each direction in the pages after its own
+	_, _, colour = lightmapFromFace(f, &texinfo.TexInfo{Flags: surfBumpLight}, samples)
+	if got := colour[:8]; !reflect.DeepEqual(got, flatPage) {
+		t.Errorf("first page of a face lit for bump mapping: got %v, want its lightmap %v", got, flatPage)
+	}
+	for luxel := 0; luxel < 2; luxel++ {
+		expected := bumpedLuxelsToLightmap(samples[4+luxel], [3]common.ColorRGBExponent32{samples[6+luxel], samples[8+luxel], samples[10+luxel]})
+		for direction := 0; direction < 3; direction++ {
+			offset := (direction+1)*8 + luxel*4
+			if got := [3]uint8{colour[offset], colour[offset+1], colour[offset+2]}; got != expected[direction] {
+				t.Errorf("luxel %d lit from direction %d: got %v, want %v", luxel, direction, got, expected[direction])
+			}
+		}
+	}
+
+	// A face that isn't lit has no lightmap
+	if width, height, colour = lightmapFromFace(&face.Face{Lightofs: -1}, &texinfo.TexInfo{}, samples); width != 0 || height != 0 || len(colour) != 0 {
+		t.Errorf("unlit face: got a %dx%d lightmap of %d bytes, want none", width, height, len(colour))
 	}
 }

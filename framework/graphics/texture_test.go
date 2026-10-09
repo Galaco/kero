@@ -237,3 +237,44 @@ func TestTextureAtlas_Pack(t *testing.T) {
 		}
 	}
 }
+
+func TestTextureAtlas_Pages(t *testing.T) {
+	atlas := NewPagedTextureAtlas(3)
+	// Each box's image for a page is filled with its index and the page
+	sizes := [][2]int{{4, 3}, {2, 5}, {0, 0}, {3, 3}}
+	for i, size := range sizes {
+		w, h := size[0], size[1]
+		colour := make([]uint8, 0, w*h*4*3)
+		for page := 0; page < 3; page++ {
+			for p := 0; p < w*h; p++ {
+				colour = append(colour, uint8(i), uint8(page), 0, 255)
+			}
+		}
+		atlas.AddRaw(w, h, colour)
+	}
+	atlas.Pack()
+
+	if atlas.Height() != atlas.PageHeight()*3 {
+		t.Fatalf("got a %d high atlas of %d high pages, want 3 pages", atlas.Height(), atlas.PageHeight())
+	}
+	for i, size := range sizes {
+		a := atlas.AtlasEntry(i)
+		if a.W != size[0] || a.H != size[1] {
+			t.Fatalf("box %d: got %dx%d, want %dx%d", i, a.W, a.H, size[0], size[1])
+		}
+		if int(a.Y)+a.H > atlas.PageHeight() {
+			t.Errorf("box %d at %v,%v %dx%d is outside the first %d high page", i, a.X, a.Y, a.W, a.H, atlas.PageHeight())
+		}
+		// Each page holds the box's image for that page, at the same place
+		for page := 0; page < 3; page++ {
+			for y := int(a.Y); y < int(a.Y)+a.H; y++ {
+				for x := int(a.X); x < int(a.X)+a.W; x++ {
+					p := ((y+page*atlas.PageHeight())*atlas.Width() + x) * 4
+					if box, got := int(atlas.Image()[p]), int(atlas.Image()[p+1]); box != i || got != page {
+						t.Fatalf("pixel %d,%d of box %d in page %d holds box %d's image for page %d", x, y, i, page, box, got)
+					}
+				}
+			}
+		}
+	}
+}

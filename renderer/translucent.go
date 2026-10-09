@@ -49,7 +49,7 @@ func (s *Renderer) renderTranslucents(camera *graphics.Camera, items []transluce
 		adapter.PushMat4(shader.GetUniform("projection"), 1, false, camera.ProjectionMatrix())
 		adapter.PushMat4(shader.GetUniform("view"), 1, false, camera.ViewMatrix())
 		adapter.PushInt32(shader.GetUniform("albedoSampler"), 0)
-		adapter.PushInt32(shader.GetUniform("lightmapSampler"), 4)
+		pushLightmapUniforms(shader)
 		adapter.PushInt32(shader.GetUniform("hasTranslucentProperty"), 1)
 	}
 	adapter.PushVec3(instanced.GetUniform("cameraPosition"), camera.Transform().Translation)
@@ -88,6 +88,7 @@ func (s *Renderer) renderTranslucents(camera *graphics.Camera, items []transluce
 
 		switch {
 		case item.face != nil:
+			pushBumpmap(shader, item.material)
 			adapter.PushMat4(shader.GetUniform("model"), 1, false, camera.ModelMatrix())
 			bindMesh(&s.gpuScene.GpuMesh)
 			adapter.DrawMultiIndexedArray([]int32{int32(item.face.Length())}, []int{item.face.Offset()})

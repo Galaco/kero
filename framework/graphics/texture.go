@@ -171,6 +171,9 @@ func readVtf(fs VirtualFileSystem, path string) (*Texture2D, error) {
 // Does NOT support transparency
 type TextureAtlas struct {
 	rectangles []AtlasTexture
+	// pages is the number of images each texture has. Each page holds one of every texture's images, at the same place
+	// as in the first page, and the pages are stacked one below another.
+	pages int
 
 	populatedWidth, populatedHeight int
 	width, height                   int
@@ -206,6 +209,11 @@ func (atlas *TextureAtlas) PopulatedHeight() int {
 	return atlas.populatedHeight
 }
 
+// PageHeight is the height of each of the atlas's pages
+func (atlas *TextureAtlas) PageHeight() int {
+	return atlas.height / atlas.pages
+}
+
 func (atlas *TextureAtlas) Image() []uint8 {
 	return atlas.colour
 }
@@ -218,6 +226,7 @@ func (texture *TextureAtlas) Release() {
 	}
 }
 
+// AddRaw adds a texture of RGBA colour to the atlas. colour holds the texture's image for each page, one after another.
 func (atlas *TextureAtlas) AddRaw(width, height int, colour []uint8) *AtlasTexture {
 	atlas.rectangles = append(atlas.rectangles, AtlasTexture{
 		id:     len(atlas.rectangles),
@@ -340,16 +349,18 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	}
 
 	atlas.populatedWidth = maxX
-	atlas.populatedHeight = maxY
+	atlas.populatedHeight = maxY * atlas.pages
 	atlas.width = maxX
-	atlas.height = maxY
+	atlas.height = maxY * atlas.pages
 	//atlas.width = int(math.Pow(2, math.Ceil(math.Log(float64(maxX))/math.Log(2))))
 	//atlas.height = int(math.Pow(2, math.Ceil(math.Log(float64(maxY))/math.Log(2))))
 	atlas.colour = make([]uint8, atlas.width*atlas.height*atlas.bytesPerPixel)
 
 	// STEP 2: PACK TEXTURES
 	for _, rect := range packed {
-		atlas.writeBytes(&rect, padding)
+		for page := 0; page < atlas.pages; page++ {
+			atlas.writeBytes(&rect, page, maxY)
+		}
 	}
 
 	atlas.rectangles = nil
@@ -364,16 +375,18 @@ func (atlas *TextureAtlas) Pack() []AtlasTexture {
 	return atlas.rectangles
 }
 
-func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture, padding int) {
+// writeBytes writes a texture's image for a page into the atlas, whose pages are pageHeight high
+func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture, page int, pageHeight int) {
 	// Skip rows, then indent into the baseAtlasOffset of the current row
 	rowSizeInBytes := atlas.width * atlas.bytesPerPixel
 
-	start := (rowSizeInBytes * int(rect.Y)) + (atlas.bytesPerPixel * int(rect.X)) // Number of rows in + number of bytes across
+	start := (rowSizeInBytes * (int(rect.Y) + page*pageHeight)) + (atlas.bytesPerPixel * int(rect.X)) // Number of rows in + number of bytes across
+	image := rect.colour[page*rect.W*rect.H*4:]
 	for rowY := 0; rowY < rect.H; rowY++ {
 		for rowX := 0; rowX < rect.W; rowX++ {
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+0] = rect.colour[(rowY*4*rect.W)+(rowX*4)+0]
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+1] = rect.colour[(rowY*4*rect.W)+(rowX*4)+1]
-			atlas.colour[start+(rowX*atlas.bytesPerPixel)+2] = rect.colour[(rowY*4*rect.W)+(rowX*4)+2]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+0] = image[(rowY*4*rect.W)+(rowX*4)+0]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+1] = image[(rowY*4*rect.W)+(rowX*4)+1]
+			atlas.colour[start+(rowX*atlas.bytesPerPixel)+2] = image[(rowY*4*rect.W)+(rowX*4)+2]
 			atlas.colour[start+(rowX*atlas.bytesPerPixel)+3] = 255
 		}
 
@@ -382,9 +395,15 @@ func (atlas *TextureAtlas) writeBytes(rect *AtlasTexture, padding int) {
 }
 
 func NewTextureAtlas(width, height int) *TextureAtlas {
+	atlas := NewPagedTextureAtlas(1)
+	atlas.width, atlas.height = width, height
+	return atlas
+}
+
+// NewPagedTextureAtlas creates an atlas whose textures each have an image for every one of its pages
+func NewPagedTextureAtlas(pages int) *TextureAtlas {
 	return &TextureAtlas{
-		width:         width,
-		height:        height,
+		pages:         pages,
 		rectangles:    []AtlasTexture{},
 		format:        adapter.TextureFormatFromVtfFormat(uint32(format.RGBA8888)),
 		bytesPerPixel: 4,

@@ -98,6 +98,13 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 			}
 		}
 
+		if mat.BumpMapName != "" {
+			gpuMat.Bumpmap = s.loadTexture(frameworkScene, fs, mat.BumpMapName)
+		}
+		if mat.BumpMap2Name != "" {
+			gpuMat.Bumpmap2 = s.loadTexture(frameworkScene, fs, mat.BumpMap2Name)
+		}
+
 		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
 	}
 
@@ -169,6 +176,23 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 	s.buildInstanceBatches(frameworkScene)
 
 	return s
+}
+
+// loadTexture returns the GPU texture of a material's texture, uploading it if it is not yet, or 0 if it cannot be loaded
+func (s *GPUScene) loadTexture(frameworkScene *scene.StaticScene, fs fileSystem, name string) uint32 {
+	if id := s.GpuItemCache.Find(name); id != 0 {
+		return id
+	}
+	tex, err := graphics.LoadTexture(fs, name)
+	if err != nil {
+		console.PrintString(console.LevelWarning, fmt.Sprintf("Failed to load texture: %s", name))
+		return 0
+	}
+	frameworkScene.TexCache.Add(name, tex)
+	id := adapter.UploadTexture(tex)
+	s.GpuItemCache.Add(name, id)
+	adapter.ReleaseTextureResource(tex)
+	return id
 }
 
 // propSkins returns the skins each model is drawn with by static props and prop entities

@@ -8,6 +8,7 @@ var LightMappedGenericFragment = `
 	uniform sampler2D lightmapSampler;
 	// Lightmaps are stored at half brightness, so that light can be up to twice as bright as a surface's texture
 	const float lightmapScale = 2.0;
+	uniform sampler2D bumpmapSampler;
 
 	// Flag that this material is in some way translucent
 	uniform int hasTranslucentProperty;
@@ -61,6 +62,8 @@ var LightMappedGenericFragment = `
 		return color;
 	}
 
+` + bumpedLightmapLighting + `
+
 	vec4 LightmapPass(in vec4 color)
 	{	
 		if (renderLightmapsAsAlbedo == 1) {
@@ -70,9 +73,12 @@ var LightMappedGenericFragment = `
 			return color;
 		}
 
-		vec4 lightmapColor = vec4(texture(lightmapSampler, LightmapUV).rgb * lightmapScale, 1.0);
-		
-		return color * lightmapColor;
+		vec3 normalTexel = vec3(0.5, 0.5, 1.0);
+		if (bumpmap != 0) {
+			normalTexel = texture(bumpmapSampler, UV).rgb;
+		}
+
+		return color * vec4(LightmapLighting(normalTexel), 1.0);
 	}
 
     void main()
@@ -275,3 +281,48 @@ var LightMappedGenericInstancedFragment = `
 		frag_colour = diffuse;
     }
 ` + "\x00"
+
+// bumpedLightmapLighting is GLSL that lights a surface with its lightmaps, from the normal of its normal map if it has
+// one. A shader that includes it declares lightmapSampler, lightmapScale and LightmapUV first.
+//
+//language=glsl
+var bumpedLightmapLighting = `
+	// The lightmap atlas has a page for the lightmap of each bump basis direction, below the surface's own lightmap
+	uniform float lightmapPageHeight;
+	// bumpmap is 0 to light a surface without its normal map, 1 to light it from the normal of its normal map, and 2
+	// for a self-shadowing bump map ($ssbump), which holds how much each bump basis direction lights it
+	uniform int bumpmap;
+
+	// The directions each bump basis direction's lightmap is lit from, relative to the surface
+	const vec3 bumpBasis[3] = vec3[3](
+		vec3(0.81649661064147949, 0.0, 0.57735025882720947),
+		vec3(-0.40824833512306213, 0.70710676908493042, 0.57735025882720947),
+		vec3(-0.40824821591377258, -0.7071068286895752, 0.57735025882720947)
+	);
+
+	// LightmapLighting returns the light that reaches a surface, given its normal map's texel
+	vec3 LightmapLighting(in vec3 normalTexel)
+	{
+		vec3 flatLight = texture(lightmapSampler, LightmapUV).rgb;
+		if (bumpmap == 0) {
+			return flatLight * lightmapScale;
+		}
+
+		vec3 light1 = texture(lightmapSampler, LightmapUV + vec2(0.0, lightmapPageHeight)).rgb;
+		vec3 light2 = texture(lightmapSampler, LightmapUV + vec2(0.0, 2.0 * lightmapPageHeight)).rgb;
+		vec3 light3 = texture(lightmapSampler, LightmapUV + vec2(0.0, 3.0 * lightmapPageHeight)).rgb;
+		if (bumpmap == 2) {
+			return (normalTexel.x * light1 + normalTexel.y * light2 + normalTexel.z * light3) * lightmapScale;
+		}
+
+		// Each direction lights the surface by how much its normal faces it
+		vec3 normal = normalTexel * 2.0 - 1.0;
+		vec3 weights = clamp(vec3(dot(normal, bumpBasis[0]), dot(normal, bumpBasis[1]), dot(normal, bumpBasis[2])), 0.0, 1.0);
+		weights *= weights;
+		float sum = weights.x + weights.y + weights.z;
+		if (sum <= 0.0) {
+			return flatLight * lightmapScale;
+		}
+		return (weights.x * light1 + weights.y * light2 + weights.z * light3) / sum * lightmapScale;
+	}
+`

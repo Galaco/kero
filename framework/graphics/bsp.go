@@ -105,6 +105,11 @@ func LightmapCoordsForFaceFromTexInfo(vertexes []float32,
 	return uvs
 }
 
+// LightmapPages is the number of lightmaps the lightmap atlas holds for each face, each in a page of its own: the
+// face's lightmap, then the lightmap of each of the three bump basis directions that light a bump mapped surface. A face
+// that isn't lit for bump mapping has its lightmap in every page. Lightmap coordinates are in the first page.
+const LightmapPages = 4
+
 // DisplacementLightmapCoords creates lightmap coordinates for a displacement's vertices. A displacement's lightmap
 // covers its grid evenly, from the luxel centre at its start corner to the luxel centre at the opposite corner, however
 // the displacement is shaped.

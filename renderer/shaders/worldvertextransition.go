@@ -39,6 +39,10 @@ var WorldVertexTransitionFragment = `
 	uniform sampler2D lightmapSampler;
 	// Lightmaps are stored at half brightness, so that light can be up to twice as bright as a surface's texture
 	const float lightmapScale = 2.0;
+	uniform sampler2D bumpmapSampler;
+	uniform sampler2D bumpmap2Sampler;
+	// hasBumpmap2 is 1 if the second texture has a normal map of its own, blended with the first's
+	uniform int hasBumpmap2;
 
 	// Flag that this material is in some way translucent
 	uniform int hasTranslucentProperty;
@@ -95,6 +99,8 @@ var WorldVertexTransitionFragment = `
 		return color;
 	}
 
+` + bumpedLightmapLighting + `
+
 	vec4 LightmapPass(in vec4 color)
 	{
 		if (renderLightmapsAsAlbedo == 1) {
@@ -104,9 +110,15 @@ var WorldVertexTransitionFragment = `
 			return color;
 		}
 
-		vec4 lightmapColor = vec4(texture(lightmapSampler, LightmapUV).rgb * lightmapScale, 1.0);
+		vec3 normalTexel = vec3(0.5, 0.5, 1.0);
+		if (bumpmap != 0) {
+			normalTexel = texture(bumpmapSampler, UV).rgb;
+			if (hasBumpmap2 == 1) {
+				normalTexel = mix(normalTexel, texture(bumpmap2Sampler, UV).rgb, BlendWeight);
+			}
+		}
 
-		return color * lightmapColor;
+		return color * vec4(LightmapLighting(normalTexel), 1.0);
 	}
 
     void main()
