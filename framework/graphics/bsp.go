@@ -235,12 +235,13 @@ func NewBsp(
 
 // BspFace
 type BspFace struct {
-	offset   int
-	length   int
-	center   mgl32.Vec3
-	material string
-	texInfo  *texinfo.TexInfo
-	bspFace  *face.Face
+	offset     int
+	length     int
+	center     mgl32.Vec3
+	mins, maxs mgl32.Vec3
+	material   string
+	texInfo    *texinfo.TexInfo
+	bspFace    *face.Face
 	// displacementVertices describes each of a displacement's vertices; it is nil for other faces
 	displacementVertices []DisplacementVertex
 }
@@ -285,8 +286,18 @@ func (face *BspFace) SetDisplacementVertices(vertices []DisplacementVertex) {
 // NewMeshFace creates a face drawn with length vertices of a mesh's vertices, starting at offset
 func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *face.Face, vertices []float32) BspFace {
 	center := mgl32.Vec3{}
+	var mins, maxs mgl32.Vec3
 	for v := offset; v < offset+length; v++ {
-		center = center.Add(mgl32.Vec3{vertices[v*3], vertices[v*3+1], vertices[v*3+2]})
+		vertex := mgl32.Vec3{vertices[v*3], vertices[v*3+1], vertices[v*3+2]}
+		center = center.Add(vertex)
+		if v == offset {
+			mins, maxs = vertex, vertex
+			continue
+		}
+		for axis := 0; axis < 3; axis++ {
+			mins[axis] = min(mins[axis], vertex[axis])
+			maxs[axis] = max(maxs[axis], vertex[axis])
+		}
 	}
 	if length > 0 {
 		center = center.Mul(1 / float32(length))
@@ -295,6 +306,8 @@ func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *
 		offset:  int(offset),
 		length:  int(length),
 		center:  center,
+		mins:    mins,
+		maxs:    maxs,
 		texInfo: texInfo,
 		bspFace: bspFace,
 	}
@@ -303,4 +316,9 @@ func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *
 // Center returns the average position of the face's vertices
 func (face *BspFace) Center() mgl32.Vec3 {
 	return face.center
+}
+
+// Bounds returns the smallest box that holds the face's vertices
+func (face *BspFace) Bounds() (mins, maxs mgl32.Vec3) {
+	return face.mins, face.maxs
 }

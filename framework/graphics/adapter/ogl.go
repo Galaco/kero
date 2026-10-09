@@ -197,6 +197,15 @@ func DrawArray(offset int, num int) {
 	gosigl.DrawArray(offset, num)
 }
 
+// DrawMultiArray draws several ranges of the bound mesh's vertices in one call. Each range starts at the vertex in
+// firsts, and has the number of vertices in counts at the same index.
+func DrawMultiArray(firsts []int32, counts []int32) {
+	if len(firsts) == 0 || len(firsts) != len(counts) {
+		return
+	}
+	gl.MultiDrawArrays(gl.TRIANGLES, &firsts[0], &counts[0], int32(len(firsts)))
+}
+
 func DrawIndexedArray(num int, offset int, indices []uint32) {
 	gosigl.DrawElements(num, offset, indices)
 }

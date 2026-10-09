@@ -369,20 +369,12 @@ func generateClusterLeafs(level *graphics.Bsp, visData *vis.Vis) []vis.ClusterLe
 	}
 
 	// Displacements are not in leafs' face lists. A displacement belongs to every cluster with a leaf it overlaps.
-	dispVertices := level.DisplacementMesh().Vertices()
 	for dispIdx, faceIdx := range level.DispFaces() {
 		face := level.Faces()[faceIdx]
 		if face.Length() == 0 {
 			continue
 		}
-		mins := mgl32.Vec3{dispVertices[face.Offset()*3], dispVertices[face.Offset()*3+1], dispVertices[face.Offset()*3+2]}
-		maxs := mins
-		for v := face.Offset(); v < face.Offset()+face.Length(); v++ {
-			for axis := 0; axis < 3; axis++ {
-				mins[axis] = min(mins[axis], dispVertices[v*3+axis])
-				maxs[axis] = max(maxs[axis], dispVertices[v*3+axis])
-			}
-		}
+		mins, maxs := face.Bounds()
 
 		for _, bspLeaf := range visData.Leafs {
 			if bspLeaf.Cluster == -1 {
