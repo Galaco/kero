@@ -15,8 +15,9 @@ type displacementBatch struct {
 	material *cache.GpuMaterial
 	// blend is true for a material that blends two textures across its displacements (WorldVertexTransition)
 	blend bool
-	// firsts and counts are the vertices of the batch's displacements to draw in a pass
-	firsts, counts []int32
+	// offsets and counts are the indices of the batch's displacements to draw in a pass
+	offsets []int
+	counts  []int32
 }
 
 // displacementBatches groups displacements by material, so that a pass draws all of a material's displacements
@@ -76,7 +77,7 @@ func newDisplacementBatches(faces []*graphics.BspFace, materials *cache.Material
 func (d *displacementBatches) collect(clusters []*vis.ClusterLeaf, frustum *graphics.Frustum) {
 	d.pass++
 	for _, batch := range d.batches {
-		batch.firsts = batch.firsts[:0]
+		batch.offsets = batch.offsets[:0]
 		batch.counts = batch.counts[:0]
 	}
 
@@ -94,7 +95,7 @@ func (d *displacementBatches) collect(clusters []*vis.ClusterLeaf, frustum *grap
 				continue
 			}
 			batch := d.batches[d.batchOf[idx]]
-			batch.firsts = append(batch.firsts, int32(face.Offset()))
+			batch.offsets = append(batch.offsets, face.Offset())
 			batch.counts = append(batch.counts, int32(face.Length()))
 		}
 	}

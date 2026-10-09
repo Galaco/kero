@@ -297,7 +297,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 
 	var blendShader *adapter.Shader
 	for _, batch := range s.displacements.batches {
-		if len(batch.firsts) == 0 {
+		if len(batch.offsets) == 0 {
 			continue
 		}
 
@@ -320,7 +320,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 			gosigl.BindTexture2D(gosigl.TextureSlot(1), gosigl.TextureBindingId(second))
 		}
 
-		adapter.DrawMultiArray(batch.firsts, batch.counts)
+		adapter.DrawMultiIndexedArray(batch.counts, batch.offsets)
 		if err := adapter.GpuError(); err != nil {
 			console.PrintString(console.LevelError, err.Error())
 		}

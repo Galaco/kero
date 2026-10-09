@@ -2,6 +2,8 @@ package adapter
 
 import (
 	"fmt"
+	"unsafe"
+
 	"github.com/galaco/gosigl"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
@@ -197,32 +199,28 @@ func DrawArray(offset int, num int) {
 	gosigl.DrawArray(offset, num)
 }
 
-// DrawMultiArray draws several ranges of the bound mesh's vertices in one call. Each range starts at the vertex in
-// firsts, and has the number of vertices in counts at the same index.
-func DrawMultiArray(firsts []int32, counts []int32) {
-	if len(firsts) == 0 || len(firsts) != len(counts) {
-		return
-	}
-	gl.MultiDrawArrays(gl.TRIANGLES, &firsts[0], &counts[0], int32(len(firsts)))
-}
 
 func DrawIndexedArray(num int, offset int, indices []uint32) {
 	gosigl.DrawElements(num, offset, indices)
 }
 
-// DrawMultiIndexedArray draws multiple ranges from the same index buffer
-// offsets and counts must be the same length
-// This avoids index buffer uploads by using offsets into the existing buffer
+// multiDrawOffsets holds the byte offsets into the bound index buffer of the ranges DrawMultiIndexedArray draws. GL
+// takes them as pointers.
+var multiDrawOffsets []unsafe.Pointer
+
+// DrawMultiIndexedArray draws several ranges of the bound mesh's indices in one call. Each range starts at the index in
+// offsets, and has the number of indices in counts at the same index.
 func DrawMultiIndexedArray(counts []int32, offsets []int) {
 	if len(counts) == 0 || len(counts) != len(offsets) {
 		return
 	}
 
-	// Draw each range using glDrawElements with byte offset into the index buffer
-	for i := range counts {
+	multiDrawOffsets = multiDrawOffsets[:0]
+	for _, offset := range offsets {
 		// offset in bytes = offset in indices * 4 (sizeof uint32)
-		gl.DrawElements(gl.TRIANGLES, counts[i], gl.UNSIGNED_INT, gl.PtrOffset(offsets[i]*4))
+		multiDrawOffsets = append(multiDrawOffsets, gl.PtrOffset(offset*4))
 	}
+	gl.MultiDrawElements(gl.TRIANGLES, &counts[0], gl.UNSIGNED_INT, &multiDrawOffsets[0], int32(len(counts)))
 }
 
 func UpdateIndexArrayBuffer(indices []uint32) {

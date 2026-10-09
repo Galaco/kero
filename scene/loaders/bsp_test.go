@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/galaco/bsp/lump/primitive/dispinfo"
@@ -33,10 +34,15 @@ func TestGenerateDisplacementFace(t *testing.T) {
 
 	dispFace := generateDisplacementFace(f, &structure, m)
 
+	// A vertex for each point of the 5x5 grid, and two triangles for each of its squares
 	onFace := dispFace.DisplacementVertices()
-	if len(onFace) != dispFace.Length() || dispFace.Length() != 4*4*6 {
-		t.Fatalf("got %d vertices on the face and %d in the mesh, want %d", len(onFace), dispFace.Length(), 4*4*6)
+	if len(onFace) != 5*5 || len(m.Vertices()) != 5*5*3 || len(m.BlendWeights()) != 5*5 {
+		t.Fatalf("got %d vertices on the face, %d in the mesh and %d blend weights, want %d", len(onFace), len(m.Vertices())/3, len(m.BlendWeights()), 5*5)
 	}
+	if dispFace.Offset() != 0 || dispFace.Length() != 4*4*6 || len(m.Indices()) != 4*4*6 {
+		t.Fatalf("got the face's indices at %d, %d of them, and %d in the mesh, want %d at 0", dispFace.Offset(), dispFace.Length(), len(m.Indices()), 4*4*6)
+	}
+
 	// The grid runs from the start corner towards the previous corner, then towards the next corner
 	start, previous, next := corners[1], corners[0], corners[2]
 	for i, v := range onFace {
@@ -48,9 +54,26 @@ func TestGenerateDisplacementFace(t *testing.T) {
 		if !v.Base.ApproxEqual(expected) {
 			t.Errorf("vertex %d: at %v on the face, want %v for grid position %v", i, v.Base, expected, v.Grid)
 		}
+		// Vertices are in the order of the displacement's vertices
+		if grid := (mgl32.Vec2{float32(i%5) / 4, float32(i/5) / 4}); v.Grid != grid {
+			t.Errorf("vertex %d: at grid position %v, want %v", i, v.Grid, grid)
+		}
+		if weight := m.BlendWeights()[i]; weight != dispVerts[i].Alpha/255 {
+			t.Errorf("vertex %d: got blend weight %f, want %f", i, weight, dispVerts[i].Alpha/255)
+		}
 	}
 	if onFace[0].Grid != (mgl32.Vec2{0, 0}) || !onFace[0].Base.ApproxEqual(start) {
 		t.Errorf("first vertex: got grid %v at %v, want the start corner", onFace[0].Grid, onFace[0].Base)
+	}
+
+	// The first square's triangles join its corners at grid positions 0,0 0,1 1,1 and 1,0
+	if first := m.Indices()[:6]; !reflect.DeepEqual(first, []uint32{0, 5, 6, 0, 6, 1}) {
+		t.Errorf("got the first square's triangles %v, want [0 5 6 0 6 1]", first)
+	}
+
+	// The face's bounds hold its displaced vertices
+	if mins, maxs := dispFace.Bounds(); mins != (mgl32.Vec3{0, 0, 10}) || maxs != (mgl32.Vec3{128, 64, 10}) {
+		t.Errorf("got bounds %v to %v, want 0,0,10 to 128,64,10", mins, maxs)
 	}
 }
 

@@ -338,9 +338,9 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 	firstCorner := int32(0)
 	firstCornerDist2 := float32(math.MaxFloat32)
 
-	offset := int32(len(bspMesh.Vertices())) / 3
-	length := int32(0)
-	onFace := make([]graphics.DisplacementVertex, 0, size*size*6)
+	vertexOffset := uint32(len(bspMesh.Vertices()) / 3)
+	indexOffset := int32(len(bspMesh.Indices()))
+	onFace := make([]graphics.DisplacementVertex, 0, (size+1)*(size+1))
 
 	for surfId := f.FirstEdge; surfId < f.FirstEdge+int32(f.NumEdges); surfId++ {
 		surfEdge := bspStructure.surfEdges[surfId]
@@ -360,53 +360,30 @@ func generateDisplacementFace(f *face.Face, bspStructure *bspstructs, bspMesh *m
 		}
 	}
 
-	for x := 0; x < size; x++ {
-		for y := 0; y < size; y++ {
-			// Calculate vertex indices for this quad
-			idxA := int(info.DispVertStart) + x + y*(size+1)
-			idxB := int(info.DispVertStart) + x + (y+1)*(size+1)
-			idxC := int(info.DispVertStart) + (x + 1) + (y+1)*(size+1)
-			idxD := int(info.DispVertStart) + (x + 1) + y*(size+1)
-
-			// Generate vertex positions
-			a, aOnFace := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
-			b, bOnFace := generateDispVert(int(info.DispVertStart), x, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
-			c, cOnFace := generateDispVert(int(info.DispVertStart), x+1, y+1, size, corners, firstCorner, &bspStructure.dispVerts)
-			d, dOnFace := generateDispVert(int(info.DispVertStart), x+1, y, size, corners, firstCorner, &bspStructure.dispVerts)
-
-			// Get blend alpha from DispVert for 2-texture blending
-			// Alpha ranges from 0-255, normalize to 0.0-1.0
-			rawAlphaA := bspStructure.dispVerts[idxA].Alpha
-			rawAlphaB := bspStructure.dispVerts[idxB].Alpha
-			rawAlphaC := bspStructure.dispVerts[idxC].Alpha
-			rawAlphaD := bspStructure.dispVerts[idxD].Alpha
-
-			alphaA := rawAlphaA / 255.0
-			alphaB := rawAlphaB / 255.0
-			alphaC := rawAlphaC / 255.0
-			alphaD := rawAlphaD / 255.0
-
-			// Split into triangles (ABC, ACD)
-			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
-			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), b.X(), b.Y(), b.Z(), c.X(), c.Y(), c.Z())
-			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
-			bspMesh.AddBlendWeight(alphaA)
-			bspMesh.AddBlendWeight(alphaB)
-			bspMesh.AddBlendWeight(alphaC)
-
-			bspMesh.AddIndice(uint32(len(bspMesh.Vertices()))/3, (uint32(len(bspMesh.Vertices()))/3)+1, (uint32(len(bspMesh.Vertices()))/3)+2)
-			bspMesh.AddVertex(a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z(), d.X(), d.Y(), d.Z())
-			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z(), normal.X(), normal.Y(), normal.Z())
-			bspMesh.AddBlendWeight(alphaA)
-			bspMesh.AddBlendWeight(alphaC)
-			bspMesh.AddBlendWeight(alphaD)
-			onFace = append(onFace, aOnFace, bOnFace, cOnFace, aOnFace, cOnFace, dOnFace)
-
-			length += 6 // 6 b/c quad = 2*triangle
+	// A vertex for each point of the grid, in the order of the displacement's vertices: a row of x at a time
+	for y := 0; y <= size; y++ {
+		for x := 0; x <= size; x++ {
+			position, vertex := generateDispVert(int(info.DispVertStart), x, y, size, corners, firstCorner, &bspStructure.dispVerts)
+			bspMesh.AddVertex(position.X(), position.Y(), position.Z())
+			bspMesh.AddNormal(normal.X(), normal.Y(), normal.Z())
+			// Blend alpha ranges from 0-255, normalize to 0.0-1.0 for 2-texture blending
+			bspMesh.AddBlendWeight(bspStructure.dispVerts[int(info.DispVertStart)+x+y*(size+1)].Alpha / 255.0)
+			onFace = append(onFace, vertex)
 		}
 	}
 
-	dispFace := graphics.NewMeshFace(offset, length, &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
+	// Split each square of the grid into triangles (ABC, ACD)
+	vertexAt := func(x, y int) uint32 {
+		return vertexOffset + uint32(x+y*(size+1))
+	}
+	for x := 0; x < size; x++ {
+		for y := 0; y < size; y++ {
+			a, b, c, d := vertexAt(x, y), vertexAt(x, y+1), vertexAt(x+1, y+1), vertexAt(x+1, y)
+			bspMesh.AddIndice(a, b, c, a, c, d)
+		}
+	}
+
+	dispFace := graphics.NewIndexedMeshFace(indexOffset, int32(size*size*6), int32(vertexOffset), int32((size+1)*(size+1)), &bspStructure.texInfos[f.TexInfo], f, bspMesh.Vertices())
 	dispFace.SetDisplacementVertices(onFace)
 	return dispFace
 }

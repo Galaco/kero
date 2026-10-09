@@ -246,12 +246,12 @@ type BspFace struct {
 	displacementVertices []DisplacementVertex
 }
 
-// Offset
+// Offset is the first of its mesh's indices that the face is drawn with
 func (face *BspFace) Offset() int {
 	return face.offset
 }
 
-// Length
+// Length is the number of its mesh's indices that the face is drawn with
 func (face *BspFace) Length() int {
 	return face.length
 }
@@ -272,8 +272,8 @@ func (face *BspFace) RawFace() *face.Face {
 	return face.bspFace
 }
 
-// DisplacementVertices describes each of a displacement's vertices, in the order they are in the mesh. It is nil for
-// other faces.
+// DisplacementVertices describes each of a displacement's vertices, in the order they are in the mesh: a row of its
+// grid at a time, from its start corner. It is nil for other faces.
 func (face *BspFace) DisplacementVertices() []DisplacementVertex {
 	return face.displacementVertices
 }
@@ -283,14 +283,21 @@ func (face *BspFace) SetDisplacementVertices(vertices []DisplacementVertex) {
 }
 
 // NewFace
-// NewMeshFace creates a face drawn with length vertices of a mesh's vertices, starting at offset
+// NewMeshFace creates a face drawn with length vertices of a mesh's vertices, starting at offset, which are indexed in
+// order
 func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *face.Face, vertices []float32) BspFace {
+	return NewIndexedMeshFace(offset, length, offset, length, texInfo, bspFace, vertices)
+}
+
+// NewIndexedMeshFace creates a face drawn with indexCount of a mesh's indices, starting at indexOffset, which index the
+// vertexCount vertices starting at vertexOffset
+func NewIndexedMeshFace(indexOffset, indexCount, vertexOffset, vertexCount int32, texInfo *texinfo.TexInfo, bspFace *face.Face, vertices []float32) BspFace {
 	center := mgl32.Vec3{}
 	var mins, maxs mgl32.Vec3
-	for v := offset; v < offset+length; v++ {
+	for v := vertexOffset; v < vertexOffset+vertexCount; v++ {
 		vertex := mgl32.Vec3{vertices[v*3], vertices[v*3+1], vertices[v*3+2]}
 		center = center.Add(vertex)
-		if v == offset {
+		if v == vertexOffset {
 			mins, maxs = vertex, vertex
 			continue
 		}
@@ -299,12 +306,12 @@ func NewMeshFace(offset int32, length int32, texInfo *texinfo.TexInfo, bspFace *
 			maxs[axis] = max(maxs[axis], vertex[axis])
 		}
 	}
-	if length > 0 {
-		center = center.Mul(1 / float32(length))
+	if vertexCount > 0 {
+		center = center.Mul(1 / float32(vertexCount))
 	}
 	return BspFace{
-		offset:  int(offset),
-		length:  int(length),
+		offset:  int(indexOffset),
+		length:  int(indexCount),
 		center:  center,
 		mins:    mins,
 		maxs:    maxs,

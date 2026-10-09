@@ -46,10 +46,10 @@ func TestDisplacementBatches(t *testing.T) {
 	}
 
 	frustum := graphics.FrustumFromCamera(graphics.NewCamera(mgl32.DegToRad(90), 1))
-	expect := func(pass string, batch *displacementBatch, firsts, counts []int32) {
+	expect := func(pass string, batch *displacementBatch, offsets []int, counts []int32) {
 		t.Helper()
-		if len(batch.firsts) != len(firsts) || (len(firsts) > 0 && (!reflect.DeepEqual(batch.firsts, firsts) || !reflect.DeepEqual(batch.counts, counts))) {
-			t.Errorf("%s: got firsts %v and counts %v, want %v and %v", pass, batch.firsts, batch.counts, firsts, counts)
+		if len(batch.offsets) != len(offsets) || (len(offsets) > 0 && (!reflect.DeepEqual(batch.offsets, offsets) || !reflect.DeepEqual(batch.counts, counts))) {
+			t.Errorf("%s: got offsets %v and counts %v, want %v and %v", pass, batch.offsets, batch.counts, offsets, counts)
 		}
 	}
 
@@ -57,12 +57,12 @@ func TestDisplacementBatches(t *testing.T) {
 	first := &vis.ClusterLeaf{DispFaces: []int{0, 1, 2}}
 	second := &vis.ClusterLeaf{DispFaces: []int{1, 3}}
 	d.collect([]*vis.ClusterLeaf{first, second}, frustum)
-	expect("first pass", d.batches[0], []int32{0}, []int32{3})
+	expect("first pass", d.batches[0], []int{0}, []int32{3})
 	expect("first pass", d.batches[1], nil, nil)
-	expect("first pass", d.batches[2], []int32{3, 9}, []int32{3, 3})
+	expect("first pass", d.batches[2], []int{3, 9}, []int32{3, 3})
 
 	// Each pass lists only its own displacements
 	d.collect([]*vis.ClusterLeaf{second}, frustum)
 	expect("second pass", d.batches[0], nil, nil)
-	expect("second pass", d.batches[2], []int32{3, 9}, []int32{3, 3})
+	expect("second pass", d.batches[2], []int{3, 9}, []int32{3, 3})
 }
