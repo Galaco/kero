@@ -143,34 +143,26 @@ type studiomodelCollisionMesh struct {
 func generateCollisionMeshFromStudiomodelPhy(phy *phy.Phy) studiomodelCollisionMesh {
 	parts := make([]bullet.BulletCollisionShapeHandle, 0)
 
-	faceOffset := int32(0)
-	verts := make([][]mgl32.Vec3, len(phy.TriangleFaceHeaders))
-	for idx, header := range phy.TriangleFaceHeaders {
-		verts[idx] = make([]mgl32.Vec3, 0)
-		for _, face := range phy.TriangleFaces[faceOffset : faceOffset+header.FaceCount] {
-			//  PHY vertices use a different scaling space!!!
-			verts[idx] = append(verts[idx],
-				transformPhyVertex(nil, mgl32.Vec3{
-					phy.Vertices[int32(face.V1)][0],
-					phy.Vertices[int32(face.V1)][1],
-					phy.Vertices[int32(face.V1)][2],
-				}),
-				transformPhyVertex(nil, mgl32.Vec3{
-					phy.Vertices[int32(face.V2)][0],
-					phy.Vertices[int32(face.V2)][1],
-					phy.Vertices[int32(face.V2)][2],
-				}),
-				transformPhyVertex(nil, mgl32.Vec3{
-					phy.Vertices[int32(face.V3)][0],
-					phy.Vertices[int32(face.V3)][1],
-					phy.Vertices[int32(face.V3)][2],
-				}),
-			)
-		}
-		faceOffset += header.FaceCount
+	// Each ledge is a convex piece. Its triangles index the vertices of the solid it belongs to.
+	verts := make([][]mgl32.Vec3, 0)
+	for _, solid := range phy.Solids {
+		for _, ledge := range solid.Ledges {
+			ledgeVerts := make([]mgl32.Vec3, 0, len(ledge.Triangles)*3)
+			for _, face := range ledge.Triangles {
+				for _, v := range [3]uint16{face.V1, face.V2, face.V3} {
+					if int(v) >= len(solid.Vertices) {
+						continue
+					}
+					//  PHY vertices use a different scaling space!!!
+					ledgeVerts = append(ledgeVerts, transformPhyVertex(nil, solid.Vertices[v].Vec3()))
+				}
+			}
+			verts = append(verts, ledgeVerts)
 
-		parts = append(parts, bullet.BulletNewConvexHullShape())
-		parts[idx].AddVertices(verts[idx])
+			part := bullet.BulletNewConvexHullShape()
+			part.AddVertices(ledgeVerts)
+			parts = append(parts, part)
+		}
 	}
 
 	mesh := studiomodelCollisionMesh{
@@ -190,7 +182,7 @@ func transformPhyVertex(bone *mdl.Bone, vertex mgl32.Vec3) (out mgl32.Vec3) {
 	out[1] = 1 / 0.0254 * vertex[2]
 	out[2] = 1 / 0.0254 * -vertex[1]
 	if bone != nil {
-		out = vectorITransform(out, bone.PoseToBone)
+		out = vectorITransform(out, bone.PoseToBone.Mat3x4())
 	}
 	return out
 }

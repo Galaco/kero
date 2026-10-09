@@ -225,9 +225,9 @@ func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.Static
 
 		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
 		gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
-
-		s.GpuStaticProps[prop.Id] = gpuProp
 	}
+
+	s.GpuStaticProps[prop.Id] = gpuProp
 }
 
 // buildInstanceBatches groups all static props into instance batches for efficient rendering
