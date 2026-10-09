@@ -21,6 +21,7 @@ type Model struct {
 
 	// Model specific data
 	ModelScale float32 // Additional scale factor (beyond Transform.Scale)
+	Skin       int     // Skin to draw the model with
 
 	// Phase 2: Direct mesh reference (replaces bridge lookup)
 	// Using interface{} to avoid mesh package dependency in components.

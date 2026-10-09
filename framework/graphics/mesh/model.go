@@ -23,7 +23,7 @@ type Model struct {
 	OriginalStudiomodel *studiomodel.StudioModel
 	mesh                *BasicMesh
 	subMeshes           []SubMesh
-	materials           []string
+	materials           [][]string // the material of each sub-mesh, for each skin
 	rigidBody           collision.RigidBody
 	boundsMins          mgl32.Vec3
 	boundsMaxs          mgl32.Vec3
@@ -40,19 +40,41 @@ func (model *Model) SubMeshes() []SubMesh {
 	return model.subMeshes
 }
 
-// Materials returns the material of each sub-mesh
-func (model *Model) Materials() []string {
-	return model.materials
+// NumSkins returns how many skins the model has
+func (model *Model) NumSkins() int {
+	return len(model.materials)
 }
 
-// AddSubMesh adds indices into Mesh's vertices that are drawn with a material
-func (model *Model) AddSubMesh(indices []uint32, material string) {
+// Skin returns skin if the model has it, otherwise the default skin 0, as the engine does
+func (model *Model) Skin(skin int) int {
+	if skin < 0 || skin >= len(model.materials) {
+		return 0
+	}
+	return skin
+}
+
+// Materials returns the material of each sub-mesh with a skin
+func (model *Model) Materials(skin int) []string {
+	if len(model.materials) == 0 {
+		return nil
+	}
+	return model.materials[model.Skin(skin)]
+}
+
+// AddSubMesh adds indices into Mesh's vertices that are drawn with a material, given for each skin.
+// Every sub-mesh must be given the same number of skins.
+func (model *Model) AddSubMesh(indices []uint32, skinMaterials []string) {
 	model.subMeshes = append(model.subMeshes, SubMesh{
 		IndexOffset: len(model.mesh.Indices()),
 		IndexCount:  len(indices),
 	})
 	model.mesh.AddIndice(indices...)
-	model.materials = append(model.materials, material)
+	for skin, material := range skinMaterials {
+		if skin == len(model.materials) {
+			model.materials = append(model.materials, nil)
+		}
+		model.materials[skin] = append(model.materials[skin], material)
+	}
 }
 
 func (model *Model) RigidBody() collision.RigidBody {

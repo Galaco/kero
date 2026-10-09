@@ -14,6 +14,7 @@ type StaticProp struct {
 	leafList        []uint16
 	fadeMinDistance float32
 	fadeMaxDistance float32
+	skin            int
 	model           mesh.ModelInstance
 }
 
@@ -25,6 +26,11 @@ func (prop *StaticProp) Model() *mesh.ModelInstance {
 // LeafList returrns all leafs that this props is in
 func (prop *StaticProp) LeafList() []uint16 {
 	return prop.leafList
+}
+
+// Skin returns the skin the prop is drawn with
+func (prop *StaticProp) Skin() int {
+	return prop.skin
 }
 
 func (prop *StaticProp) FadeMinDistance() float32 {
@@ -110,6 +116,7 @@ func NewStaticProp(lumpProp game.IStaticPropDataLump, propLeafs *game.StaticProp
 	prop.Transform.Orientation = mgl32.AnglesToQuat(mgl32.DegToRad(angles[0]), mgl32.DegToRad(angles[1]), mgl32.DegToRad(angles[2]), mgl32.YZX)
 	prop.fadeMinDistance = lumpProp.GetFadeMinDist()
 	prop.fadeMaxDistance = lumpProp.GetFadeMaxDist()
+	prop.skin = int(lumpProp.GetSkin())
 
 	return &prop
 }

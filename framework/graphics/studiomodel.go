@@ -101,12 +101,26 @@ func modelFromStudioModel(filename string, studioModel *studiomodel.StudioModel,
 		modelMesh.AddTangent(tangent[0], tangent[1], tangent[2], tangent[3])
 	}
 
-	for _, lodMesh := range lod.Meshes {
+	// Each skin draws the same triangles with its own materials. A skin that cannot be built uses skin 0's.
+	skinLODs := []*studiomodel.LOD{lod}
+	for skin := 1; skin < len(studioModel.Mdl.SkinFamilies); skin++ {
+		skinLOD, err := studioModel.BuildLOD(0, skin)
+		if err != nil {
+			skinLOD = lod
+		}
+		skinLODs = append(skinLODs, skinLOD)
+	}
+
+	for meshIdx, lodMesh := range lod.Meshes {
 		// Every model of a body part is a bodygroup choice; the default body draws the first
 		if lodMesh.Model != 0 || len(lodMesh.Indices) == 0 {
 			continue
 		}
-		outModel.AddSubMesh(lodMesh.Indices, materialPathForStudioModel(studioModel.Mdl, lodMesh.Material, fs))
+		materials := make([]string, len(skinLODs))
+		for skin, skinLOD := range skinLODs {
+			materials[skin] = materialPathForStudioModel(studioModel.Mdl, skinLOD.Meshes[meshIdx].Material, fs)
+		}
+		outModel.AddSubMesh(lodMesh.Indices, materials)
 	}
 
 	outModel.ComputeBounds()

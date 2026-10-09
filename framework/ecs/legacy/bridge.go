@@ -52,6 +52,7 @@ func (b *Bridge) CreateECSEntityFromLegacy(legacyEntity entity.IEntity) ecs.Enti
 			ReceiveShadows:      true,
 			Visible:             true,
 			ModelScale:          1.0,
+			Skin:                legacyEntity.IntForKey("skin"),
 			ModelInstanceHandle: legacyEntity.Model(), // Phase 2: Store ModelInstance handle
 		}
 		ecs.AddComponent(b.world, ecsEntity, model)

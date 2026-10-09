@@ -18,11 +18,11 @@ import (
 // InstanceBatch represents a group of static props that share the same model+sub-mesh+material
 // and can be rendered together using GPU instancing
 type InstanceBatch struct {
-	Key          string                 // Unique identifier: "modelId_meshIdx_materialHash"
+	Key          string                 // Unique identifier: "modelId_meshIdx_materialPath"
 	ModelId      string                 // Model identifier
 	MeshIdx      int                    // Index of sub-mesh within model
 	Mesh         adapter.GpuMesh        // GPU mesh handle, shared by every sub-mesh of the model
-	Material     uint32                 // Texture ID
+	Material     *cache.GpuMaterial     // Material the sub-mesh is drawn with
 	IndexOffset  int                    // First index of the sub-mesh in Mesh
 	IndexCount   int                    // Number of indices in the sub-mesh
 	Props        []*graphics.StaticProp // All props in this batch (for reverse lookup)
@@ -45,6 +45,8 @@ type GPUScene struct {
 	GpuStaticProps            map[string]cache.GpuProp
 	GpuRenderablePropEntities []EntityPropCacheItem
 	InstanceBatches           map[string]*InstanceBatch // Pre-built instance batches for static props
+	// StaticPropBatches holds the instance batches that draw each static prop, one per sub-mesh
+	StaticPropBatches map[*graphics.StaticProp][]*InstanceBatch
 }
 
 func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem) *GPUScene {
@@ -54,6 +56,7 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		GpuStaticProps:            map[string]cache.GpuProp{},
 		GpuRenderablePropEntities: []EntityPropCacheItem{},
 		InstanceBatches:           map[string]*InstanceBatch{},
+		StaticPropBatches:         map[*graphics.StaticProp][]*InstanceBatch{},
 	}
 
 	console.PrintString(console.LevelInfo, "Submitting BSP texture data to GPU...")
@@ -98,16 +101,19 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
 	}
 
+	// Static props and prop entities can share models, so find every skin a model is drawn with before loading it
+	skins := propSkins(frameworkScene)
+
 	console.PrintString(console.LevelInfo, "Submitting staticprop studiomodel data to GPU...")
 	// Finish staticprops
 	for _, prop := range frameworkScene.RawBsp.StaticPropDictionary {
-		s.LoadSingleProp(prop, frameworkScene, fs)
+		s.LoadSingleProp(prop, skins[prop.Id], frameworkScene, fs)
 	}
 
 	console.PrintString(console.LevelInfo, "Submitting entity studiomodel data to GPU...")
 	// Finish props referenced by entities
 	for _, prop := range frameworkScene.RawBsp.EntityPropDictionary {
-		s.LoadSingleProp(prop, frameworkScene, fs)
+		s.LoadSingleProp(prop, skins[prop.Id], frameworkScene, fs)
 
 		s.GpuRenderablePropEntities = append(s.GpuRenderablePropEntities, EntityPropCacheItem{
 			Id:       prop.Id,
@@ -165,7 +171,25 @@ func GpuSceneFromFrameworkScene(frameworkScene *scene.StaticScene, fs fileSystem
 	return s
 }
 
-func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.StaticScene, fs fileSystem) {
+// propSkins returns the skins each model is drawn with by static props and prop entities
+func propSkins(frameworkScene *scene.StaticScene) map[string][]int {
+	skins := map[string][]int{}
+	for idx := range frameworkScene.RawBsp.StaticProps {
+		prop := &frameworkScene.RawBsp.StaticProps[idx]
+		id := prop.Model().Model.Id
+		skins[id] = append(skins[id], prop.Skin())
+	}
+	for _, ent := range frameworkScene.Entities {
+		if strings.HasPrefix(ent.Classname(), "prop_") {
+			id := ent.ValueForKey("model")
+			skins[id] = append(skins[id], ent.IntForKey("skin"))
+		}
+	}
+	return skins
+}
+
+// LoadSingleProp uploads a model, and the materials of the skins it is drawn with. Skin 0 is always loaded.
+func (s *GPUScene) LoadSingleProp(prop *mesh.Model, skins []int, frameworkScene *scene.StaticScene, fs fileSystem) {
 	if _, ok := s.GpuStaticProps[prop.Id]; ok {
 		return
 	}
@@ -176,97 +200,117 @@ func (s *GPUScene) LoadSingleProp(prop *mesh.Model, frameworkScene *scene.Static
 		return
 	}
 	gpuProp.Mesh = adapter.UploadMesh(prop.Mesh())
-	for _, materialPath := range prop.Materials() {
-		if _, ok := frameworkScene.RawBsp.MaterialDictionary()[materialPath]; ok {
-			gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
+	gpuProp.Materials = make([][]cache.GpuMaterial, prop.NumSkins())
+	for _, skin := range append([]int{0}, skins...) {
+		skin = prop.Skin(skin)
+		if gpuProp.Materials[skin] != nil {
 			continue
 		}
-		mat, err := graphics.LoadMaterial(fs, materialPath)
-		if err != nil {
-			console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
-			mat = graphics.NewMaterial(materialPath)
-			mat.BaseTextureName = scene.ErrorTexturePath
+		for _, materialPath := range prop.Materials(skin) {
+			gpuProp.Materials[skin] = append(gpuProp.Materials[skin], *s.loadPropMaterial(materialPath, frameworkScene, fs))
 		}
-		if tex := frameworkScene.TexCache.Find(mat.BaseTextureName); tex == nil {
-			tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
-			if err != nil {
-				console.PrintString(console.LevelWarning, err.Error())
-				frameworkScene.TexCache.Add(mat.BaseTextureName, frameworkScene.TexCache.Find(scene.ErrorTexturePath))
-				s.GpuItemCache.Add(mat.BaseTextureName, s.GpuItemCache.Find(scene.ErrorTexturePath))
-			} else {
-				frameworkScene.TexCache.Add(mat.BaseTextureName, tex)
-				s.GpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
-				adapter.ReleaseTextureResource(tex)
-			}
-		}
-		gpuMat := cache.NewGpuMaterial(s.GpuItemCache.Find(mat.BaseTextureName), mat)
-
-		// If this is a blend material, load the second texture
-		if mat.IsBlendMaterial() && mat.BaseTexture2Name != "" {
-			if console.GetConvarBoolean("developer") {
-				console.PrintString(console.LevelInfo, fmt.Sprintf("Prop Blend material detected: %s -> %s + %s", mat.FilePath(), mat.BaseTextureName, mat.BaseTexture2Name))
-			}
-			gpuMat.Diffuse2 = s.GpuItemCache.Find(mat.BaseTexture2Name)
-			if gpuMat.Diffuse2 == 0 {
-				tex2, err := graphics.LoadTexture(fs, mat.BaseTexture2Name)
-				if err != nil {
-					console.PrintString(console.LevelWarning, fmt.Sprintf("Failed to load blend texture: %s", mat.BaseTexture2Name))
-				} else {
-					frameworkScene.TexCache.Add(mat.BaseTexture2Name, tex2)
-					gpuMat.Diffuse2 = adapter.UploadTexture(tex2)
-					s.GpuItemCache.Add(mat.BaseTexture2Name, gpuMat.Diffuse2)
-					adapter.ReleaseTextureResource(tex2)
-					if console.GetConvarBoolean("developer") {
-						console.PrintString(console.LevelInfo, fmt.Sprintf("  Loaded blend texture %s (GPU ID: %d)", mat.BaseTexture2Name, gpuMat.Diffuse2))
-					}
-				}
-			} else if console.GetConvarBoolean("developer") {
-				console.PrintString(console.LevelInfo, fmt.Sprintf("  Using cached blend texture %s (GPU ID: %d)", mat.BaseTexture2Name, gpuMat.Diffuse2))
-			}
-		}
-
-		s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
-		gpuProp.AddMaterial(*s.GpuMaterialCache.Find(strings.ToLower(materialPath)))
 	}
 
 	s.GpuStaticProps[prop.Id] = gpuProp
+}
+
+// loadPropMaterial returns a prop material, loading it and its textures if no bsp face or other prop has
+func (s *GPUScene) loadPropMaterial(materialPath string, frameworkScene *scene.StaticScene, fs fileSystem) *cache.GpuMaterial {
+	if gpuMat := s.GpuMaterialCache.Find(strings.ToLower(materialPath)); gpuMat != nil {
+		return gpuMat
+	}
+
+	mat, err := graphics.LoadMaterial(fs, materialPath)
+	if err != nil {
+		console.PrintString(console.LevelError, fmt.Sprintf("Failed to load material: %s, %s", materialPath, err.Error()))
+		mat = graphics.NewMaterial(materialPath)
+		mat.BaseTextureName = scene.ErrorTexturePath
+	}
+	if tex := frameworkScene.TexCache.Find(mat.BaseTextureName); tex == nil {
+		tex, err := graphics.LoadTexture(fs, mat.BaseTextureName)
+		if err != nil {
+			console.PrintString(console.LevelWarning, err.Error())
+			frameworkScene.TexCache.Add(mat.BaseTextureName, frameworkScene.TexCache.Find(scene.ErrorTexturePath))
+			s.GpuItemCache.Add(mat.BaseTextureName, s.GpuItemCache.Find(scene.ErrorTexturePath))
+		} else {
+			frameworkScene.TexCache.Add(mat.BaseTextureName, tex)
+			s.GpuItemCache.Add(mat.BaseTextureName, adapter.UploadTexture(tex))
+			adapter.ReleaseTextureResource(tex)
+		}
+	}
+	gpuMat := cache.NewGpuMaterial(s.GpuItemCache.Find(mat.BaseTextureName), mat)
+
+	// If this is a blend material, load the second texture
+	if mat.IsBlendMaterial() && mat.BaseTexture2Name != "" {
+		if console.GetConvarBoolean("developer") {
+			console.PrintString(console.LevelInfo, fmt.Sprintf("Prop Blend material detected: %s -> %s + %s", mat.FilePath(), mat.BaseTextureName, mat.BaseTexture2Name))
+		}
+		gpuMat.Diffuse2 = s.GpuItemCache.Find(mat.BaseTexture2Name)
+		if gpuMat.Diffuse2 == 0 {
+			tex2, err := graphics.LoadTexture(fs, mat.BaseTexture2Name)
+			if err != nil {
+				console.PrintString(console.LevelWarning, fmt.Sprintf("Failed to load blend texture: %s", mat.BaseTexture2Name))
+			} else {
+				frameworkScene.TexCache.Add(mat.BaseTexture2Name, tex2)
+				gpuMat.Diffuse2 = adapter.UploadTexture(tex2)
+				s.GpuItemCache.Add(mat.BaseTexture2Name, gpuMat.Diffuse2)
+				adapter.ReleaseTextureResource(tex2)
+				if console.GetConvarBoolean("developer") {
+					console.PrintString(console.LevelInfo, fmt.Sprintf("  Loaded blend texture %s (GPU ID: %d)", mat.BaseTexture2Name, gpuMat.Diffuse2))
+				}
+			}
+		} else if console.GetConvarBoolean("developer") {
+			console.PrintString(console.LevelInfo, fmt.Sprintf("  Using cached blend texture %s (GPU ID: %d)", mat.BaseTexture2Name, gpuMat.Diffuse2))
+		}
+	}
+
+	s.GpuMaterialCache.Add(strings.ToLower(mat.FilePath()), gpuMat)
+
+	return gpuMat
 }
 
 // buildInstanceBatches groups all static props into instance batches for efficient rendering
 // Called once at scene load time
 func (s *GPUScene) buildInstanceBatches(frameworkScene *scene.StaticScene) {
 	batches := make(map[string]*InstanceBatch)
+	propBatches := make(map[*graphics.StaticProp][]*InstanceBatch)
 
 	// Iterate ALL static props in the scene across all clusters
 	for _, cluster := range frameworkScene.ClusterLeafs {
 		for _, prop := range cluster.StaticProps {
-			gpuProp, ok := s.GpuStaticProps[prop.Model().Model.Id]
+			// A prop is listed in every cluster it touches, but belongs to its batches once
+			if _, seen := propBatches[prop]; seen {
+				continue
+			}
+			propBatches[prop] = nil
+
+			model := prop.Model().Model
+			gpuProp, ok := s.GpuStaticProps[model.Id]
 			if !ok {
 				continue
 			}
+			materials := gpuProp.MaterialsForSkin(prop.Skin())
 
 			// Each sub-mesh in the prop might need a separate batch
-			for meshIdx, subMesh := range prop.Model().Model.SubMeshes() {
-				// Create batch key (same as runtime sorting key)
-				materialHash := gpuProp.Material[meshIdx].Diffuse
-				key := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
+			for meshIdx, subMesh := range model.SubMeshes() {
+				material := &materials[meshIdx]
+				key := fmt.Sprintf("%s_%d_%s", model.Id, meshIdx, material.Properties.FilePath())
 
-				if batch, exists := batches[key]; exists {
-					// Add to existing batch
-					batch.Props = append(batch.Props, prop)
-				} else {
-					// Create new batch
-					batches[key] = &InstanceBatch{
+				batch, exists := batches[key]
+				if !exists {
+					batch = &InstanceBatch{
 						Key:         key,
-						ModelId:     prop.Model().Model.Id,
+						ModelId:     model.Id,
 						MeshIdx:     meshIdx,
 						Mesh:        gpuProp.Mesh,
-						Material:    materialHash,
+						Material:    material,
 						IndexOffset: subMesh.IndexOffset,
 						IndexCount:  subMesh.IndexCount,
-						Props:       []*graphics.StaticProp{prop},
 					}
+					batches[key] = batch
 				}
+				batch.Props = append(batch.Props, prop)
+				propBatches[prop] = append(propBatches[prop], batch)
 			}
 		}
 	}
@@ -288,6 +332,7 @@ func (s *GPUScene) buildInstanceBatches(frameworkScene *scene.StaticScene) {
 	}
 
 	s.InstanceBatches = batches
+	s.StaticPropBatches = propBatches
 
 	console.PrintString(console.LevelInfo,
 		fmt.Sprintf("Created %d instance batches", len(batches)))

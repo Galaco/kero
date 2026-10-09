@@ -366,8 +366,10 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	viewFrustum := graphics.FrustumFromCamera(camera)
 
 	// Build list of visible instance data per batch
-	// Key = batch key, Value = flat array of instance data (mat4 + vec2 fade)
-	batchVisibleData := make(map[string][]float32)
+	// Value = flat array of instance data (mat4 + vec2 fade)
+	batchVisibleData := make(map[*scene.InstanceBatch][]float32)
+	// A prop is listed in every cluster it touches, but is drawn once
+	visited := make(map[*graphics.StaticProp]bool)
 
 	// Iterate visible clusters and props to determine which instances are visible
 	for _, cluster := range clusters {
@@ -376,10 +378,14 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 			math.Pow(float64(cluster.Origin.Z()-camera.Transform().Translation.Z()), 2)
 
 		for _, prop := range cluster.StaticProps {
-			// Fade distance check
+			if visited[prop] {
+				continue
+			}
+			// Fade distance check; another cluster the prop is in may be close enough
 			if prop.FadeMaxDistance() > 0 && distToCluster >= math.Pow(float64(prop.FadeMaxDistance()), 2) {
 				continue
 			}
+			visited[prop] = true
 
 			// Per-prop frustum culling using accurate transformed bounds
 			propMins, propMaxs := prop.GetTransformedBounds()
@@ -387,31 +393,16 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 				continue
 			}
 
-			// Add visible prop to its batch(es)
-			gpuProp, ok := s.gpuScene.GpuStaticProps[prop.Model().Model.Id]
-			if !ok {
-				continue
-			}
+			// Pack instance data: mat4 (16 floats) + vec2 fade (2 floats) = 18 floats
+			transform := prop.Transform.TransformationMatrix()
+			instanceData := make([]float32, 18)
+			copy(instanceData, transform[:])
+			instanceData[16] = prop.FadeMinDistance()
+			instanceData[17] = prop.FadeMaxDistance()
 
-			for meshIdx := range prop.Model().Model.SubMeshes() {
-				materialHash := gpuProp.Material[meshIdx].Diffuse
-				batchKey := fmt.Sprintf("%s_%d_%d", prop.Model().Model.Id, meshIdx, materialHash)
-
-				// Pack instance data: mat4 (16 floats) + vec2 fade (2 floats) = 18 floats
-				transform := prop.Transform.TransformationMatrix()
-				instanceData := make([]float32, 18)
-
-				// Copy matrix (16 floats, column-major order)
-				for i := 0; i < 16; i++ {
-					instanceData[i] = transform[i]
-				}
-
-				// Add fade distances (2 floats)
-				instanceData[16] = prop.FadeMinDistance()
-				instanceData[17] = prop.FadeMaxDistance()
-
-				// Append to batch's data array
-				batchVisibleData[batchKey] = append(batchVisibleData[batchKey], instanceData...)
+			// Add visible prop to the batch of each of its sub-meshes
+			for _, batch := range s.gpuScene.StaticPropBatches[prop] {
+				batchVisibleData[batch] = append(batchVisibleData[batch], instanceData...)
 			}
 		}
 	}
@@ -435,12 +426,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 	}
 
 	// Render each batch that has visible instances
-	for batchKey, data := range batchVisibleData {
-		batch, exists := s.gpuScene.InstanceBatches[batchKey]
-		if !exists {
-			continue
-		}
-
+	for batch, data := range batchVisibleData {
 		instanceCount := len(data) / 18 // 18 floats per instance
 
 		// Skip if no instances (shouldn't happen, but safety check)
@@ -453,7 +439,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 
 		// Bind mesh and material
 		adapter.BindMesh(&batch.Mesh)
-		adapter.BindTexture(batch.Material)
+		adapter.BindTexture(batch.Material.Diffuse)
 		adapter.SetupInstanceAttributes(batch.InstanceVBO)
 
 		// Draw all visible instances with one call!
@@ -461,7 +447,7 @@ func (s *Renderer) renderStaticProps(camera *graphics.Camera, clusters []*vis.Cl
 
 		// Check for GL errors after draw
 		if err := adapter.GpuError(); err != nil {
-			console.PrintString(console.LevelError, fmt.Sprintf("GL error drawing batch %s: %s", batchKey, err.Error()))
+			console.PrintString(console.LevelError, fmt.Sprintf("GL error drawing batch %s: %s", batch.Key, err.Error()))
 		}
 	}
 
@@ -518,8 +504,9 @@ func (s *Renderer) renderEntityProps() {
 		modelId := modelInstance.Model.Id
 		if gpuProp, ok := s.gpuScene.GpuStaticProps[modelId]; ok && gpuProp.Mesh != nil {
 			adapter.BindMesh(&gpuProp.Mesh)
+			materials := gpuProp.MaterialsForSkin(model.Skin)
 			for idx, subMesh := range modelInstance.Model.SubMeshes() {
-				adapter.BindTexture(gpuProp.Material[idx].Diffuse)
+				adapter.BindTexture(materials[idx].Diffuse)
 				adapter.DrawIndexedArray(subMesh.IndexCount, subMesh.IndexOffset, nil)
 			}
 		}
