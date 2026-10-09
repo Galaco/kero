@@ -103,7 +103,7 @@ func (s *Renderer) Render() {
 			s.dataScene.SkyCamera.Update(0)
 			s.startFrame(s.dataScene.SkyCamera)
 			translucents := s.renderBsp(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
-			s.renderDisplacements(s.dataScene.DisplacementFaces)
+			s.renderDisplacements(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)
 			translucents = append(translucents, s.renderStaticProps(s.dataScene.SkyCamera, s.dataScene.SkyboxClusterLeafs)...)
 			s.renderTranslucents(s.dataScene.SkyCamera, translucents)
 			adapter.ClearDepthBuffer()
@@ -114,7 +114,7 @@ func (s *Renderer) Render() {
 	// Draw world. Translucent faces and props are drawn after everything opaque.
 	s.startFrame(s.dataScene.Camera)
 	translucents := s.renderBsp(s.dataScene.Camera, clusters)
-	s.renderDisplacements(s.dataScene.DisplacementFaces)
+	s.renderDisplacements(s.dataScene.Camera, clusters)
 	translucents = append(translucents, s.renderStaticProps(s.dataScene.Camera, clusters)...)
 
 	// Render entity props using ECS
@@ -280,7 +280,8 @@ func pushAlphaTest(shader *adapter.Shader, mat *cache.GpuMaterial) {
 	adapter.PushFloat32(shader.GetUniform("alphaTestReference"), reference)
 }
 
-func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
+// renderDisplacements draws the displacements in clusters, seen by camera
+func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.ClusterLeaf) {
 	var mat *cache.GpuMaterial
 	var currentShader *adapter.Shader
 
@@ -288,7 +289,8 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 	blendDisplacements := make([]*graphics.BspFace, 0)
 	regularDisplacements := make([]*graphics.BspFace, 0)
 
-	for _, displacement := range displacements {
+	for _, idx := range vis.ClusterDisplacements(clusters) {
+		displacement := s.dataScene.DisplacementFaces[idx]
 		mat = s.gpuScene.GpuMaterialCache.Find(displacement.Material())
 		if mat != nil && mat.Properties.IsBlendMaterial() {
 			blendDisplacements = append(blendDisplacements, displacement)
@@ -328,9 +330,9 @@ func (s *Renderer) renderDisplacements(displacements []*graphics.BspFace) {
 		currentShader.Bind()
 		// Displacement mesh already bound above, no need to re-bind
 
-		adapter.PushMat4(currentShader.GetUniform("projection"), 1, false, s.dataScene.Camera.ProjectionMatrix())
-		adapter.PushMat4(currentShader.GetUniform("view"), 1, false, s.dataScene.Camera.ViewMatrix())
-		adapter.PushMat4(currentShader.GetUniform("model"), 1, false, s.dataScene.Camera.ModelMatrix())
+		adapter.PushMat4(currentShader.GetUniform("projection"), 1, false, camera.ProjectionMatrix())
+		adapter.PushMat4(currentShader.GetUniform("view"), 1, false, camera.ViewMatrix())
+		adapter.PushMat4(currentShader.GetUniform("model"), 1, false, camera.ModelMatrix())
 		adapter.PushInt32(currentShader.GetUniform("basetextureSampler"), 0)
 		adapter.PushInt32(currentShader.GetUniform("basetexture2Sampler"), 1)
 		adapter.PushInt32(currentShader.GetUniform("lightmapSampler"), 2)

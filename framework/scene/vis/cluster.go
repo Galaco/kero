@@ -10,7 +10,7 @@ type ClusterLeaf struct {
 	Id          int16
 	Faces       []graphics.BspFace
 	StaticProps []*graphics.StaticProp
-	DispFaces   []int
+	DispFaces   []int // indexes of the bsp's displacement faces that are in this cluster
 	Mins, Maxs  mgl32.Vec3
 	Origin      mgl32.Vec3
 	SkyVisible  bool
@@ -39,4 +39,20 @@ func GroupClusterFacesByMaterial(clusters []*ClusterLeaf) map[string][]*graphics
 	}
 
 	return clusterFaceMap
+}
+
+// ClusterDisplacements returns the displacements in a collection of clusters, as indexes of the bsp's displacement
+// faces. A displacement in more than one cluster is returned once.
+func ClusterDisplacements(clusters []*ClusterLeaf) []int {
+	displacements := make([]int, 0)
+	added := map[int]bool{}
+	for _, cluster := range clusters {
+		for _, idx := range cluster.DispFaces {
+			if !added[idx] {
+				added[idx] = true
+				displacements = append(displacements, idx)
+			}
+		}
+	}
+	return displacements
 }
