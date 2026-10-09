@@ -47,6 +47,11 @@ var WorldVertexTransitionFragment = `
 	uniform float alpha;
 	uniform int translucent;
 
+	// $alphatest discards the parts of the base texture whose alpha is below the reference. As in the engine, only the
+	// first texture's alpha is tested.
+	uniform int alphaTest;
+	uniform float alphaTestReference;
+
 	// Debug Options
 	uniform int renderLightmapsAsAlbedo;
 
@@ -106,6 +111,10 @@ var WorldVertexTransitionFragment = `
 
     void main()
 	{
+		if (alphaTest == 1 && texture(basetextureSampler, UV).a < alphaTestReference) {
+			discard;
+		}
+
 		vec4 diffuse = AlbedoPass();
 		diffuse = LightmapPass(diffuse);
 		diffuse = AlphaPass(diffuse);

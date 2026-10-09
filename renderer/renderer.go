@@ -301,6 +301,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 			continue
 		}
 
+		s.setNoCull(batch.material.NoCull())
 		if !batch.blend {
 			pushAlphaTest(s.activeShader, batch.material)
 			adapter.BindTexture(batch.material.Diffuse)
@@ -309,9 +310,10 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 			if blendShader == nil {
 				blendShader = s.bindWorldVertexTransition(camera)
 				if blendShader == nil {
-					return
+					break
 				}
 			}
+			pushAlphaTest(blendShader, batch.material)
 			adapter.BindTexture(batch.material.Diffuse)
 			second := batch.material.Diffuse2
 			if second == 0 {
@@ -326,6 +328,7 @@ func (s *Renderer) renderDisplacements(camera *graphics.Camera, clusters []*vis.
 		}
 	}
 
+	s.setNoCull(false)
 	if blendShader != nil {
 		// Restore LightMappedGeneric shader for subsequent rendering
 		s.activeShader.Bind()
