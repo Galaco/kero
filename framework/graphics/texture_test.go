@@ -1,8 +1,15 @@
 package graphics
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"io"
 	"testing"
+
+	"github.com/galaco/vtf/v2"
+	"github.com/galaco/vtf/v2/format"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 func TestNewError(t *testing.T) {
@@ -275,6 +282,59 @@ func TestTextureAtlas_Pages(t *testing.T) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// textureFiles is a filesystem of textures by path
+type textureFiles map[string][]byte
+
+func (files textureFiles) GetFile(path string) (io.Reader, error) {
+	data, ok := files[path]
+	if !ok {
+		return nil, errors.New("not found: " + path)
+	}
+	return bytes.NewReader(data), nil
+}
+
+func TestLoadTexture_Mipmaps(t *testing.T) {
+	// A 4x2 BGR888 texture with every mipmap. Each mipmap is filled with its level, and they are stored smallest first.
+	header := vtf.Header{}
+	header.Signature = [4]byte{'V', 'T', 'F', 0}
+	header.Version = [2]uint32{7, 2}
+	header.HeaderSize = 80
+	header.Width, header.Height = 4, 2
+	header.Frames = 1
+	header.HighResImageFormat = format.BGR888
+	header.MipmapCount = 3
+	header.LowResImageFormat = format.None
+	header.Depth = 1
+	file := bytes.Buffer{}
+	if err := binary.Write(&file, binary.LittleEndian, header); err != nil {
+		t.Fatal(err)
+	}
+	file.Write(make([]byte, int(header.HeaderSize)-file.Len()))
+	sizes := []int{4 * 2 * 3, 2 * 1 * 3, 1 * 1 * 3}
+	for level := len(sizes) - 1; level >= 0; level-- {
+		file.Write(bytes.Repeat([]byte{byte(level)}, sizes[level]))
+	}
+
+	texture, err := LoadTexture(textureFiles{"materials/foo.vtf": file.Bytes()}, "foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if texture.Width() != 4 || texture.Height() != 2 || !bytes.Equal(texture.Image(), bytes.Repeat([]byte{0}, sizes[0])) {
+		t.Errorf("got a %dx%d texture of %v, want the largest mipmap", texture.Width(), texture.Height(), texture.Image())
+	}
+	mipmaps := texture.Mipmaps()
+	if len(mipmaps) != len(sizes) {
+		t.Fatalf("got %d mipmaps, want %d", len(mipmaps), len(sizes))
+	}
+	// From the largest
+	for level, mipmap := range mipmaps {
+		if expected := bytes.Repeat([]byte{byte(level)}, sizes[level]); !bytes.Equal(mipmap, expected) {
+			t.Errorf("mipmap %d: got %v, want %v", level, mipmap, expected)
 		}
 	}
 }

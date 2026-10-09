@@ -56,12 +56,23 @@ func ClearDepthBuffer() {
 	gl.Clear(gl.DEPTH_BUFFER_BIT)
 }
 
+// mipmappedTexture is a texture with smaller copies of its image
+type mipmappedTexture interface {
+	// Mipmaps returns the texture's image, then each smaller copy, each half the size of the one before
+	Mipmaps() [][]uint8
+}
+
+// UploadTexture uploads a texture, with its mipmaps if it has them
 func UploadTexture(texture Texture) uint32 {
-	return uint32(gosigl.CreateTexture2D(
+	mipmaps := [][]uint8{texture.Image()}
+	if mipmapped, ok := texture.(mipmappedTexture); ok {
+		mipmaps = mipmapped.Mipmaps()
+	}
+	return uint32(gosigl.CreateTexture2DMipmaps(
 		gosigl.TextureSlot(0),
 		texture.Width(),
 		texture.Height(),
-		texture.Image(),
+		mipmaps,
 		gosigl.PixelFormat(texture.Format()),
 		false))
 }

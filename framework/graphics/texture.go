@@ -2,8 +2,8 @@ package graphics
 
 import (
 	"github.com/galaco/kero/framework/graphics/adapter"
-	"github.com/galaco/vtf"
-	"github.com/galaco/vtf/format"
+	"github.com/galaco/vtf/v2"
+	"github.com/galaco/vtf/v2/format"
 	"math"
 	"sort"
 	"strings"
@@ -18,6 +18,8 @@ type Texture2D struct {
 	height   int
 	format   uint32
 	colour   []uint8
+	// mipmaps are smaller copies of colour, each half the size of the one before. It is empty if there are none.
+	mipmaps [][]uint8
 }
 
 // Format returns colour format
@@ -40,9 +42,15 @@ func (texture *Texture2D) Image() []uint8 {
 	return texture.colour
 }
 
+// Mipmaps returns the texture's colour data, then each of its smaller copies, from the largest
+func (texture *Texture2D) Mipmaps() [][]uint8 {
+	return append([][]uint8{texture.colour}, texture.mipmaps...)
+}
+
 // Free color data from memory
 func (texture *Texture2D) Release() {
 	texture.colour = nil
+	texture.mipmaps = nil
 }
 
 // LoadTexture
@@ -159,12 +167,21 @@ func readVtf(fs VirtualFileSystem, path string) (*Texture2D, error) {
 		return nil, err
 	}
 
-	return NewTexture(path,
-			int(read.Header().Width),
-			int(read.Header().Height),
-			read.Header().HighResImageFormat,
-			read.HighestResolutionImageForFrame(0)),
-		nil
+	// The first frame of every mipmap. The largest is the texture's colour.
+	mipmaps := make([][]uint8, read.MipmapCount())
+	for level := range mipmaps {
+		if mipmaps[level], err = read.Mipmap(level, 0, 0, 0); err != nil {
+			return nil, err
+		}
+	}
+
+	texture := NewTexture(path,
+		int(read.Header().Width),
+		int(read.Header().Height),
+		uint32(read.Header().HighResImageFormat),
+		mipmaps[0])
+	texture.mipmaps = mipmaps[1:]
+	return texture, nil
 }
 
 // TextureAtlas is a simple 2d texture atlas.
