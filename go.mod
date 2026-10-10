@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/AllenDang/cimgui-go v1.4.0
 	github.com/galaco/KeyValues v1.4.1
-	github.com/galaco/bsp v1.0.0-b2
+	github.com/galaco/bsp v1.0.0-b3
 	github.com/galaco/filesystem v0.2.0
 	github.com/galaco/gosigl v0.3.0
 	github.com/galaco/source-tools-common v0.1.0
